@@ -1,4 +1,4 @@
-// app/history/[gw]/page.tsx
+import Link from "next/link";
 
 interface StandingRow {
   entry: number;
@@ -9,85 +9,53 @@ interface StandingRow {
   total: number;
 }
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-async function fetchWithTimeout(url: string, ms = 12000, init?: RequestInit) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ms);
-  try {
-    const res = await fetch(url, { ...init, signal: controller.signal, cache: "no-store" });
-    return res;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export default async function HistoryGW({
-  params,
-}: {
-  params: Promise<{ gw: string }>;
-}) {
-  const { gw } = await params; // 👈 your setup wants Promise params
-
+export default async function HistoryDetailPage({ params }: { params: { gw: string } }) {
   const base = process.env.API_BASE!;
   const leagueId = process.env.LEAGUE_ID!;
+  const gw = params.gw;
 
-  try {
-    const res = await fetchWithTimeout(`${base}/history/${leagueId}/${gw}`);
-    if (!res.ok) {
-      return (
-        <main style={{ padding: 24 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>
-            Uh oh, you&#39;ve gotten ahead of yourself
-          </h1>
-          <p style={{ marginTop: 12 }}>
-            Don&#39;t worry, a snapshot for GW {gw} hasn&#39;t been taken yet. Try again after the Gameweek ends.
-          </p>
-        </main>
-      );
-    }
-
-    const data = await res.json();
-    const rows: StandingRow[] = data?.standings?.results ?? [];
-    const name: string = data?.league?.name ?? "League";
-
-    return (
-      <main style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>{name} — GW {gw} Standings</h1>
-        <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8, marginTop: 12 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Rank","Player","Team Name","GW Points","Total Points"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.entry}>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.rank}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.player_name}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.entry_name}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.event_total}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-          Snapshot saved at time of capture; may differ from current live table.
-        </p>
-      </main>
-    );
-  } catch (e) {
-    void e; // satisfy no-unused-vars
+  const res = await fetch(`${base}/history/${leagueId}/${gw}`, { cache: "no-store" });
+  if (!res.ok) {
     return (
       <main style={{ padding: 24 }}>
-        <h1>Request timed out</h1>
+        <h1>Uh oh, you&apos;ve gotten ahead of yourself</h1>
       </main>
     );
   }
+
+  const data = await res.json();
+  const rows: StandingRow[] = data?.standings?.results ?? [];
+
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>History — Gameweek {gw}</h1>
+      <p>
+        <Link href="/history">← Back to all history</Link>
+      </p>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Team</th>
+            <th>GW Points</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.entry}>
+              <td>{r.rank}</td>
+              <td>
+                <Link href={`/team/${r.entry}`}>{r.player_name}</Link>
+              </td>
+              <td>{r.entry_name}</td>
+              <td>{r.event_total}</td>
+              <td>{r.total}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </main>
+  );
 }

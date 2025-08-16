@@ -1,7 +1,21 @@
 // app/page.tsx
 export const revalidate = 60; // ISR: refresh data every 60s
 
-async function getLeague() {
+interface StandingRow {
+  entry: number;
+  rank: number;
+  player_name: string;
+  entry_name: string;
+  event_total: number;
+  total: number;
+}
+
+interface FplLeagueResponse {
+  league: { name: string };
+  standings: { results: StandingRow[] };
+}
+
+async function getLeague(): Promise<FplLeagueResponse> {
   const base = process.env.API_BASE!;
   const leagueId = process.env.LEAGUE_ID!;
   const res = await fetch(`${base}/league/${leagueId}`, {
@@ -15,13 +29,13 @@ async function getLeague() {
 
 export default async function Home() {
   const data = await getLeague();
-  const league = data.league;
-  const rows: any[] = data?.standings?.results ?? [];
+  const leagueName = data?.league?.name ?? "League";
+  const rows: StandingRow[] = data?.standings?.results ?? [];
 
   return (
     <main style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
-        {league?.name ?? "League"} — Standings
+        {leagueName} — Standings
       </h1>
       <p style={{ marginBottom: 16, opacity: 0.7 }}>
         Updated every ~60 seconds.
@@ -32,7 +46,10 @@ export default async function Home() {
           <thead>
             <tr>
               {["Rank", "Player", "Team Name", "GW Points", "Total Points"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}>
+                <th
+                  key={h}
+                  style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}
+                >
                   {h}
                 </th>
               ))}

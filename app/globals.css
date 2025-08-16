@@ -1,47 +1,65 @@
 /* app/globals.css */
 
-/* ===== Reset-ish bits (light) ======================================= */
+/* Base reset */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-/* Make links clearly clickable site-wide */
-a { text-decoration: underline; }
+/* Typography + defaults */
+body { font-family: Helvetica, Arial, sans-serif; color: #111; background: #fff; }
+
+/* Links – no purple, clean, subtle hover */
+a,
+a:visited { color: inherit; text-decoration: none; }
+a:hover { opacity: 0.75; }
+
+/* Optional underline style you can apply selectively with class="link" */
+.link { text-decoration: underline; text-underline-offset: 2px; }
+
+/* “Kiko-ish” outline button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #111;
+  border-radius: 9999px;            /* pill */
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  line-height: 1;
+  background: transparent;
+  color: #111;
+  transition: background 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+.btn:hover { background: #111; color: #fff; }
+.btn:active { opacity: 0.9; }
 
 /* ===== Polka Dot Background ======================================== */
 :root {
-  /* Tweak these to taste */
-  --dot-size: 1.5px;              /* dot radius */
-  --dot-gap: 40px;                /* base spacing between dots (less dense) */
+  --dot-size: 1.5px;
+  --dot-gap: 40px; /* spread out */
   --dot-color-light: rgba(0, 0, 0, 0.05);
   --dot-color-dark: rgba(255, 255, 255, 0.07);
   --bg-light: #ffffff;
   --bg-dark: #0b0b0b;
 }
 
-/* Slightly different spacing on larger screens for extra air */
-@media (min-width: 768px) {
-  :root { --dot-gap: 48px; }
-}
-@media (min-width: 1280px) {
-  :root { --dot-gap: 56px; }
-}
+@media (min-width: 768px) { :root { --dot-gap: 48px; } }
+@media (min-width: 1280px) { :root { --dot-gap: 56px; } }
 
-/* The page wrapper that applies the pattern */
+/* Attach the pattern to body via .polka-bg */
 .polka-bg {
   position: relative;
   background: var(--bg-light);
 }
-
-/* Fixed overlay so dots stay static while content scrolls */
 .polka-bg::before {
   content: "";
-  position: fixed;
+  position: fixed;               /* stays static on scroll */
   inset: 0;
   z-index: 0;
   pointer-events: none;
-
-  /* Two staggered dot grids for a richer look */
   background-image:
     radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px)),
     radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px));
@@ -53,8 +71,9 @@ a { text-decoration: underline; }
     var(--dot-gap) var(--dot-gap);
 }
 
-/* Dark mode variant */
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
+  body { color: #eee; background: #0b0b0b; }
   .polka-bg { background: var(--bg-dark); }
   .polka-bg::before {
     background-image:
@@ -63,5 +82,5 @@ a { text-decoration: underline; }
   }
 }
 
-/* Ensure your site chrome/content sits above the fixed background */
+/* Keep your app chrome above the dots */
 .site-shell { position: relative; z-index: 1; }

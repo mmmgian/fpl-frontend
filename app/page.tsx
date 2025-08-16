@@ -1,5 +1,6 @@
 // app/page.tsx
-export const revalidate = 60; // ISR: refresh data every 60s
+
+import Link from "next/link";
 
 interface StandingRow {
   entry: number;
@@ -10,68 +11,88 @@ interface StandingRow {
   total: number;
 }
 
-interface FplLeagueResponse {
-  league: { name: string };
-  standings: { results: StandingRow[] };
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function fetchWithTimeout(url: string, ms = 12000, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal, cache: "no-store" });
+    return res;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
-async function getLeague(): Promise<FplLeagueResponse> {
+export default async function HomePage() {
   const base = process.env.API_BASE!;
   const leagueId = process.env.LEAGUE_ID!;
-  const res = await fetch(`${base}/league/${leagueId}`, {
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch league: ${res.status}`);
-  }
-  return res.json();
-}
 
-export default async function Home() {
-  const data = await getLeague();
-  const leagueName = data?.league?.name ?? "League";
-  const rows: StandingRow[] = data?.standings?.results ?? [];
+  try {
+    const res = await fetchWithTimeout(`${base}/league/${leagueId}`);
+    if (!res.ok) {
+      return (
+        <main style={{ padding: 24 }}>
+          <h1>Uh oh, you&apos;ve gotten ahead of yourself</h1>
+          <p>Couldn&apos;t fetch the live league table. Try again soon.</p>
+        </main>
+      );
+    }
 
-  return (
-    <main style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
-        {leagueName} — Standings
-      </h1>
-      <p style={{ marginBottom: 16, opacity: 0.7 }}>
-        Updated every ~60 seconds.
-      </p>
+    const data = await res.json();
+    const rows: StandingRow[] = data?.standings?.results ?? [];
+    const name: string = data?.league?.name ?? "League";
 
-      <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              {["Rank", "Player", "Team Name", "GW Points", "Total Points"].map((h) => (
-                <th
-                  key={h}
-                  style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.entry}>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.rank}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.player_name}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.entry_name}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.event_total}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.total}</td>
+    return (
+      <main style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>{name} — Live Standings</h1>
+        <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8, marginTop: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {[
+                  "Rank",
+                  "Player",
+                  "Team Name",
+                  "GW Points",
+                  "Total Points",
+                ].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <footer style={{ marginTop: 24, fontSize: 12, opacity: 0.6 }}>
-        Built with Next.js + FastAPI • Data © Fantasy Premier League
-      </footer>
-    </main>
-  );
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.entry}>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.rank}</td>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
+                    <Link href={`/team/${r.entry}`} style={{ textDecoration: "none" }}>
+                      {r.player_name}
+                    </Link>
+                  </td>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
+                    <Link href={`/team/${r.entry}`} style={{ textDecoration: "none" }}>
+                      {r.entry_name}
+                    </Link>
+                  </td>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.event_total}</td>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ marginTop: 12 }}>
+          Browse <Link href="/history">history</Link> or view a sample team.
+        </p>
+      </main>
+    );
+  } catch {
+    return (
+      <main style={{ padding: 24 }}>
+        <h1>Request timed out</h1>
+      </main>
+    );
+  }
 }

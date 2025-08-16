@@ -1,22 +1,11 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -29,3 +18,40 @@ body {
   background-attachment: fixed; /* keeps dots static on scroll */
 }
 
+/* ==== Polka Dot Background =============================== */
+:root {
+  --dot-size: 1.5px;      /* size of each dot */
+  --dot-gap: 40px;        /* spacing between dots (increased for more spread out) */
+  --dot-color-light: rgba(0, 0, 0, 0.05);
+  --dot-color-dark: rgba(255, 255, 255, 0.07);
+  --bg-light: #ffffff;
+  --bg-dark: #0b0b0b;
+}
+
+.polka-bg {
+  position: relative;
+  background: var(--bg-light);
+}
+.polka-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px)),
+    radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px));
+  background-size: var(--dot-gap) var(--dot-gap), calc(var(--dot-gap) * 2) calc(var(--dot-gap) * 2);
+  background-position: 0 0, calc(var(--dot-gap)) calc(var(--dot-gap));
+}
+
+@media (prefers-color-scheme: dark) {
+  .polka-bg { background: var(--bg-dark); }
+  .polka-bg::before {
+    background-image:
+      radial-gradient(circle at center, var(--dot-color-dark) var(--dot-size), transparent calc(var(--dot-size) + 0.1px)),
+      radial-gradient(circle at center, var(--dot-color-dark) var(--dot-size), transparent calc(var(--dot-size) + 0.1px));
+  }
+}
+
+.site-shell { position: relative; z-index: 1; }

@@ -7,8 +7,7 @@ export default async function HistoryList() {
   if (!res.ok) {
     return (
       <main style={{ padding: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Uh oh, you've gotten ahead of yourself</h1>
-        
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Uh oh, you&#39;ve gotten ahead of yourself</h1>
       </main>
     );
   }

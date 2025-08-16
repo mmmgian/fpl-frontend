@@ -1,34 +1,40 @@
-// app/team/[entryId]/page.tsx
 export const revalidate = 60;
-
-type PlayerRow = {
-  name: string;
-  web_name?: string;
-  team?: string;
-  now_cost?: number; // in 0.1m units (e.g., 55 => 5.5m)
-  selected_by_percent?: string;
-  is_captain?: boolean;
-  is_vice_captain?: boolean;
-  multiplier?: number;
-};
 
 type TeamPayload = {
   entry_id: number;
   gw: number;
-  team: { GK: PlayerRow[]; DEF: PlayerRow[]; MID: PlayerRow[]; FWD: PlayerRow[] };
+  team: {
+    GK: any[]; DEF: any[]; MID: any[]; FWD: any[];
+  };
 };
 
-async function getTeam(entryId: string): Promise<TeamPayload> {
-  const base = process.env.API_BASE!;
+async function getTeam(entryId: string): Promise<TeamPayload | null> {
+  const base = process.env.API_BASE;
+  if (!base) return null;                         // no env → render a friendly message
   const res = await fetch(`${base}/team/${entryId}`, { next: { revalidate: 60 } });
-  if (!res.ok) {
-    throw new Error(`Failed to load team: ${res.status}`);
-  }
+  if (!res.ok) return null;                       // backend down / 404 → render friendly message
   return res.json();
 }
 
-function Section({ title, rows }: { title: string; rows: PlayerRow[] }) {
-  return (
+export default async function TeamPage({ params }: { params: { entryId: string } }) {
+  const { entryId } = params;                     // 👈 must match [entryId]
+  const data = await getTeam(entryId);
+
+  if (!data) {
+    return (
+      <main style={{ padding: 24 }}>
+        <a href="/" style={{ textDecoration: "none", fontWeight: 700, fontSize: 18 }}>Home</a>
+        <h1 style={{ marginTop: 12 }}>Couldn&#39;t load team</h1>
+        <p style={{ opacity: 0.7 }}>
+          Check that <code>API_BASE</code> is set on Vercel and that the backend endpoint
+          <br />
+          <code>/team/{entryId}</code> returns JSON. Then redeploy.
+        </p>
+      </main>
+    );
+  }
+
+  const Section = ({ title, rows }: { title: string; rows: any[] }) => (
     <section style={{ marginTop: 16 }}>
       <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{title}</h2>
       <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8 }}>
@@ -42,16 +48,12 @@ function Section({ title, rows }: { title: string; rows: PlayerRow[] }) {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={`${r.web_name}-${i}`}>
+              <tr key={`${r.web_name ?? r.name}-${i}`}>
                 <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.name || r.web_name}</td>
                 <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.team ?? ""}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{
-                  r.now_cost != null ? (r.now_cost / 10).toFixed(1) : ""
-                }</td>
+                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.now_cost != null ? (r.now_cost / 10).toFixed(1) : ""}</td>
                 <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.selected_by_percent ?? ""}</td>
-                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{
-                  r.is_captain ? "C" : r.is_vice_captain ? "VC" : ""
-                }</td>
+                <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.is_captain ? "C" : r.is_vice_captain ? "VC" : ""}</td>
                 <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.multiplier ?? 1}</td>
               </tr>
             ))}
@@ -60,19 +62,11 @@ function Section({ title, rows }: { title: string; rows: PlayerRow[] }) {
       </div>
     </section>
   );
-}
-
-export default async function TeamPage({ params }: { params: Promise<{ entryId: string }> }) {
-  const { entryId } = await params;
-  const data = await getTeam(entryId);
 
   return (
     <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      {/* Top bar with Home button (placeholder for logo later) */}
       <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <a href="/" style={{ textDecoration: "none", fontWeight: 700, fontSize: 18 }}>
-          Home
-        </a>
+        <a href="/" style={{ textDecoration: "none", fontWeight: 700, fontSize: 18 }}>Home</a>
         <div style={{ marginLeft: 8, opacity: 0.7 }}>Team for GW {data.gw}</div>
       </header>
 
@@ -83,10 +77,6 @@ export default async function TeamPage({ params }: { params: Promise<{ entryId: 
       <Section title="Defenders" rows={data.team.DEF} />
       <Section title="Midfielders" rows={data.team.MID} />
       <Section title="Forwards" rows={data.team.FWD} />
-
-      <footer style={{ marginTop: 24, fontSize: 12, opacity: 0.6 }}>
-        Built with Next.js + FastAPI • Data © Fantasy Premier League
-      </footer>
     </main>
   );
 }

@@ -63,16 +63,6 @@ export default async function HomePage() {
             margin: 0,
           }}
         >
-          <li>
-            <Link href="/history" style={{ textDecoration: "underline" }}>
-              History
-            </Link>
-          </li>
-          <li>
-            <Link href="/bonus" style={{ textDecoration: "underline" }}>
-              Bonus Points
-            </Link>
-          </li>
         </ul>
       </nav>
 

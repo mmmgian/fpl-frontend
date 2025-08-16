@@ -153,12 +153,6 @@ export default async function BonusPage() {
         <div style={{ opacity: 0.75 }}>Bonus Points — GW {gw}</div>
       </header>
 
-      <p style={{ marginBottom: 12, opacity: 0.75 }}>
-        Official 3/2/1 bonus per finished match. Player names shown instead of
-        IDs. Logos are simple short-code chips — we can swap to real crests
-        later.
-      </p>
-
       <div style={{ display: "grid", gap: 12 }}>
         {rows.map((r) => (
           <section

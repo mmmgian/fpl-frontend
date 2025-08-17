@@ -19,7 +19,6 @@ type Fixture = {
 };
 
 type Player = { id: number; web_name: string };
-
 type Event = { id: number; is_current: boolean; finished: boolean };
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
@@ -47,6 +46,10 @@ const teamCrests: Record<number, string> = {
   20: "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
+function isArray<T>(x: unknown): x is T[] {
+  return Array.isArray(x);
+}
+
 export default function BonusPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -54,36 +57,45 @@ export default function BonusPage() {
   const [gw, setGw] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Bootstrap: get events + players, decide current GW
+  // Bootstrap: events + players -> current GW
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const bootstrap = await fetch(`${API_BASE}/bootstrap-static`, { cache: 'no-store' }).then((r) => r.json());
+        const res = await fetch(`${API_BASE}/bootstrap-static`, { cache: 'no-store' });
+        const data = await res.json();
         if (cancelled) return;
-        setPlayers(bootstrap.elements as Player[]);
-        setEvents(bootstrap.events as Event[]);
-        const current =
-          (bootstrap.events as Event[]).find((e) => e.is_current) ??
-          (bootstrap.events as Event[]).find((e) => !e.finished) ??
-          (bootstrap.events as Event[])[0];
-        setGw(current?.id ?? 1);
-      } catch (e) {
-        console.error(e);
+        const elems = data?.elements;
+        const evs = data?.events;
+        if (isArray<Player>(elems)) setPlayers(elems);
+        if (isArray<Event>(evs)) {
+          setEvents(evs);
+          const current = evs.find(e => e.is_current) ?? evs.find(e => !e.finished) ?? evs[0];
+          setGw(current?.id ?? 1);
+        } else {
+          setGw(1);
+        }
+      } catch {
+        if (!cancelled) {
+          setPlayers([]);
+          setEvents([]);
+          setGw(1);
+        }
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch fixtures for GW
+  // Fixtures for selected GW
   useEffect(() => {
     if (gw == null) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const data = await fetch(`${API_BASE}/fixtures?event=${gw}`, { cache: 'no-store' }).then((r) => r.json());
-        if (!cancelled) setFixtures(data as Fixture[]);
+        const res = await fetch(`${API_BASE}/fixtures?event=${gw}`, { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled) setFixtures(isArray<Fixture>(data) ? data : []);
       } catch {
         if (!cancelled) setFixtures([]);
       } finally {
@@ -120,16 +132,17 @@ export default function BonusPage() {
     <main style={{ fontFamily: 'Helvetica, Arial, sans-serif', padding: 20 }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>{`Bonus — GW ${gw ?? '…'}`}</h1>
-        {/* Simple GW select (no hover) */}
+
         <select
           value={gw ?? ''}
-          onChange={(e) => setGw(Number(e.target.value))}
+          onChange={(ev) => setGw(Number(ev.target.value))}
           style={{ borderRadius: 999, padding: '6px 10px', border: '1px solid #e5e5e5', background: '#fff' }}
         >
-          {(events.length ? events.map((e) => e.id) : Array.from({ length: 38 }, (_, i) => i + 1)).map((id) => (
+          {(events.length ? events.map((ev) => ev.id) : Array.from({ length: 38 }, (_, i) => i + 1)).map((id) => (
             <option key={id} value={id}>{`GW ${id}`}</option>
           ))}
         </select>
+
         {loading && <span style={{ fontSize: 12, opacity: 0.7 }}>loading…</span>}
       </header>
 
@@ -139,14 +152,14 @@ export default function BonusPage() {
         <div style={{ display: 'grid', gap: 16 }}>
           {sortedFixtures.map((f) => {
             const bonus = f.stats?.find((s) => s.identifier === 'bonus');
-            const homeRows = bonus?.h ?? [];
-            const awayRows = bonus?.a ?? [];
+            const homeRows = isArray<BonusEntry>(bonus?.h) ? bonus!.h : [];
+            const awayRows = isArray<BonusEntry>(bonus?.a) ? bonus!.a : [];
             const score =
               f.team_h_score != null && f.team_a_score != null ? `${f.team_h_score}–${f.team_a_score}` : 'vs';
 
             return (
               <section key={f.id} style={{ border: '1px solid #e5e5e5', borderRadius: 12, padding: 12, background: '#fff' }}>
-                {/* Crest pill with score + status */}
+                {/* Match pill */}
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid #eee', borderRadius: 999, background: '#fff', marginBottom: 10 }}>
                   <Image src={teamCrests[f.team_h]} alt="home" width={18} height={18} />
                   <strong style={{ fontSize: 13 }}>{score}</strong>

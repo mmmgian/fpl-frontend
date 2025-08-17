@@ -12,19 +12,23 @@ type Standing = {
   event_total?: number;
 };
 
+interface LeagueResponse {
+  standings?: Standing[];
+}
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
 const LEAGUE_ID = process.env.NEXT_PUBLIC_LEAGUE_ID || '1391467';
 
-async function fetchWithRetry(url: string, attempts = 3, delayMs = 1200) {
+async function fetchJSONWithRetry<T>(url: string, attempts = 3, delayMs = 1200): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(url, { cache: 'no-store' });
       const text = await res.text();
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
-      return JSON.parse(text);
-    } catch (err) {
-      lastErr = err;
+      return JSON.parse(text) as T;
+    } catch (e) {
+      lastErr = e;
       if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
     }
   }
@@ -42,11 +46,11 @@ export default function HomePage() {
       setLoading(true);
       setErr(null);
       try {
-        const data = await fetchWithRetry(`${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`);
-        const standings = Array.isArray(data?.standings) ? (data.standings as Standing[]) : [];
-        if (!cancelled) {
-          setRows(standings);
-        }
+        const data = await fetchJSONWithRetry<LeagueResponse>(
+          `${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`
+        );
+        const list = Array.isArray(data.standings) ? data.standings : [];
+        if (!cancelled) setRows(list);
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
       } finally {
@@ -61,8 +65,8 @@ export default function HomePage() {
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>🦞 The Lobster League</h1>
         <nav style={{ display: 'flex', gap: 12 }}>
-          <Link href="/history">History</Link>
-          <Link href="/bonus">Bonus</Link>
+          <Link href="/history" style={{ textDecoration: 'underline' }}>History</Link>
+          <Link href="/bonus" style={{ textDecoration: 'underline' }}>Bonus</Link>
         </nav>
       </header>
 

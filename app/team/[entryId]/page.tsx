@@ -1,126 +1,196 @@
 // app/team/[entryId]/page.tsx
+import Image from "next/image";
 import Link from "next/link";
-
-type PlayerRow = {
-  name: string;
-  team?: string;
-  now_cost?: number;
-  is_captain?: boolean;
-  is_vice_captain?: boolean;
-};
-
-type TeamPayload = {
-  entry_id: number;
-  gw: number;
-  team: { GK: PlayerRow[]; DEF: PlayerRow[]; MID: PlayerRow[]; FWD: PlayerRow[] };
-};
-
-type LeagueRow = { entry: number; entry_name: string; player_name: string };
-type LeaguePayload = { standings?: { results?: LeagueRow[] } };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const API_BASE = "https://fpl-backend-poix.onrender.com";
-const LEAGUE_ID = process.env.LEAGUE_ID ?? "1391467";
+type Event = { id: number; is_current: boolean; finished: boolean };
+type Team = { id: number; name: string; short_name: string; code: number };
+type Element = {
+  id: number;
+  web_name: string;           // FPL short name (what you're used to seeing in FPL)
+  first_name: string;
+  second_name: string;
+  team: number;               // Team.id
+  element_type: number;       // 1 GK, 2 DEF, 3 MID, 4 FWD
+};
 
-async function fetchWithTimeout(url: string, ms = 12000, init?: RequestInit) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), ms);
+type Bootstrap = {
+  events: Event[];
+  teams: Team[];
+  elements: Element[];
+};
+
+type Pick = {
+  element: number;            // player id
+  position: number;
+  multiplier: number;         // 2 if captain (or 3 if triple captain), etc.
+  is_captain: boolean;
+  is_vice_captain: boolean;
+};
+
+type EntryPicks = { picks: Pick[] };
+
+type LiveElement = { id: number; stats: { total_points: number } };
+type LiveGW = { elements: LiveElement[] };
+
+async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
   try {
-    return await fetch(url, { ...init, signal: controller.signal, cache: "no-store" });
-  } finally { clearTimeout(t); }
-}
-
-async function getTeam(entryId: string): Promise<TeamPayload | null> {
-  const res = await fetchWithTimeout(`${API_BASE}/team/${entryId}`);
-  if (!res.ok) return null;
-  return res.json();
-}
-
-async function getEntryMeta(entryId: string): Promise<{ teamName?: string; managerName?: string } | null> {
-  const res = await fetchWithTimeout(`${API_BASE}/league/${LEAGUE_ID}`);
-  if (!res.ok) return null;
-  const data = (await res.json()) as LeaguePayload;
-  const row = data?.standings?.results?.find((r) => String(r.entry) === String(entryId));
-  if (!row) return null;
-  return { teamName: row.entry_name, managerName: row.player_name };
-}
-
-export default async function TeamPage({
-  params,
-}: {
-  params: Promise<{ entryId: string }>;
-}) {
-  const { entryId } = await params;
-  const [team, meta] = await Promise.all([getTeam(entryId), getEntryMeta(entryId)]);
-
-  if (!team) {
-    return (
-      <main style={{ padding: 24, fontFamily: "Helvetica, Arial, sans-serif" }}>
-        <Link href="/" style={{ display: "inline-block", marginBottom: 20 }}>
-          ← Back to League Table
-        </Link>
-        <h1>Couldn&#39;t load team {entryId}</h1>
-      </main>
-    );
+    const res = await fetch(url, { cache: "no-store", signal: ctl.signal });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  } finally {
+    clearTimeout(t);
   }
+}
 
-  const heading = meta?.teamName || `Entry ${team.entry_id}`;
-  const sub = meta?.managerName ? `Manager: ${meta.managerName}` : undefined;
+function crestUrl(team?: Team) {
+  if (!team) return "";
+  // team.code comes from bootstrap and is correct for 25/26
+  return `https://resources.premierleague.com/premierleague/badges/t${team.code}.png`;
+}
 
-  const Section = ({ title, rows }: { title: string; rows: PlayerRow[] }) => (
-    <section style={{ marginTop: 16 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{title}</h2>
-      <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              {["Player", "Club", "Cost (m)"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => {
-              const badge = r.is_captain ? " 🅒" : r.is_vice_captain ? " 🅥" : "";
-              return (
-                <tr key={`${r.name}-${i}`}>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
-                    {r.name}{badge}
+function bandIcon(p: Pick) {
+  if (p.is_captain) return " ⓒ";
+  if (p.is_vice_captain) return " Ⓥ";
+  return "";
+}
+
+function sectionTitle(et: number) {
+  return et === 1 ? "Goalkeeper" : et === 2 ? "Defenders" : et === 3 ? "Midfielders" : "Forwards";
+}
+
+export default async function TeamPage(props: { params: Promise<{ entryId: string }> }) {
+  // IMPORTANT: await params because your project's PageProps treats params as a Promise
+  const { entryId } = await props.params;
+
+  // 1) Bootstrap (teams, elements, events)
+  const boot = await fetchJSON<Bootstrap>("https://fantasy.premierleague.com/api/bootstrap-static/");
+
+  // Determine current GW
+  const current =
+    boot.events.find((e) => e.is_current) ??
+    boot.events.find((e) => !e.finished) ??
+    boot.events[0];
+  const gw = current?.id ?? 1;
+
+  // 2) Entry picks for current GW
+  const picksData = await fetchJSON<EntryPicks>(
+    `https://fantasy.premierleague.com/api/entry/${entryId}/event/${gw}/picks/`
+  );
+
+  // 3) Live GW points
+  const live = await fetchJSON<LiveGW>(`https://fantasy.premierleague.com/api/event/${gw}/live/`);
+
+  // Indexes
+  const elementsById = new Map<number, Element>(boot.elements.map((e) => [e.id, e]));
+  const teamsById = new Map<number, Team>(boot.teams.map((t) => [t.id, t]));
+  const livePoints = new Map<number, number>(live.elements.map((le) => [le.id, le.stats.total_points]));
+
+  // Build rows enriched with names, crests, and points
+  const enriched = picksData.picks
+    .map((p) => {
+      const el = elementsById.get(p.element);
+      if (!el) return null;
+      const team = teamsById.get(el.team);
+      const rawPoints = livePoints.get(el.id) ?? 0;
+      const effectivePoints = rawPoints * (p.multiplier || 1); // includes captaincy multiplier
+
+      return {
+        pick: p,
+        el,
+        team,
+        crest: crestUrl(team),
+        webName: el.web_name, // FPL short name
+        elementType: el.element_type,
+        rawPoints,
+        effectivePoints,
+      };
+    })
+    .filter(Boolean) as Array<{
+      pick: Pick;
+      el: Element;
+      team?: Team;
+      crest: string;
+      webName: string;
+      elementType: number;
+      rawPoints: number;
+      effectivePoints: number;
+    }>;
+
+  // Group by element_type
+  const groups: Record<number, typeof enriched> = { 1: [], 2: [], 3: [], 4: [] };
+  for (const row of enriched) groups[row.elementType].push(row);
+
+  const section = (et: 1 | 2 | 3 | 4) => {
+    const rows = groups[et] ?? [];
+    if (rows.length === 0) return null;
+
+    return (
+      <section key={et} style={{ border: "1px solid #eee", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+        <h2 style={{ margin: "0 0 8px 0", fontSize: 16 }}>{sectionTitle(et)}</h2>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #eee" }}>Player</th>
+                <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #eee" }}>Team</th>
+                <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #eee" }}>Points (GW)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.el.id}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f3f3", whiteSpace: "nowrap" }}>
+                    {/* Crest + player web_name + captain/vice marker */}
+                    {r.crest && (
+                      <Image
+                        src={r.crest}
+                        alt={`${r.team?.name ?? "Team"} crest`}
+                        width={20}
+                        height={20}
+                        style={{ verticalAlign: "middle", marginRight: 8, objectFit: "contain" }}
+                      />
+                    )}
+                    <span style={{ verticalAlign: "middle" }}>
+                      {r.webName}
+                      <span style={{ opacity: 0.7 }}>{bandIcon(r.pick)}</span>
+                    </span>
                   </td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.team ?? ""}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
-                    {r.now_cost != null ? (r.now_cost / 10).toFixed(1) : ""}
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f3f3" }}>
+                    {r.team?.short_name ?? "—"}
+                  </td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f3f3" }}>
+                    {/* Show effective points (includes captaincy multiplier); hover shows raw */}
+                    <span title={`Raw: ${r.rawPoints}`}>{r.effectivePoints}</span>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>
-        Legend: <span>🅒 Captain</span> &nbsp;•&nbsp; <span>🅥 Vice-captain</span>
-      </div>
-    </section>
-  );
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto", fontFamily: "Helvetica, Arial, sans-serif" }}>
-      <Link href="/" style={{ display: "inline-block", marginBottom: 20 }}>
-        ← Back to League Table
-      </Link>
+      <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <Link href="/" className="btn">Back to League Table</Link>
+        <div style={{ opacity: 0.75 }}>Team — Entry {entryId} (GW {gw})</div>
+      </header>
 
-      <h1 style={{ fontSize: 28, marginBottom: 6 }}>{heading}</h1>
-      {sub && <h2 style={{ fontSize: 16, color: "#555", marginTop: 0 }}>{sub}</h2>}
-      <div style={{ marginTop: 6, opacity: 0.7 }}>Team for GW {team.gw}</div>
+      {section(1)}
+      {section(2)}
+      {section(3)}
+      {section(4)}
 
-      <Section title="Goalkeepers" rows={team.team.GK} />
-      <Section title="Defenders" rows={team.team.DEF} />
-      <Section title="Midfielders" rows={team.team.MID} />
-      <Section title="Forwards" rows={team.team.FWD} />
+      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.65 }}>
+        Names use FPL short names. Points reflect current gameweek, including captaincy multipliers.
+      </p>
     </main>
   );
 }

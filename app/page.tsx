@@ -15,33 +15,42 @@ type Standing = {
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
 const LEAGUE_ID = process.env.NEXT_PUBLIC_LEAGUE_ID || '1391467';
 
-async function fetchWithRetry(url: string, attempts = 3, delayMs = 1500) {
+async function fetchWithRetry(url: string, attempts = 3, delayMs = 1200) {
+  let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return (await res.json()) as { standings: Standing[] };
+      const text = await res.text();
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
+      return JSON.parse(text);
     } catch (err) {
-      if (i === attempts - 1) throw err;
-      await new Promise((r) => setTimeout(r, delayMs));
+      lastErr = err;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
     }
   }
-  // unreachable
-  return { standings: [] };
+  throw lastErr;
 }
 
 export default function HomePage() {
-  const [rows, setRows] = useState<Standing[] | null>(null);
+  const [rows, setRows] = useState<Standing[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
+      setErr(null);
       try {
         const data = await fetchWithRetry(`${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`);
-        if (!cancelled) setRows(data.standings ?? []);
+        const standings = Array.isArray(data?.standings) ? (data.standings as Standing[]) : [];
+        if (!cancelled) {
+          setRows(standings);
+        }
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -63,15 +72,15 @@ export default function HomePage() {
           <span style={{ fontSize: 12, opacity: 0.65 }}>ID {LEAGUE_ID}</span>
         </div>
 
-        {err ? (
+        {loading ? (
+          <p>Loading…</p>
+        ) : err ? (
           <div>
             <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', padding: 10, borderRadius: 8, border: '1px solid #eee' }}>
-              {String(err)}
+              {err}
             </pre>
           </div>
-        ) : rows === null ? (
-          <p>Loading…</p>
         ) : rows.length === 0 ? (
           <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
         ) : (
@@ -87,18 +96,17 @@ export default function HomePage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.entry}>
-                    <td style={{ padding: 8 }}>{r.rank}</td>
+                {rows.map((row) => (
+                  <tr key={row.entry}>
+                    <td style={{ padding: 8 }}>{row.rank}</td>
                     <td style={{ padding: 8 }}>
-                      {/* Only team name is linked */}
-                      <Link href={`/team/${r.entry}`} style={{ textDecoration: 'underline' }}>
-                        {r.entry_name}
+                      <Link href={`/team/${row.entry}`} style={{ textDecoration: 'underline' }}>
+                        {row.entry_name}
                       </Link>
                     </td>
-                    <td style={{ padding: 8, opacity: 0.8 }}>{r.player_name}</td>
-                    <td style={{ padding: 8, textAlign: 'right' }}>{r.event_total ?? '—'}</td>
-                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 700 }}>{r.total}</td>
+                    <td style={{ padding: 8, opacity: 0.8 }}>{row.player_name}</td>
+                    <td style={{ padding: 8, textAlign: 'right' }}>{row.event_total ?? '—'}</td>
+                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 700 }}>{row.total}</td>
                   </tr>
                 ))}
               </tbody>

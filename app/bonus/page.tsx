@@ -1,7 +1,7 @@
-// app/bonus/page.tsx  — SERVER COMPONENT (no CORS issues)
+// app/bonus/page.tsx — SERVER COMPONENT (no CORS), with safe error handling
 import Image from "next/image";
 
-type Player = { id: number; web_name: string; team: number; photo?: string };
+type Player = { id: number; web_name: string; team: number };
 type BonusStatEntry = { element: number; value: number };
 type BonusStat = { identifier: string; a: BonusStatEntry[]; h: BonusStatEntry[] };
 type Fixture = {
@@ -57,23 +57,40 @@ async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
 }
 
 export default async function BonusPage() {
-  // Server-side fetch (avoids CORS)
-  const boot = await fetchJSON<Bootstrap>("https://fantasy.premierleague.com/api/bootstrap-static/");
+  let boot: Bootstrap | null = null;
+  try {
+    boot = await fetchJSON<Bootstrap>("https://fantasy.premierleague.com/api/bootstrap-static/");
+  } catch {
+    boot = null;
+  }
+
+  if (!boot) {
+    return (
+      <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Bonus Points</h1>
+        <p style={{ opacity: 0.7 }}>Couldn’t load FPL data right now. Try again in a moment.</p>
+      </main>
+    );
+  }
+
   const current =
     boot.events.find((e) => e.is_current) ??
     boot.events.find((e) => !e.finished) ??
     boot.events[0];
   const gw = current?.id ?? 1;
 
-  const fixtures = await fetchJSON<Fixture[]>(
-    `https://fantasy.premierleague.com/api/fixtures/?event=${gw}`
-  );
+  let fixtures: Fixture[] = [];
+  try {
+    fixtures = await fetchJSON<Fixture[]>(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`);
+  } catch {
+    fixtures = [];
+  }
 
   const playersById = new Map<number, Player>(boot.elements.map((p) => [p.id, p]));
 
   return (
     <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
-      <h1 style={{ fontSize: 24, marginBottom: 20 }}>Bonus Points – GW {gw}</h1>
+      <h1 style={{ fontSize: 24, marginBottom: 16 }}>Bonus Points — GW {gw}</h1>
 
       {/* Pills: finished fixtures, crests only */}
       <div style={{ display: "flex", gap: 12, overflowX: "auto", marginBottom: 16 }}>
@@ -100,8 +117,8 @@ export default async function BonusPage() {
       {/* Fixture cards */}
       <div style={{ display: "grid", gap: 16 }}>
         {fixtures.map((fixture) => {
-          const bonusStat = fixture.stats.find((s) => s.identifier === "bonus");
-          const rows: BonusStatEntry[] = bonusStat ? [...bonusStat.a, ...bonusStat.h] : [];
+          const bonus = fixture.stats.find((s) => s.identifier === "bonus");
+          const rows: BonusStatEntry[] = bonus ? [...bonus.a, ...bonus.h] : [];
 
           return (
             <section
@@ -113,7 +130,7 @@ export default async function BonusPage() {
                 padding: 12,
               }}
             >
-              {/* Match header with hover shimmer */}
+              {/* Match header (crest pill with hover shimmer) */}
               <div
                 style={{
                   display: "flex",

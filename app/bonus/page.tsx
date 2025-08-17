@@ -1,4 +1,4 @@
-// app/bonus/page.tsx — SERVER COMPONENT (no CORS), with safe error handling
+// app/bonus/page.tsx — SERVER COMPONENT, no CORS, safe fallbacks
 import Image from "next/image";
 
 type Player = { id: number; web_name: string; team: number };
@@ -11,11 +11,11 @@ type Fixture = {
   stats: BonusStat[];
   finished: boolean;
 };
-
+type Event = { id: number; is_current: boolean; finished: boolean };
 type Bootstrap = {
   elements: Player[];
   teams: { id: number; name: string; short_name: string; code: number }[];
-  events: { id: number; is_current: boolean; finished: boolean }[];
+  events: Event[];
 };
 
 export const dynamic = "force-dynamic";
@@ -46,13 +46,13 @@ const teamCrests: Record<number, string> = {
 
 async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
+  const to = setTimeout(() => ctl.abort(), ms);
   try {
-    const res = await fetch(url, { cache: "no-store", signal: ctl.signal });
+    const res = await fetch(url, { cache: "no-store", signal: ctl.signal, next: { revalidate: 0 } });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
   } finally {
-    clearTimeout(t);
+    clearTimeout(to);
   }
 }
 
@@ -63,12 +63,11 @@ export default async function BonusPage() {
   } catch {
     boot = null;
   }
-
   if (!boot) {
     return (
       <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
         <h1 style={{ fontSize: 24, marginBottom: 12 }}>Bonus Points</h1>
-        <p style={{ opacity: 0.7 }}>Couldn’t load FPL data right now. Try again in a moment.</p>
+        <p style={{ opacity: 0.7 }}>Couldn’t load FPL data. Try again shortly.</p>
       </main>
     );
   }
@@ -86,7 +85,7 @@ export default async function BonusPage() {
     fixtures = [];
   }
 
-  const playersById = new Map<number, Player>(boot.elements.map((p) => [p.id, p]));
+  const playersById = new Map(boot.elements.map((p) => [p.id, p] as const));
 
   return (
     <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
@@ -107,9 +106,9 @@ export default async function BonusPage() {
               background: "#fff",
             }}
           >
-            <Image src={teamCrests[f.team_h]} alt="home" width={20} height={20} style={{ objectFit: "contain" }} />
+            <Image src={teamCrests[f.team_h]} alt="home" width={20} height={20} />
             <span style={{ fontSize: 12, opacity: 0.7 }}>vs</span>
-            <Image src={teamCrests[f.team_a]} alt="away" width={20} height={20} style={{ objectFit: "contain" }} />
+            <Image src={teamCrests[f.team_a]} alt="away" width={20} height={20} />
           </div>
         ))}
       </div>
@@ -117,8 +116,8 @@ export default async function BonusPage() {
       {/* Fixture cards */}
       <div style={{ display: "grid", gap: 16 }}>
         {fixtures.map((fixture) => {
-          const bonus = fixture.stats.find((s) => s.identifier === "bonus");
-          const rows: BonusStatEntry[] = bonus ? [...bonus.a, ...bonus.h] : [];
+          const bonus = fixture.stats?.find((s) => s.identifier === "bonus");
+          const rows: BonusStatEntry[] = bonus ? [...(bonus.a ?? []), ...(bonus.h ?? [])] : [];
 
           return (
             <section
@@ -130,7 +129,7 @@ export default async function BonusPage() {
                 padding: 12,
               }}
             >
-              {/* Match header (crest pill with hover shimmer) */}
+              {/* Match header (hover shimmer) */}
               <div
                 style={{
                   display: "flex",
@@ -157,9 +156,9 @@ export default async function BonusPage() {
                   el.style.border = "1px solid transparent";
                 }}
               >
-                <Image src={teamCrests[fixture.team_h]} alt="home" width={28} height={28} style={{ objectFit: "contain" }} />
+                <Image src={teamCrests[fixture.team_h]} alt="home" width={28} height={28} />
                 <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "0.02em" }}>vs</span>
-                <Image src={teamCrests[fixture.team_a]} alt="away" width={28} height={28} style={{ objectFit: "contain" }} />
+                <Image src={teamCrests[fixture.team_a]} alt="away" width={28} height={28} />
               </div>
 
               <div style={{ overflowX: "auto" }}>

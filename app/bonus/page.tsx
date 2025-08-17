@@ -1,5 +1,6 @@
-// app/bonus/page.tsx — SERVER COMPONENT, no CORS, safe fallbacks
+// app/bonus/page.tsx — SERVER COMPONENT (no client event handlers)
 import Image from "next/image";
+import MatchHeader from "../components/MatchHeader";
 
 type Player = { id: number; web_name: string; team: number };
 type BonusStatEntry = { element: number; value: number };
@@ -129,37 +130,8 @@ export default async function BonusPage() {
                 padding: 12,
               }}
             >
-              {/* Match header (hover shimmer) */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 12,
-                  borderRadius: 10,
-                  padding: "8px 10px",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLDivElement;
-                  el.style.background =
-                    "linear-gradient(90deg, rgba(255,0,255,0.10), rgba(0,255,255,0.10))";
-                  el.style.boxShadow = "0 6px 16px rgba(0,255,255,0.20)";
-                  el.style.transform = "translateY(-1px)";
-                  el.style.border = "1px solid rgba(255,0,255,0.25)";
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLDivElement;
-                  el.style.background = "transparent";
-                  el.style.boxShadow = "none";
-                  el.style.transform = "none";
-                  el.style.border = "1px solid transparent";
-                }}
-              >
-                <Image src={teamCrests[fixture.team_h]} alt="home" width={28} height={28} />
-                <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "0.02em" }}>vs</span>
-                <Image src={teamCrests[fixture.team_a]} alt="away" width={28} height={28} />
-              </div>
+              {/* interactive header moved into a client component */}
+              <MatchHeader homeCrest={teamCrests[fixture.team_h]} awayCrest={teamCrests[fixture.team_a]} />
 
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>

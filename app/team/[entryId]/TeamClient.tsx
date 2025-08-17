@@ -77,10 +77,10 @@ export default function TeamClient({ entryId }: { entryId: string }) {
       setErr(null);
       try {
         const res = await fetch(`/api/team/${encodeURIComponent(entryId)}`, { cache: 'no-store' });
-        const text = await res.text();
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
-        const data = JSON.parse(text) as TeamPayload;
-        if (!cancelled) setPayload(data);
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const data = (await res.json()) as TeamPayload;
+        setPayload(data);
+
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
       } finally {

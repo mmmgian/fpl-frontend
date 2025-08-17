@@ -12,9 +12,10 @@ type Standing = {
   event_total?: number;
 };
 
-interface LeagueResponse {
-  standings?: Standing[];
-}
+interface LeagueResponseA { standings?: Standing[] }                    // { standings: [...] }
+interface LeagueResponseB { standings?: { results?: Standing[] } }      // { standings: { results: [...] } }
+interface LeagueResponseC { results?: Standing[] }                      // { results: [...] }
+type LeagueResponse = LeagueResponseA | LeagueResponseB | LeagueResponseC | unknown;
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
 const LEAGUE_ID = process.env.NEXT_PUBLIC_LEAGUE_ID || '1391467';
@@ -35,6 +36,26 @@ async function fetchJSONWithRetry<T>(url: string, attempts = 3, delayMs = 1200):
   throw lastErr;
 }
 
+function pickStandings(data: LeagueResponse): Standing[] {
+  // shape 1: { standings: Standing[] }
+  if (typeof data === 'object' && data && 'standings' in data) {
+    const s1 = (data as LeagueResponseA).standings;
+    if (Array.isArray(s1)) return s1;
+
+    // shape 2: { standings: { results: Standing[] } }
+    const s2 = (data as LeagueResponseB).standings;
+    if (s2 && typeof s2 === 'object' && 'results' in s2 && Array.isArray(s2.results)) {
+      return s2.results as Standing[];
+    }
+  }
+  // shape 3: { results: Standing[] }
+  if (typeof data === 'object' && data && 'results' in data) {
+    const r = (data as LeagueResponseC).results;
+    if (Array.isArray(r)) return r;
+  }
+  return [];
+}
+
 export default function HomePage() {
   const [rows, setRows] = useState<Standing[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -49,7 +70,7 @@ export default function HomePage() {
         const data = await fetchJSONWithRetry<LeagueResponse>(
           `${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`
         );
-        const list = Array.isArray(data.standings) ? data.standings : [];
+        const list = pickStandings(data);
         if (!cancelled) setRows(list);
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));

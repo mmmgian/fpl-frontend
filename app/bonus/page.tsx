@@ -1,255 +1,230 @@
-// app/bonus/page.tsx
-import Link from "next/link";
+'use client';
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 type Event = { id: number; is_current: boolean; finished: boolean };
-type Element = {
-  id: number;
-  web_name: string;
-  first_name: string;
-  second_name: string;
-  team: number;
-};
-type Team = { id: number; short_name: string; name: string };
+type Team = { id: number; name: string; short_name: string; code: number };
+type Element = { id: number; web_name: string; first_name: string; second_name: string; team: number };
 
-type BonusEntry = { element: number; value: number }; // 1,2,3
+type BonusEntry = { element: number; value: number };                // value is 1/2/3
 type StatBlock = { identifier: string; a: BonusEntry[]; h: BonusEntry[] };
 
 type Fixture = {
   id: number;
   event: number | null;
-  finished: boolean;
-  team_a: number; // away team id
-  team_h: number; // home team id
-  team_a_score: number | null;
+  team_h: number;
+  team_a: number;
   team_h_score: number | null;
-  stats: StatBlock[];
+  team_a_score: number | null;
+  finished: boolean;
   kickoff_time: string | null;
+  stats: StatBlock[];
 };
 
-async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
-  try {
-    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
-    if (!res.ok) throw new Error(String(res.status));
-    return res.json();
-  } finally {
-    clearTimeout(t);
-  }
-}
+type Bootstrap = {
+  events: Event[];
+  teams: Team[];
+  elements: Element[];
+};
 
-async function getBootstrap() {
-  return fetchJSON<{ events: Event[]; elements: Element[]; teams: Team[] }>(
-    "https://fantasy.premierleague.com/api/bootstrap-static/"
-  );
-}
+export default function BonusPage() {
+  const [boot, setBoot] = useState<Bootstrap | null>(null);
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [loading, setLoading] = useState(true);
 
-async function getFixtures(gw: number) {
-  return fetchJSON<Fixture[]>(
-    `https://fantasy.premierleague.com/api/fixtures/?event=${gw}`
-  );
-}
+  useEffect(() => {
+    let cancelled = false;
 
-function playerName(e: Element | undefined) {
-  if (!e) return "Unknown";
-  return e.web_name || `${e.first_name} ${e.second_name}`.trim();
-}
+    async function load() {
+      try {
+        // 1) Get bootstrap (teams, players, events)
+        const bootRes = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/', { cache: 'no-store' });
+        const bootJson: Bootstrap = await bootRes.json();
+        if (cancelled) return;
+        setBoot(bootJson);
 
-export default async function BonusPage() {
-  // 1) Bootstrap for dictionaries + current GW
-  const boot = await getBootstrap();
-  const current =
-    boot.events.find((e) => e.is_current) ??
-    boot.events.find((e) => !e.finished) ??
-    boot.events[0];
-  const gw = current?.id ?? 1;
+        // Determine the current GW for 25/26 based on flags in bootstrap
+        const current =
+          bootJson.events.find((e) => e.is_current) ??
+          bootJson.events.find((e) => !e.finished) ??
+          bootJson.events[0];
+        const gw = current?.id ?? 1;
 
-  // 2) Fixtures for GW
-  const fixtures = await getFixtures(gw);
+        // 2) Pull fixtures for that GW (contains bonus in stats when finished)
+        const fxRes = await fetch(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`, { cache: 'no-store' });
+        const fxJson: Fixture[] = await fxRes.json();
+        if (cancelled) return;
+        setFixtures(fxJson);
+      } catch (err) {
+        console.error('Bonus page load failed', err);
+        if (!cancelled) {
+          setBoot(null);
+          setFixtures([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
-  // 3) Index lookups
-  const elementsById = new Map(boot.elements.map((e) => [e.id, e]));
-  const teamsById = new Map(boot.teams.map((t) => [t.id, t]));
-
-  // 4) Build rows
-  const rows = fixtures.map((fx) => {
-    const home = teamsById.get(fx.team_h);
-    const away = teamsById.get(fx.team_a);
-    const score =
-      fx.team_h_score != null && fx.team_a_score != null
-        ? `${fx.team_h_score}–${fx.team_a_score}`
-        : "–";
-
-    const bonus = fx.stats.find((s) => s.identifier === "bonus");
-    const homeBonus = [...(bonus?.h ?? [])].sort((a, b) => b.value - a.value);
-    const awayBonus = [...(bonus?.a ?? [])].sort((a, b) => b.value - a.value);
-
-    return {
-      id: fx.id,
-      finished: fx.finished,
-      kickoff: fx.kickoff_time,
-      home,
-      away,
-      score,
-      homeBonus: homeBonus.map((b) => ({
-        pts: b.value,
-        name: playerName(elementsById.get(b.element)),
-      })),
-      awayBonus: awayBonus.map((b) => ({
-        pts: b.value,
-        name: playerName(elementsById.get(b.element)),
-      })),
+    load();
+    return () => {
+      cancelled = true;
     };
-  });
+  }, []);
 
-  // Tiny “logo chip” using team short code
-  const logoChip: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    border: "1px solid #e5e5e5",
-    background: "#fafafa",
-    fontSize: 12,
-    fontWeight: 700,
-    marginRight: 8,
-    fontFamily: "Helvetica, Arial, sans-serif",
+  // ---- helpers ----
+  const elementsById = new Map<number, Element>(boot?.elements.map((e) => [e.id, e]) ?? []);
+  const teamsById = new Map<number, Team>(boot?.teams.map((t) => [t.id, t]) ?? []);
+
+  const playerName = (id: number) => {
+    const e = elementsById.get(id);
+    if (!e) return 'Unknown';
+    return e.web_name || `${e.first_name} ${e.second_name}`.trim();
   };
 
-  const pill: React.CSSProperties = {
-    display: "inline-block",
-    padding: "2px 8px",
-    borderRadius: 999,
-    border: "1px solid #e5e5e5",
-    marginLeft: 8,
-    fontSize: 12,
+  // Use official PL crest for THIS season via team.code (season-agnostic endpoint, code stays correct via bootstrap)
+  const crestUrl = (teamId: number) => {
+    const t = teamsById.get(teamId);
+    if (!t) return undefined;
+    return `https://resources.premierleague.com/premierleague/badges/t${t.code}.png`;
   };
+
+  const scoreline = (f: Fixture) =>
+    f.team_h_score != null && f.team_a_score != null ? `${f.team_h_score}–${f.team_a_score}` : '–';
+
+  // ---- render ----
+  if (loading) {
+    return (
+      <main style={{ padding: 24, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Bonus Points</h1>
+        <p style={{ opacity: 0.75 }}>Loading…</p>
+      </main>
+    );
+  }
+
+  if (!boot) {
+    return (
+      <main style={{ padding: 24, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Bonus Points</h1>
+        <p style={{ opacity: 0.75 }}>Couldn&apos;t load data from FPL.</p>
+      </main>
+    );
+  }
 
   return (
-    <main
-      style={{
-        padding: 24,
-        maxWidth: 1100,
-        margin: "0 auto",
-        fontFamily: "Helvetica, Arial, sans-serif",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <Link href="/" style={{ textDecoration: "underline", fontWeight: 700 }}>
-          Home
-        </Link>
-        <div style={{ opacity: 0.75 }}>Bonus Points — GW {gw}</div>
+    <main style={{ padding: 24, fontFamily: 'Helvetica, Arial, sans-serif', maxWidth: 1100, margin: '0 auto' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <Link href="/" className="btn">Home</Link>
+        <div style={{ opacity: 0.75 }}>Bonus Points — Current Gameweek</div>
       </header>
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {rows.map((r) => (
-          <section
-            key={r.id}
-            style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}
-          >
-            {/* Match header */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <span style={logoChip}>{r.home?.short_name ?? "H"}</span>
-                <strong>{r.home?.name ?? "Home"}</strong>
-              </div>
+      {fixtures.length === 0 ? (
+        <p style={{ opacity: 0.75 }}>No fixtures for this gameweek yet.</p>
+      ) : (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {fixtures.map((f) => {
+            const home = teamsById.get(f.team_h);
+            const away = teamsById.get(f.team_a);
+            const bonus = f.stats.find((s) => s.identifier === 'bonus');
+            const homeBonus = (bonus?.h ?? []).slice().sort((a, b) => b.value - a.value);
+            const awayBonus = (bonus?.a ?? []).slice().sort((a, b) => b.value - a.value);
 
-              <div style={{ textAlign: "center", minWidth: 120 }}>
-                <div style={{ fontWeight: 700 }}>{r.score}</div>
-                <div>
-                  <span
-                    style={{
-                      ...pill,
-                      opacity: r.finished ? 1 : 0.7,
-                      borderColor: r.finished ? "#d0e7d5" : "#e5e5e5",
-                      background: r.finished ? "#f4faf6" : "#fafafa",
-                    }}
-                  >
-                    {r.finished ? "Finished" : "In progress / Pending"}
-                  </span>
+            return (
+              <section key={f.id} style={{ border: '1px solid #eee', borderRadius: 10, padding: 12 }}>
+                {/* Match header */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto 1fr',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {home && (
+                      <Image
+                        src={crestUrl(f.team_h) ?? ''}
+                        alt={`${home.name} crest`}
+                        width={32}
+                        height={32}
+                        style={{ marginRight: 8, objectFit: 'contain' }}
+                      />
+                    )}
+                    <strong>{home?.name ?? 'Home'}</strong>
+                  </div>
+
+                  <div style={{ textAlign: 'center', minWidth: 120 }}>
+                    <div style={{ fontWeight: 700 }}>{scoreline(f)}</div>
+                    <div
+                      style={{
+                        display: 'inline-block',
+                        marginTop: 4,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        border: '1px solid #e5e5e5',
+                        fontSize: 12,
+                        background: f.finished ? '#f4faf6' : '#fafafa',
+                        opacity: f.finished ? 1 : 0.8,
+                      }}
+                    >
+                      {f.finished ? 'Finished' : 'In progress / Pending'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <strong style={{ marginRight: 8 }}>{away?.name ?? 'Away'}</strong>
+                    {away && (
+                      <Image
+                        src={crestUrl(f.team_a) ?? ''}
+                        alt={`${away.name} crest`}
+                        width={32}
+                        height={32}
+                        style={{ objectFit: 'contain' }}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <strong style={{ marginRight: 8 }}>
-                  {r.away?.name ?? "Away"}
-                </strong>
-                <span style={logoChip}>{r.away?.short_name ?? "A"}</span>
-              </div>
-            </div>
+                {/* Bonus lists */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>Home bonus</h3>
+                    {homeBonus.length === 0 ? (
+                      <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
+                    ) : (
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {homeBonus.map((b) => (
+                          <li key={`h-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
+                            {playerName(b.element)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
-            {/* Bonus lists */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                marginTop: 10,
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Home bonus</h3>
-                {r.homeBonus.length === 0 ? (
-                  <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {r.homeBonus.map((b, i) => (
-                      <li key={`h-${r.id}-${i}`} style={{ lineHeight: 1.8 }}>
-                        {b.name} <span style={{ opacity: 0.7 }}>+{b.pts}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Away bonus</h3>
-                {r.awayBonus.length === 0 ? (
-                  <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {r.awayBonus.map((b, i) => (
-                      <li key={`a-${r.id}-${i}`} style={{ lineHeight: 1.8 }}>
-                        {b.name} <span style={{ opacity: 0.7 }}>+{b.pts}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <p style={{ marginTop: 16, fontSize: 12, opacity: 0.65 }}>
-        Tip: Bonus only appears after fixtures finish; during live games or if
-        data hasn’t settled yet, the lists may be empty.
-      </p>
+                  <div>
+                    <h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>Away bonus</h3>
+                    {awayBonus.length === 0 ? (
+                      <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
+                    ) : (
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {awayBonus.map((b) => (
+                          <li key={`a-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
+                            {playerName(b.element)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }

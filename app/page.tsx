@@ -86,8 +86,7 @@ export default function HomePage() {
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>🦞 The Lobster League</h1>
         <nav style={{ display: 'flex', gap: 12 }}>
-          <Link href="/history" style={{ textDecoration: 'underline' }}>History</Link>
-          <Link href="/bonus" style={{ textDecoration: 'underline' }}>Bonus</Link>
+          
         </nav>
       </header>
 

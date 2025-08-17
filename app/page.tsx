@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+export const dynamic = 'force-dynamic';
+
 
 type TeamEntry = {
   entry: number;
@@ -11,7 +13,7 @@ type TeamEntry = {
   event_total?: number | null;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
 
 function isArray<T>(x: unknown): x is T[] {
   return Array.isArray(x);

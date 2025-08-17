@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+export const dynamic = 'force-dynamic';
+
 
 type Event = { id: number; is_current: boolean; finished: boolean };
 type Team = { id: number; name: string; short_name: string; code?: number };

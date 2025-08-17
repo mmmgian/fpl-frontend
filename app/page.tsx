@@ -11,7 +11,7 @@ type TeamEntry = {
   event_total?: number | null;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000').replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/+$/, '');
 
 function isArray<T>(x: unknown): x is T[] {
   return Array.isArray(x);

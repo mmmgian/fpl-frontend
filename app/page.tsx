@@ -3,61 +3,69 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-type Standing = {
+type TeamEntry = {
   entry: number;
   entry_name: string;
   player_name: string;
-  rank: number;
   total: number;
-  event_total?: number;
+  event_total?: number | null;
 };
 
-interface LeagueResponseA { standings?: Standing[] }                    // { standings: [...] }
-interface LeagueResponseB { standings?: { results?: Standing[] } }      // { standings: { results: [...] } }
-interface LeagueResponseC { results?: Standing[] }                      // { results: [...] }
-type LeagueResponse = LeagueResponseA | LeagueResponseB | LeagueResponseC | unknown;
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000').replace(/\/+$/, '');
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
-const LEAGUE_ID = process.env.NEXT_PUBLIC_LEAGUE_ID || '1391467';
-
-async function fetchJSONWithRetry<T>(url: string, attempts = 3, delayMs = 1200): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      const text = await res.text();
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
-      return JSON.parse(text) as T;
-    } catch (e) {
-      lastErr = e;
-      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
-    }
-  }
-  throw lastErr;
+function isArray<T>(x: unknown): x is T[] {
+  return Array.isArray(x);
+}
+function isObject(x: unknown): x is Record<string, unknown> {
+  return !!x && typeof x === 'object' && !Array.isArray(x);
+}
+function num(x: unknown, d = 0): number {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : d;
+}
+function str(x: unknown, d = ''): string {
+  return typeof x === 'string' ? x : d;
 }
 
-function pickStandings(data: LeagueResponse): Standing[] {
-  // shape 1: { standings: Standing[] }
-  if (typeof data === 'object' && data && 'standings' in data) {
-    const s1 = (data as LeagueResponseA).standings;
-    if (Array.isArray(s1)) return s1;
+// Coerce whatever the backend sends into TeamEntry[]
+function coerceRows(raw: unknown): TeamEntry[] {
+  // direct array
+  if (isArray<unknown>(raw)) return raw.map(toEntry).filter(Boolean) as TeamEntry[];
 
-    // shape 2: { standings: { results: Standing[] } }
-    const s2 = (data as LeagueResponseB).standings;
-    if (s2 && typeof s2 === 'object' && 'results' in s2 && Array.isArray(s2.results)) {
-      return s2.results as Standing[];
+  // object with a nested array
+  if (isObject(raw)) {
+    const obj = raw as Record<string, unknown>;
+    const candidates: unknown[] = [
+      obj.results,
+      obj.entries,
+      obj.standings,
+      (obj.league as Record<string, unknown> | undefined)?.standings,
+      (obj.table as unknown),
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+      if (isArray<unknown>(c)) return c.map(toEntry).filter(Boolean) as TeamEntry[];
     }
   }
-  // shape 3: { results: Standing[] }
-  if (typeof data === 'object' && data && 'results' in data) {
-    const r = (data as LeagueResponseC).results;
-    if (Array.isArray(r)) return r;
-  }
+
   return [];
 }
 
+function toEntry(x: unknown): TeamEntry | null {
+  if (!isObject(x)) return null;
+  const o = x as Record<string, unknown>;
+  const entry = num(o.entry ?? o.id);
+  const entry_name = str(o.entry_name ?? o.team_name);
+  const player_name = str(o.player_name ?? o.manager_name);
+  const total = num(o.total ?? o.points);
+  const event_total = o.event_total != null ? num(o.event_total) : null;
+
+  if (!entry_name && !player_name) return null;
+  return { entry, entry_name, player_name, total, event_total };
+}
+
 export default function HomePage() {
-  const [rows, setRows] = useState<Standing[]>([]);
+  const [rows, setRows] = useState<TeamEntry[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,77 +75,111 @@ export default function HomePage() {
       setLoading(true);
       setErr(null);
       try {
-        const data = await fetchJSONWithRetry<LeagueResponse>(
-          `${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`
-        );
-        const list = pickStandings(data);
-        if (!cancelled) setRows(list);
+        const res = await fetch(`${API_BASE}/league/1391467`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Failed to fetch league: ${res.status}`);
+        const data: unknown = await res.json();
+
+        // Accept shapes:
+        // { standings: [...] } | { standings: { results: [...] } } | array of rows, etc.
+        const arr = isObject(data)
+          ? coerceRows((data as Record<string, unknown>).standings ?? data)
+          : coerceRows(data);
+
+        if (!cancelled) setRows(arr);
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return (
-    <main style={{ fontFamily: 'Helvetica, Arial, sans-serif', padding: 20 }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h1 style={{ margin: 0 }}>🦞 The Lobster League</h1>
-        <nav style={{ display: 'flex', gap: 12 }}>
-          
-        </nav>
-      </header>
+  // ——— CDG-ish minimal styles ———
+  const hairline = '1px solid rgba(0,0,0,0.08)';
+  const page: React.CSSProperties = {
+    fontFamily: 'Helvetica, Arial, sans-serif',
+    background: '#fff',
+    color: '#111',
+    padding: '28px 20px 40px',
+    lineHeight: 1.35,
+    letterSpacing: '0.005em',
+  };
+  const shell: React.CSSProperties = { maxWidth: 1100, margin: '0 auto' };
+  const h1: React.CSSProperties = { fontSize: 24, fontWeight: 700, letterSpacing: '0.01em', marginBottom: 6 };
+  const sub: React.CSSProperties = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 };
+  const tableWrap: React.CSSProperties = { marginTop: 16, background: '#fff', border: hairline, borderRadius: 12, overflow: 'hidden' };
+  const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' };
+  const th: React.CSSProperties = { textAlign: 'left', padding: '10px 8px', borderBottom: hairline, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.10em', opacity: 0.8 };
+  const thRight: React.CSSProperties = { ...th, textAlign: 'right' as const };
+  const td: React.CSSProperties = { padding: '10px 8px', borderBottom: '1px dashed rgba(0,0,0,0.06)', fontSize: 14 };
+  const tdRight: React.CSSProperties = { ...td, textAlign: 'right' as const };
+  const linkTeam: React.CSSProperties = { textDecoration: 'underline', textUnderlineOffset: 3 };
 
-      <section style={{ border: '1px solid #e5e5e5', borderRadius: 12, padding: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>League Table</span>
-          <span style={{ fontSize: 12, opacity: 0.65 }}>ID {LEAGUE_ID}</span>
+  return (
+    <main style={page}>
+      <div style={shell}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <h1 style={h1}>League Table</h1>
+          <div style={sub}>ID 1391467</div>
         </div>
+
+        <div style={{ borderTop: hairline, marginTop: 8, marginBottom: 14 }} />
 
         {loading ? (
           <p>Loading…</p>
         ) : err ? (
-          <div>
-            <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', padding: 10, borderRadius: 8, border: '1px solid #eee' }}>
-              {err}
-            </pre>
-          </div>
+          <p style={{ opacity: 0.75 }}>
+            {`Uh oh, you\u2019ve gotten ahead of yourself — no league data yet.`}
+            <br />
+            <small>{err}</small>
+          </p>
         ) : rows.length === 0 ? (
-          <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
+          <p style={{ opacity: 0.75 }}>
+            {`Uh oh, you\u2019ve gotten ahead of yourself — no league data yet.`}
+            <br />
+            <small>Make sure your backend is awake and returning /league/1391467.</small>
+          </p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={tableWrap}>
+            <table style={table}>
+              <colgroup>
+                <col style={{ width: '7ch' }} />
+                <col style={{ width: '44%' }} />
+                <col style={{ width: '33%' }} />
+                <col style={{ width: '16%' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>#</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Team</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Manager</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>GW</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Total</th>
+                  <th style={th}>#</th>
+                  <th style={th}>Team</th>
+                  <th style={th}>Manager</th>
+                  <th style={thRight}>Points</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.entry}>
-                    <td style={{ padding: 8 }}>{row.rank}</td>
-                    <td style={{ padding: 8 }}>
-                      <Link href={`/team/${row.entry}`} style={{ textDecoration: 'underline' }}>
-                        {row.entry_name}
-                      </Link>
+                {rows.map((t, i) => (
+                  <tr key={t.entry || `${t.entry_name}-${i}`}>
+                    <td style={td}>{i + 1}</td>
+                    <td style={td}>
+                      <Link href={`/team/${t.entry}`} style={linkTeam}>{t.entry_name}</Link>
                     </td>
-                    <td style={{ padding: 8, opacity: 0.8 }}>{row.player_name}</td>
-                    <td style={{ padding: 8, textAlign: 'right' }}>{row.event_total ?? '—'}</td>
-                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 700 }}>{row.total}</td>
+                    <td style={{ ...td, opacity: 0.8 }}>{t.player_name}</td>
+                    <td style={tdRight}>{t.total}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </section>
+
+        <nav style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+          <Link className="btn" href="/history" style={{ textDecoration: 'underline', textUnderlineOffset: 3, fontSize: 12 }}>History</Link>
+          <Link className="btn" href="/bonus" style={{ textDecoration: 'underline', textUnderlineOffset: 3, fontSize: 12 }}>Bonus</Link>
+        </nav>
+      </div>
     </main>
   );
 }

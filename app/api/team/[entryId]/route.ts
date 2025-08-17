@@ -33,7 +33,7 @@ function isArray<T>(x: unknown): x is T[] {
 
 type BootstrapElement = { id: number; web_name: string; team: number; element_type: PositionId };
 
-async function fetchBootstrap() {
+async function fetchBootstrap(): Promise<Map<number, BootstrapElement>> {
   const url = 'https://fantasy.premierleague.com/api/bootstrap-static/';
   const r = await fetch(url, {
     cache: 'no-store',
@@ -46,14 +46,20 @@ async function fetchBootstrap() {
     },
   });
   if (!r.ok) throw new Error(`bootstrap ${r.status}`);
-  const json = await r.json();
+
+  const json: unknown = await r.json();
   const map = new Map<number, BootstrapElement>();
-  if (isArray<any>(json?.elements)) {
-    for (const el of json.elements as any[]) {
-      const id = getNum(el?.id);
-      const web_name = getStr(el?.web_name) ?? `Player ${id ?? '?'}`;
-      const team = getNum(el?.team) ?? 0;
-      const et = getNum(el?.element_type) as PositionId | null;
+
+  const elements = (json as { elements?: unknown })?.elements;
+  if (isArray<unknown>(elements)) {
+    for (const el of elements) {
+      if (!el || typeof el !== 'object') continue;
+      const rec = el as Record<string, unknown>;
+      const id = getNum(rec.id);
+      const web_name = getStr(rec.web_name) ?? (id != null ? `Player ${id}` : 'Player ?');
+      const team = getNum(rec.team) ?? 0;
+      const et = getNum(rec.element_type) as PositionId | null;
+
       if (id != null && et && [1, 2, 3, 4].includes(et)) {
         map.set(id, { id, web_name, team, element_type: et });
       }
@@ -73,7 +79,9 @@ function normalizePickRaw(raw: unknown, boot: Map<number, BootstrapElement>): Pi
   const fromBoot = boot.get(id);
 
   // Try to read from payload; fall back to bootstrap
-  const posNum = getNum(obj.position ?? obj.element_type ?? obj.pos) ?? fromBoot?.element_type ?? null;
+  const posNum =
+    getNum(obj.position ?? obj.element_type ?? obj.pos) ??
+    (fromBoot ? fromBoot.element_type : null);
   const position = posNum && [1, 2, 3, 4].includes(posNum) ? (posNum as PositionId) : null;
   if (!position) return null;
 
@@ -95,18 +103,26 @@ function normalizePickRaw(raw: unknown, boot: Map<number, BootstrapElement>): Pi
   return { id, web_name: web_name!, position, team, gw_points: gw_points ?? null, is_captain };
 }
 
-function coerceTeamContainer(raw: unknown): { picksLike: unknown[]; meta: Record<string, unknown> } | null {
+function coerceTeamContainer(
+  raw: unknown
+): { picksLike: unknown[]; meta: Record<string, unknown> } | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
 
-  // Look through common containers for an array of picks
+  // Optionally check nested team.picks without using any
+  const teamMaybe = obj.team;
+  const nestedPicks =
+    teamMaybe && typeof teamMaybe === 'object'
+      ? (teamMaybe as Record<string, unknown>).picks
+      : undefined;
+
   const candidates: unknown[] = [
     obj.picks,
     obj.squad,
     obj.results,
     obj.players,
     obj.data,
-    (obj.team as any)?.picks,
+    nestedPicks,
     raw, // sometimes whole response is just an array
   ].filter(Boolean);
 
@@ -139,10 +155,13 @@ export async function GET(
     });
     const text = await r.text();
     if (!r.ok) {
-      return NextResponse.json({ error: `Upstream ${r.status}`, body: text.slice(0, 500) }, { status: r.status });
+      return NextResponse.json(
+        { error: `Upstream ${r.status}`, body: text.slice(0, 500) },
+        { status: r.status }
+      );
     }
 
-    const upstream = JSON.parse(text);
+    const upstream: unknown = JSON.parse(text);
 
     // 2) Find the picks-like array + meta fields
     const container = coerceTeamContainer(upstream);
@@ -159,15 +178,23 @@ export async function GET(
       if (p) picks.push(p);
     }
     if (picks.length === 0) {
-      return NextResponse.json({ error: 'Could not normalize picks (missing element_type/position?)' }, { status: 502 });
+      return NextResponse.json(
+        { error: 'Could not normalize picks (missing element_type/position?)' },
+        { status: 502 }
+      );
     }
 
     // 4) Build normalized payload
     const meta = container.meta;
-    const entry_id = getNum(meta.entry_id) ?? getNum(meta.entry) ?? 0;
-    const team_name = getStr(meta.team_name) ?? getStr(meta.entry_name) ?? 'Team';
-    const manager_name = getStr(meta.manager_name) ?? getStr(meta.player_name) ?? 'Manager';
-    const gw = getNum(meta.gw) ?? getNum(meta.event) ?? 0;
+    const entry_id =
+      getNum(meta.entry_id) ?? getNum((meta as Record<string, unknown>).entry) ?? 0;
+    const team_name =
+      getStr(meta.team_name) ?? getStr((meta as Record<string, unknown>).entry_name) ?? 'Team';
+    const manager_name =
+      getStr(meta.manager_name) ??
+      getStr((meta as Record<string, unknown>).player_name) ??
+      'Manager';
+    const gw = getNum(meta.gw) ?? getNum((meta as Record<string, unknown>).event) ?? 0;
 
     const payload: TeamPayload = { entry_id, team_name, manager_name, gw, picks };
 

@@ -71,7 +71,39 @@ async function fetchBootstrapViaSelf(origin: string): Promise<{
   return { map, currentGw };
 }
 
-function normalizePickRaw(raw: unknown, boot: Map<number, BootstrapElement>): Pick | null {
+async function fetchLivePointsMap(gw: number): Promise<Map<number, number>> {
+  const url = `https://fantasy.premierleague.com/api/event/${gw}/live/`;
+  const r = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'user-agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+      accept: 'application/json,text/plain,*/*',
+      referer: 'https://fantasy.premierleague.com/',
+    },
+  });
+  if (!r.ok) throw new Error(`live ${r.status}`);
+  const json: unknown = await r.json();
+
+  const map = new Map<number, number>();
+  const elements = (json as { elements?: unknown })?.elements;
+  if (isArray<unknown>(elements)) {
+    for (const el of elements) {
+      if (!isObject(el)) continue;
+      const id = getNum(el.id);
+      const stats = (el as Record<string, unknown>).stats;
+      const total = isObject(stats) ? getNum(stats.total_points) : null;
+      if (id != null && total != null) map.set(id, total);
+    }
+  }
+  return map;
+}
+
+function normalizePickRaw(
+  raw: unknown,
+  boot: Map<number, BootstrapElement>,
+  live: Map<number, number>
+): Pick | null {
   if (!isObject(raw)) return null;
   const id = getNum(raw.id ?? raw.element ?? raw.player_id ?? raw.code);
   if (id == null) return null;
@@ -88,20 +120,25 @@ function normalizePickRaw(raw: unknown, boot: Map<number, BootstrapElement>): Pi
     getStr(raw.player_name) ??
     (fromBoot ? fromBoot.web_name : `Player ${id}`);
 
-  const pts = (raw as Record<string, unknown>).gw_points ?? (raw as Record<string, unknown>).event_points ?? (raw as Record<string, unknown>).points;
-  const gw_points = pts == null ? null : getNum(pts);
+  // prefer wire value if present, else from live map
+  const ptsWire =
+    (raw as Record<string, unknown>).gw_points ??
+    (raw as Record<string, unknown>).event_points ??
+    (raw as Record<string, unknown>).points;
+  const gw_points = ptsWire != null ? getNum(ptsWire) : live.get(id) ?? null;
+
   const is_captain = Boolean(((raw as Record<string, unknown>).is_captain ?? (raw as Record<string, unknown>).captain) as unknown);
 
   return { id, web_name: web_name!, position, team, gw_points: gw_points ?? null, is_captain };
 }
 
-// Deep scan for any array that looks like picks (fallback if backend shape is unknown)
+// Deep-scan array finder (for unknown backend shapes)
 function looksLikePick(o: unknown): boolean {
   if (!isObject(o)) return false;
   const idish = 'element' in o || 'id' in o || 'player_id' in o || 'code' in o;
-  const hasCaptain = 'is_captain' in o || 'captain' in o;
-  const hasPoints = 'gw_points' in o || 'event_points' in o || 'points' in o;
-  return idish || hasCaptain || hasPoints;
+  const maybeCaptain = 'is_captain' in o || 'captain' in o;
+  const maybePoints = 'gw_points' in o || 'event_points' in o || 'points' in o;
+  return idish || maybeCaptain || maybePoints;
 }
 function findPicksArrayDeep(root: unknown, maxDepth = 4): unknown[] | null {
   type Node = { v: unknown; depth: number };
@@ -130,15 +167,15 @@ export async function GET(
   const BACKEND = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
   const teamURL = `${BACKEND}/team/${encodeURIComponent(entryId)}`;
 
-  // small timeout so we don’t hang if Render is cold
+  // short timeout for Render
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 12000);
 
   try {
-    // Bootstrap map + current GW
+    // Bootstrap & current GW
     const { map: boot, currentGw } = await fetchBootstrapViaSelf(origin);
 
-    // Try the backend first
+    // Try backend first
     const r = await fetch(teamURL, {
       cache: 'no-store',
       signal: controller.signal,
@@ -152,36 +189,41 @@ export async function GET(
 
     if (r.ok) {
       const upstream: unknown = JSON.parse(text);
+
+      // determine GW from upstream if available
+      const metaObj = isObject(upstream) ? upstream : {};
+      const gwFromMeta =
+        getNum((metaObj as Record<string, unknown>).gw) ??
+        getNum((metaObj as Record<string, unknown>).event) ??
+        currentGw ??
+        0;
+
+      // live points for this GW
+      const liveMap = gwFromMeta ? await fetchLivePointsMap(gwFromMeta) : new Map<number, number>();
+
       const picksLike = findPicksArrayDeep(upstream);
       if (picksLike) {
         const picks: Pick[] = [];
         for (const raw of picksLike) {
-          const p = normalizePickRaw(raw, boot);
+          const p = normalizePickRaw(raw, boot, liveMap);
           if (p) picks.push(p);
         }
         if (picks.length) {
-          // best-effort meta
-          const metaObj = isObject(upstream) ? upstream : {};
           const entry_id = getNum((metaObj as Record<string, unknown>).entry_id) ?? getNum((metaObj as Record<string, unknown>).entry) ?? Number(entryId);
           const team_name = getStr((metaObj as Record<string, unknown>).team_name) ?? getStr((metaObj as Record<string, unknown>).entry_name) ?? 'Team';
           const manager_name = getStr((metaObj as Record<string, unknown>).manager_name) ?? getStr((metaObj as Record<string, unknown>).player_name) ?? 'Manager';
-          const gw = getNum((metaObj as Record<string, unknown>).gw) ?? getNum((metaObj as Record<string, unknown>).event) ?? (currentGw ?? 0);
           clearTimeout(tid);
-          return NextResponse.json({ entry_id, team_name, manager_name, gw, picks } satisfies TeamPayload, {
-            status: 200,
-            headers: { 'cache-control': 'no-store' },
-          });
+          return NextResponse.json(
+            { entry_id, team_name, manager_name, gw: gwFromMeta, picks } satisfies TeamPayload,
+            { status: 200, headers: { 'cache-control': 'no-store' } }
+          );
         }
       }
-      // If backend responded but without usable picks, fall through to direct FPL.
+      // fallthrough to FPL
     }
 
-    // Fallback: fetch direct from official FPL API (server-side)
+    // Fallback to official FPL (needs current GW)
     if (!currentGw) throw new Error('No current GW from bootstrap');
-
-    const entrySummaryURL = `https://fantasy.premierleague.com/api/entry/${encodeURIComponent(entryId)}/`;
-    const entryPicksURL = `https://fantasy.premierleague.com/api/entry/${encodeURIComponent(entryId)}/event/${currentGw}/picks/`;
-
     const headers = {
       'user-agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
@@ -189,9 +231,11 @@ export async function GET(
       referer: 'https://fantasy.premierleague.com/',
     };
 
-    const [entryRes, picksRes] = await Promise.all([
-      fetch(entrySummaryURL, { cache: 'no-store', headers }),
-      fetch(entryPicksURL, { cache: 'no-store', headers }),
+    // entry summary + picks + live in parallel
+    const [entryRes, picksRes, liveMap] = await Promise.all([
+      fetch(`https://fantasy.premierleague.com/api/entry/${encodeURIComponent(entryId)}/`, { cache: 'no-store', headers }),
+      fetch(`https://fantasy.premierleague.com/api/entry/${encodeURIComponent(entryId)}/event/${currentGw}/picks/`, { cache: 'no-store', headers }),
+      fetchLivePointsMap(currentGw),
     ]);
 
     if (!entryRes.ok) throw new Error(`entry ${entryRes.status}`);
@@ -200,7 +244,6 @@ export async function GET(
     const entryJson: unknown = await entryRes.json();
     const picksJson: unknown = await picksRes.json();
 
-    // From entry summary
     const team_name =
       (isObject(entryJson) && getStr((entryJson as Record<string, unknown>).name)) || 'Team';
     const manager_name =
@@ -210,24 +253,21 @@ export async function GET(
         }`.trim()) ||
       'Manager';
 
-    // From picks endpoint: picks[]
     const picksArr = isObject(picksJson)
       ? ((picksJson as Record<string, unknown>).picks as unknown)
       : undefined;
     if (!isArray<unknown>(picksArr)) throw new Error('no picks[] from FPL');
 
-    // Enrich each pick from bootstrap
     const picks: Pick[] = [];
     for (const raw of picksArr) {
       if (!isObject(raw)) continue;
       const elementId = getNum(raw.element);
       if (elementId == null) continue;
-
       const bootEl = boot.get(elementId);
       if (!bootEl) continue;
 
       const is_captain = Boolean(raw.is_captain as unknown);
-      const gw_points = null; // FPL picks API doesn’t include per-pick gw points; keep null
+      const gw_points = liveMap.get(elementId) ?? null;
 
       picks.push({
         id: elementId,

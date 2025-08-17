@@ -1,4 +1,4 @@
-// app/bonus/page.tsx — SERVER COMPONENT (no client event handlers)
+// app/bonus/page.tsx — SERVER COMPONENT (no CORS), with numbered leaderboard
 import Image from "next/image";
 import MatchHeader from "../components/MatchHeader";
 
@@ -45,6 +45,9 @@ const teamCrests: Record<number, string> = {
   20: "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
+const faceUrl = (id: number) =>
+  `https://resources.premierleague.com/premierleague/photos/players/110x140/p${id}.png`;
+
 async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), ms);
@@ -88,83 +91,149 @@ export default async function BonusPage() {
 
   const playersById = new Map(boot.elements.map((p) => [p.id, p] as const));
 
+  // Build bonus leaderboard from all fixtures (sum per player)
+  const tally: Record<number, number> = {};
+  for (const f of fixtures) {
+    const bonus = f.stats?.find((s) => s.identifier === "bonus");
+    if (!bonus) continue;
+    for (const e of [...(bonus.a ?? []), ...(bonus.h ?? [])]) {
+      tally[e.element] = (tally[e.element] ?? 0) + e.value;
+    }
+  }
+  const leaderboard = Object.entries(tally)
+    .map(([id, total]) => ({ player: playersById.get(Number(id)), total: Number(total) }))
+    .filter((x) => x.player)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 15);
+
   return (
     <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
       <h1 style={{ fontSize: 24, marginBottom: 16 }}>Bonus Points — GW {gw}</h1>
 
-      {/* Pills: finished fixtures, crests only */}
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", marginBottom: 16 }}>
-        {fixtures.filter((f) => f.finished).map((f) => (
-          <div
-            key={`pill-${f.id}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 10px",
-              borderRadius: 999,
-              border: "1px solid #eee",
-              background: "#fff",
-            }}
-          >
-            <Image src={teamCrests[f.team_h]} alt="home" width={20} height={20} />
-            <span style={{ fontSize: 12, opacity: 0.7 }}>vs</span>
-            <Image src={teamCrests[f.team_a]} alt="away" width={20} height={20} />
-          </div>
-        ))}
-      </div>
-
-      {/* Fixture cards */}
-      <div style={{ display: "grid", gap: 16 }}>
-        {fixtures.map((fixture) => {
-          const bonus = fixture.stats?.find((s) => s.identifier === "bonus");
-          const rows: BonusStatEntry[] = bonus ? [...(bonus.a ?? []), ...(bonus.h ?? [])] : [];
-
-          return (
-            <section
-              key={fixture.id}
-              style={{
-                border: "1px solid #eee",
-                borderRadius: 10,
-                background: "#fff",
-                padding: 12,
-              }}
-            >
-              {/* interactive header moved into a client component */}
-              <MatchHeader homeCrest={teamCrests[fixture.team_h]} awayCrest={teamCrests[fixture.team_a]} />
-
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Player</th>
-                      <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Bonus</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length === 0 ? (
-                      <tr>
-                        <td colSpan={2} style={{ padding: 8, opacity: 0.65 }}>
-                          No bonus yet for this fixture.
-                        </td>
-                      </tr>
-                    ) : (
-                      rows.map((p) => {
-                        const pl = playersById.get(p.element);
-                        return (
-                          <tr key={`${fixture.id}-${p.element}`}>
-                            <td style={{ padding: 8 }}>{pl?.web_name ?? "Unknown Player"}</td>
-                            <td style={{ padding: 8 }}>+{p.value}</td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+      <div style={{ display: "flex", gap: 32 }}>
+        {/* LEFT: fixtures list */}
+        <div style={{ flex: 1 }}>
+          {/* Pills: finished fixtures, crests only */}
+          <div style={{ display: "flex", gap: 12, overflowX: "auto", marginBottom: 16 }}>
+            {fixtures.filter((f) => f.finished).map((f) => (
+              <div
+                key={`pill-${f.id}`}
+                className="pill"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #eee",
+                  background: "#fff",
+                }}
+              >
+                <Image src={teamCrests[f.team_h]} alt="home" width={20} height={20} />
+                <span style={{ fontSize: 12, opacity: 0.7 }}>vs</span>
+                <Image src={teamCrests[f.team_a]} alt="away" width={20} height={20} />
               </div>
-            </section>
-          );
-        })}
+            ))}
+          </div>
+
+          {/* Fixture cards */}
+          <div style={{ display: "grid", gap: 16 }}>
+            {fixtures.map((fixture) => {
+              const bonus = fixture.stats?.find((s) => s.identifier === "bonus");
+              const rows: BonusStatEntry[] = bonus ? [...(bonus.a ?? []), ...(bonus.h ?? [])] : [];
+
+              return (
+                <section
+                  key={fixture.id}
+                  style={{
+                    border: "1px solid #eee",
+                    borderRadius: 10,
+                    background: "#fff",
+                    padding: 12,
+                  }}
+                >
+                  <MatchHeader
+                    homeCrest={teamCrests[fixture.team_h]}
+                    awayCrest={teamCrests[fixture.team_a]}
+                  />
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Player</th>
+                          <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Bonus</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.length === 0 ? (
+                          <tr>
+                            <td colSpan={2} style={{ padding: 8, opacity: 0.65 }}>
+                              No bonus yet for this fixture.
+                            </td>
+                          </tr>
+                        ) : (
+                          rows.map((p) => {
+                            const pl = playersById.get(p.element);
+                            return (
+                              <tr key={`${fixture.id}-${p.element}`} className="fixture-row">
+                                <td style={{ padding: 8 }}>{pl?.web_name ?? "Unknown Player"}</td>
+                                <td style={{ padding: 8 }}>+{p.value}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Divider + RIGHT: leaderboard */}
+        <div className="divider" />
+
+        <aside style={{ width: 380, minWidth: 300 }}>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>🌈 Top 15 Bonus Leaders</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>#</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Player</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((entry, i) => (
+                  <tr key={entry.player!.id} className="leader-row">
+                    {/* Rank number */}
+                    <td style={{ padding: 8, fontWeight: 700 }}>{i + 1}</td>
+
+                    {/* Player face + name */}
+                    <td style={{ padding: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Image
+                          src={faceUrl(entry.player!.id)}
+                          alt={entry.player!.web_name}
+                          width={26}
+                          height={26}
+                          style={{ borderRadius: "50%", objectFit: "contain" }}
+                        />
+                        {entry.player!.web_name}
+                      </div>
+                    </td>
+
+                    {/* Total bonus */}
+                    <td style={{ padding: 8, fontWeight: 600 }}>+{entry.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </aside>
       </div>
     </main>
   );

@@ -69,7 +69,7 @@ export default function TeamClient({ entryId }: { entryId: string }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Team data via our Next proxy (already normalized)
+  // Team data via our Next proxy (already normalized + gw_points via live)
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -77,10 +77,10 @@ export default function TeamClient({ entryId }: { entryId: string }) {
       setErr(null);
       try {
         const res = await fetch(`/api/team/${encodeURIComponent(entryId)}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-        const data = (await res.json()) as TeamPayload;
-        setPayload(data);
-
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
+        const data = JSON.parse(text) as TeamPayload;
+        if (!cancelled) setPayload(data);
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
       } finally {
@@ -104,86 +104,194 @@ export default function TeamClient({ entryId }: { entryId: string }) {
     return bucket;
   }, [payload]);
 
-  // Table styles
-  const tableStyle: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' };
-  const thStyle: React.CSSProperties = { textAlign: 'left', borderBottom: '1px solid #eee', padding: 6, fontSize: 12 };
-  const thRight: React.CSSProperties = { ...thStyle, textAlign: 'right' };
-  const tdStyle: React.CSSProperties = { padding: 6 };
-  const tdRight: React.CSSProperties = { padding: 6, textAlign: 'right' };
+  // ——— CDG-ish minimal styles ———
+  const pageStyle: React.CSSProperties = {
+    fontFamily: 'Helvetica, Arial, sans-serif',
+    background: '#fff',
+    color: '#111',
+    padding: '28px 20px 40px',
+    lineHeight: 1.35,
+    letterSpacing: '0.005em',
+  };
+
+  const shellStyle: React.CSSProperties = {
+    maxWidth: 1100,
+    margin: '0 auto',
+  };
+
+  const hairline = '1px solid rgba(0,0,0,0.08)';
+
+  const pillStyle: React.CSSProperties = {
+    display: 'inline-block',
+    border: hairline,
+    borderRadius: 999,
+    padding: '6px 12px',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  };
+
+  const headerTopStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 10,
+  };
+
+  const backStyle: React.CSSProperties = {
+    textDecoration: 'underline',
+    textUnderlineOffset: 3,
+    fontSize: 12,
+  };
+
+  const titleBlock: React.CSSProperties = {
+    display: 'grid',
+    gap: 2,
+    textAlign: 'right',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: 22,
+    fontWeight: 700,
+    letterSpacing: '0.01em',
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+    opacity: 0.7,
+  };
+
+  const gridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0,1fr))',
+    gap: 18,
+    marginTop: 18,
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: '#fff',
+    border: hairline,
+    borderRadius: 12,
+    padding: 14,
+  };
+
+  const sectionLabelStyle: React.CSSProperties = {
+    ...pillStyle,
+    padding: '5px 10px',
+    marginBottom: 10,
+  };
+
+  const tableStyle: React.CSSProperties = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    tableLayout: 'fixed',
+  };
+
+  const headCellBase: React.CSSProperties = {
+    textAlign: 'left',
+    borderBottom: hairline,
+    padding: '8px 4px',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.10em',
+    opacity: 0.8,
+  };
+
+  const headCellRight: React.CSSProperties = { ...headCellBase, textAlign: 'right' };
+  const cell: React.CSSProperties = { padding: '8px 4px', borderBottom: '1px dashed rgba(0,0,0,0.06)' };
+  const cellRight: React.CSSProperties = { ...cell, textAlign: 'right' };
+
+  const capBadge: React.CSSProperties = {
+    marginLeft: 6,
+    fontSize: 10,
+    padding: '1px 5px',
+    border: hairline,
+    borderRadius: 6,
+    verticalAlign: '1px',
+  };
+
+  const teamMuted: React.CSSProperties = { opacity: 0.7 };
 
   return (
-    <main style={{ fontFamily: 'Helvetica, Arial, sans-serif', padding: 20, background: '#fff' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <Link href="/" style={{ textDecoration: 'underline' }}>← Back to League Table</Link>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>
-            {payload ? `${payload.manager_name} — ${payload.team_name}` : 'Team'}
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            {`GW ${payload?.gw ?? gw ?? '…'}`}
+    <main style={pageStyle}>
+      <div style={shellStyle}>
+        {/* Top bar */}
+        <div style={headerTopStyle}>
+          <Link href="/" style={backStyle}>← Back to League Table</Link>
+          <div style={titleBlock}>
+            <div style={titleStyle}>
+              {payload ? `${payload.manager_name} — ${payload.team_name}` : 'Team'}
+            </div>
+            <div style={subtitleStyle}>Gameweek {payload?.gw ?? gw ?? '…'}</div>
           </div>
         </div>
-      </header>
 
-      {loading ? (
-        <p>Loading…</p>
-      ) : err ? (
-        <div>
-          <p>{`Uh oh, you've gotten ahead of yourself — no team data yet.`}</p>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', padding: 10, borderRadius: 8, border: '1px solid #eee' }}>
-            {err}
-          </pre>
-        </div>
-      ) : !payload ? (
-        <p>{`Uh oh, you've gotten ahead of yourself — no team data yet.`}</p>
-      ) : (
-        <section>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 16 }}>
-            {[1, 2, 3, 4].map((pos) => (
-              <div key={pos} style={{ border: '1px solid #e5e5e5', borderRadius: 12, padding: 12, background: '#fff' }}>
-                <div style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-                  {({ 1: 'Goalkeepers', 2: 'Defenders', 3: 'Midfielders', 4: 'Forwards' } as const)[pos as PositionId]}
-                </div>
+        {/* Thin divider */}
+        <div style={{ borderTop: hairline, marginTop: 8, marginBottom: 14 }} />
 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={tableStyle}>
-                    <colgroup>
-                      <col style={{ width: '52%' }} />
-                      <col style={{ width: '28%' }} />
-                      <col style={{ width: '20%' }} />
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th style={thStyle}>Player</th>
-                        <th style={thStyle}>Team</th>
-                        <th style={thRight}>Points (GW)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {grouped[pos as PositionId].length === 0 ? (
-                        <tr><td colSpan={3} style={{ padding: 6, opacity: 0.65 }}>—</td></tr>
-                      ) : (
-                        grouped[pos as PositionId].map((p) => (
-                          <tr key={`${pos}-${p.id}`}>
-                            <td style={tdStyle}>
-                              {p.web_name}
-                              {p.is_captain ? (
-                                <span title="Captain" style={{ marginLeft: 6, fontSize: 11, padding: '2px 5px', border: '1px solid #ddd', borderRadius: 6 }}>🅒</span>
-                              ) : null}
-                            </td>
-                            <td style={tdStyle}>{p.team ? (teamsMap.get(p.team) ?? `Team ${p.team}`) : '—'}</td>
-                            <td style={tdRight}>{p.gw_points ?? '—'}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
+        {loading ? (
+          <p style={{ marginTop: 20 }}>Loading…</p>
+        ) : err ? (
+          <div style={{ marginTop: 16 }}>
+            <p>{`Uh oh, you've gotten ahead of yourself — no team data yet.`}</p>
+            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', padding: 10, borderRadius: 8, border: hairline }}>
+              {err}
+            </pre>
           </div>
-        </section>
-      )}
+        ) : !payload ? (
+          <p style={{ marginTop: 20 }}>{`Uh oh, you've gotten ahead of yourself — no team data yet.`}</p>
+        ) : (
+          <section>
+            <div style={gridStyle}>
+              {[1, 2, 3, 4].map((pos) => (
+                <div key={pos} style={cardStyle}>
+                  <div style={sectionLabelStyle}>
+                    {({ 1: 'Goalkeepers', 2: 'Defenders', 3: 'Midfielders', 4: 'Forwards' } as const)[pos as PositionId]}
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={tableStyle}>
+                      <colgroup>
+                        <col style={{ width: '54%' }} />
+                        <col style={{ width: '26%' }} />
+                        <col style={{ width: '20%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th style={headCellBase}>Player</th>
+                          <th style={headCellBase}>Team</th>
+                          <th style={headCellRight}>Points (GW)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {grouped[pos as PositionId].length === 0 ? (
+                          <tr><td colSpan={3} style={{ padding: 8, opacity: 0.5 }}>—</td></tr>
+                        ) : (
+                          grouped[pos as PositionId].map((p) => (
+                            <tr key={`${pos}-${p.id}`}>
+                              <td style={cell}>
+                                {p.web_name}
+                                {p.is_captain ? <span title="Captain" style={capBadge}>🅒</span> : null}
+                              </td>
+                              <td style={{ ...cell, ...teamMuted }}>
+                                {p.team ? (teamsMap.get(p.team) ?? `Team ${p.team}`) : '—'}
+                              </td>
+                              <td style={cellRight}>{p.gw_points ?? '—'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

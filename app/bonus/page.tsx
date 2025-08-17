@@ -62,7 +62,7 @@ export default function BonusPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/bootstrap-static`, { cache: 'no-store' });
+        const res = await fetch(`/api/bootstrap-static`, { cache: 'no-store' });
         const data = await res.json();
         if (cancelled) return;
         const elems = data?.elements;
@@ -93,7 +93,7 @@ export default function BonusPage() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/fixtures?event=${gw}`, { cache: 'no-store' });
+        const res = await fetch(`/api/fixtures?event=${gw}`, { cache: 'no-store' });
         const data = await res.json();
         if (!cancelled) setFixtures(isArray<Fixture>(data) ? data : []);
       } catch {

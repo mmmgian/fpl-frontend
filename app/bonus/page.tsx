@@ -1,3 +1,4 @@
+// app/bonus/page.tsx
 import Image from "next/image";
 import Link from "next/link";
 
@@ -48,7 +49,7 @@ function playerName(e?: Element) {
 
 function crestUrl(team?: Team) {
   if (!team) return undefined;
-  // Uses team.code from bootstrap so it stays correct for 25/26 (and beyond)
+  // Uses team.code from bootstrap so it's correct for 25/26 (and beyond)
   return `https://resources.premierleague.com/premierleague/badges/t${team.code}.png`;
 }
 
@@ -96,124 +97,196 @@ export default async function BonusPage() {
   const scoreline = (f: Fixture) =>
     f.team_h_score != null && f.team_a_score != null ? `${f.team_h_score}–${f.team_a_score}` : "–";
 
+  const finished = fixtures.filter((f) => f.finished);
+  const inProgressOrPending = fixtures.filter((f) => !f.finished);
+
   return (
-    <main style={{ padding: 24, fontFamily: "Helvetica, Arial, sans-serif", maxWidth: 1100, margin: "0 auto" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+    <main style={{ padding: 24, fontFamily: "Helvetica, Arial, sans-serif", maxWidth: 1200, margin: "0 auto" }}>
+      {/* Minimal top nav */}
+      <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
         <Link href="/" className="btn">Home</Link>
-        <div style={{ opacity: 0.75 }}>Bonus Points — GW {gw}</div>
       </header>
 
-      {fixtures.length === 0 ? (
-        <p style={{ opacity: 0.75 }}>No fixtures for this gameweek yet.</p>
-      ) : (
-        <div style={{ display: "grid", gap: 12 }}>
-          {fixtures.map((f) => {
+      {/* CdG-style hero */}
+      <div style={{ textAlign: "center", margin: "28px 0 16px 0" }}>
+        <h1 style={{ fontSize: "2.25rem", fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>
+          Bonus Points
+        </h1>
+        <p style={{
+          marginTop: 8,
+          fontSize: "0.8rem",
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          color: "#666"
+        }}>
+          Gameweek {gw}
+        </p>
+      </div>
+
+      {/* Fixture ribbon: all finished fixtures (compact crests + score) */}
+      <div style={{
+        display: "flex",
+        gap: 14,
+        overflowX: "auto",
+        padding: "8px 4px 16px",
+        marginBottom: 16,
+        WebkitOverflowScrolling: "touch"
+      }}>
+        {finished.length === 0 ? (
+          <div style={{ opacity: 0.6, fontSize: 13 }}>No finished fixtures yet.</div>
+        ) : (
+          finished.map((f) => {
             const home = teamsById.get(f.team_h);
             const away = teamsById.get(f.team_a);
-            const bonus = f.stats.find((s) => s.identifier === "bonus");
-            const homeBonus = (bonus?.h ?? []).slice().sort((a, b) => b.value - a.value);
-            const awayBonus = (bonus?.a ?? []).slice().sort((a, b) => b.value - a.value);
-
             return (
-              <section key={f.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
-                {/* Match header */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto 1fr",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    {home && (
-                      <Image
-                        src={crestUrl(home) ?? ""}
-                        alt={`${home.name} crest`}
-                        width={32}
-                        height={32}
-                        style={{ marginRight: 8, objectFit: "contain" }}
-                      />
-                    )}
-                    <strong>{home?.name ?? "Home"}</strong>
-                  </div>
-
-                  <div style={{ textAlign: "center", minWidth: 120 }}>
-                    <div style={{ fontWeight: 700 }}>{scoreline(f)}</div>
-                    <div
-                      style={{
-                        display: "inline-block",
-                        marginTop: 4,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        border: "1px solid #e5e5e5",
-                        fontSize: 12,
-                        background: f.finished ? "#f4faf6" : "#fafafa",
-                        opacity: f.finished ? 1 : 0.8,
-                      }}
-                    >
-                      {f.finished ? "Finished" : "In progress / Pending"}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                    <strong style={{ marginRight: 8 }}>{away?.name ?? "Away"}</strong>
-                    {away && (
-                      <Image
-                        src={crestUrl(away) ?? ""}
-                        alt={`${away.name} crest`}
-                        width={32}
-                        height={32}
-                        style={{ objectFit: "contain" }}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Bonus lists */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Home bonus</h3>
-                    {homeBonus.length === 0 ? (
-                      <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
-                    ) : (
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {homeBonus.map((b) => {
-                          const e = elementsById.get(b.element);
-                          return (
-                            <li key={`h-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
-                              {playerName(e)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div>
-                    <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Away bonus</h3>
-                    {awayBonus.length === 0 ? (
-                      <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
-                    ) : (
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {awayBonus.map((b) => {
-                          const e = elementsById.get(b.element);
-                          return (
-                            <li key={`a-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
-                              {playerName(e)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </section>
+              <div key={`ribbon-${f.id}`} style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                border: "1px solid #eee",
+                borderRadius: 999,
+                padding: "6px 10px",
+                background: "#fff"
+              }}>
+                {home && (
+                  <Image
+                    src={crestUrl(home) ?? ""}
+                    alt={`${home.name} crest`}
+                    width={22}
+                    height={22}
+                    style={{ objectFit: "contain" }}
+                  />
+                )}
+                <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>{home?.short_name ?? "Home"}</span>
+                <span style={{ opacity: 0.55, fontSize: 12 }}> {scoreline(f)} </span>
+                <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>{away?.short_name ?? "Away"}</span>
+                {away && (
+                  <Image
+                    src={crestUrl(away) ?? ""}
+                    alt={`${away.name} crest`}
+                    width={22}
+                    height={22}
+                    style={{ objectFit: "contain" }}
+                  />
+                )}
+              </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
+
+      {/* Matches list: in progress / pending first, then finished — each with bonus lists */}
+      <div style={{ display: "grid", gap: 12 }}>
+        {[...inProgressOrPending, ...finished].map((f) => {
+          const home = teamsById.get(f.team_h);
+          const away = teamsById.get(f.team_a);
+          const bonus = f.stats.find((s) => s.identifier === "bonus");
+          const homeBonus = (bonus?.h ?? []).slice().sort((a, b) => b.value - a.value);
+          const awayBonus = (bonus?.a ?? []).slice().sort((a, b) => b.value - a.value);
+
+          return (
+            <section key={f.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: 12, background: "#fff" }}>
+              {/* Match header */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto 1fr",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {home && (
+                    <Image
+                      src={crestUrl(home) ?? ""}
+                      alt={`${home.name} crest`}
+                      width={32}
+                      height={32}
+                      style={{ marginRight: 8, objectFit: "contain" }}
+                    />
+                  )}
+                  <strong>{home?.name ?? "Home"}</strong>
+                </div>
+
+                <div style={{ textAlign: "center", minWidth: 140 }}>
+                  <div style={{ fontWeight: 700 }}>{scoreline(f)}</div>
+                  <div
+                    style={{
+                      display: "inline-block",
+                      marginTop: 4,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      border: "1px solid #e5e5e5",
+                      fontSize: 12,
+                      background: f.finished ? "#f4faf6" : "#fafafa",
+                      opacity: f.finished ? 1 : 0.8,
+                    }}
+                  >
+                    {f.finished ? "Finished" : "In progress / Pending"}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                  <strong style={{ marginRight: 8 }}>{away?.name ?? "Away"}</strong>
+                  {away && (
+                    <Image
+                      src={crestUrl(away) ?? ""}
+                      alt={`${away.name} crest`}
+                      width={32}
+                      height={32}
+                      style={{ objectFit: "contain" }}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Bonus lists */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Home bonus</h3>
+                  {homeBonus.length === 0 ? (
+                    <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
+                  ) : (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {homeBonus.map((b) => {
+                        const e = elementsById.get(b.element);
+                        return (
+                          <li key={`h-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
+                            {playerName(e)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: 14, margin: "0 0 6px 0" }}>Away bonus</h3>
+                  {awayBonus.length === 0 ? (
+                    <div style={{ opacity: 0.6, fontSize: 13 }}>—</div>
+                  ) : (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {awayBonus.map((b) => {
+                        const e = elementsById.get(b.element);
+                        return (
+                          <li key={`a-${f.id}-${b.element}`} style={{ lineHeight: 1.8 }}>
+                            {playerName(e)} <span style={{ opacity: 0.7 }}>+{b.value}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      <p style={{ marginTop: 16, fontSize: 12, opacity: 0.65 }}>
+        Crests via the official Premier League CDN. Bonus appears once fixtures finish; during live games the lists may be empty.
+      </p>
     </main>
   );
 }

@@ -33,23 +33,13 @@ function isArray<T>(x: unknown): x is T[] {
 
 type BootstrapElement = { id: number; web_name: string; team: number; element_type: PositionId };
 
-async function fetchBootstrap(): Promise<Map<number, BootstrapElement>> {
-  const url = 'https://fantasy.premierleague.com/api/bootstrap-static/';
-  const r = await fetch(url, {
-    cache: 'no-store',
-    headers: {
-      'user-agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
-      accept: 'application/json,text/plain,*/*',
-      'accept-encoding': 'gzip, deflate, br',
-      referer: 'https://fantasy.premierleague.com/',
-    },
-  });
-  if (!r.ok) throw new Error(`bootstrap ${r.status}`);
-
+async function fetchBootstrapViaSelf(origin: string): Promise<Map<number, BootstrapElement>> {
+  // use our own proxy to avoid FPL 403 / edge quirks
+  const r = await fetch(`${origin}/api/bootstrap-static`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`bootstrap proxy ${r.status}`);
   const json: unknown = await r.json();
-  const map = new Map<number, BootstrapElement>();
 
+  const map = new Map<number, BootstrapElement>();
   const elements = (json as { elements?: unknown })?.elements;
   if (isArray<unknown>(elements)) {
     for (const el of elements) {
@@ -59,7 +49,6 @@ async function fetchBootstrap(): Promise<Map<number, BootstrapElement>> {
       const web_name = getStr(rec.web_name) ?? (id != null ? `Player ${id}` : 'Player ?');
       const team = getNum(rec.team) ?? 0;
       const et = getNum(rec.element_type) as PositionId | null;
-
       if (id != null && et && [1, 2, 3, 4].includes(et)) {
         map.set(id, { id, web_name, team, element_type: et });
       }
@@ -72,13 +61,11 @@ function normalizePickRaw(raw: unknown, boot: Map<number, BootstrapElement>): Pi
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
 
-  // ID might be under id | element | player_id | code
   const id = getNum(obj.id ?? obj.element ?? obj.player_id ?? obj.code);
   if (id == null) return null;
 
   const fromBoot = boot.get(id);
 
-  // Try to read from payload; fall back to bootstrap
   const posNum =
     getNum(obj.position ?? obj.element_type ?? obj.pos) ??
     (fromBoot ? fromBoot.element_type : null);
@@ -109,7 +96,6 @@ function coerceTeamContainer(
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
 
-  // Optionally check nested team.picks without using any
   const teamMaybe = obj.team;
   const nestedPicks =
     teamMaybe && typeof teamMaybe === 'object'
@@ -123,7 +109,7 @@ function coerceTeamContainer(
     obj.players,
     obj.data,
     nestedPicks,
-    raw, // sometimes whole response is just an array
+    raw,
   ].filter(Boolean);
 
   for (const c of candidates) {
@@ -135,18 +121,24 @@ function coerceTeamContainer(
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ entryId: string }> }
 ) {
   const { entryId } = await context.params;
+  const origin = new URL(req.url).origin;
 
   const BACKEND = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
   const url = `${BACKEND}/team/${encodeURIComponent(entryId)}`;
 
+  // tiny timeout so Route Handler doesn’t hang if Render is cold
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 12000); // 12s
+
   try {
-    // 1) Fetch backend team JSON
+    // 1) Fetch backend team JSON (Render may be cold)
     const r = await fetch(url, {
       cache: 'no-store',
+      signal: controller.signal,
       headers: {
         'user-agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
@@ -155,36 +147,40 @@ export async function GET(
     });
     const text = await r.text();
     if (!r.ok) {
+      clearTimeout(tid);
       return NextResponse.json(
         { error: `Upstream ${r.status}`, body: text.slice(0, 500) },
-        { status: r.status }
+        { status: 502 } // surface as 502 to the page
       );
     }
 
     const upstream: unknown = JSON.parse(text);
 
-    // 2) Find the picks-like array + meta fields
+    // 2) Find picks
     const container = coerceTeamContainer(upstream);
     if (!container) {
+      clearTimeout(tid);
       return NextResponse.json({ error: 'No picks array in upstream' }, { status: 502 });
     }
 
-    // 3) Fetch bootstrap and enrich each pick
-    const boot = await fetchBootstrap();
+    // 3) Bootstrap via our own proxy to avoid 403
+    const boot = await fetchBootstrapViaSelf(origin);
 
+    // 4) Enrich picks
     const picks: Pick[] = [];
     for (const raw of container.picksLike) {
       const p = normalizePickRaw(raw, boot);
       if (p) picks.push(p);
     }
     if (picks.length === 0) {
+      clearTimeout(tid);
       return NextResponse.json(
         { error: 'Could not normalize picks (missing element_type/position?)' },
         { status: 502 }
       );
     }
 
-    // 4) Build normalized payload
+    // 5) Build payload
     const meta = container.meta;
     const entry_id =
       getNum(meta.entry_id) ?? getNum((meta as Record<string, unknown>).entry) ?? 0;
@@ -198,12 +194,15 @@ export async function GET(
 
     const payload: TeamPayload = { entry_id, team_name, manager_name, gw, picks };
 
+    clearTimeout(tid);
     return NextResponse.json(payload, {
       status: 200,
       headers: { 'cache-control': 'no-store' },
     });
   } catch (err) {
-    console.error('team proxy error', err);
-    return NextResponse.json({ error: 'team proxy failed' }, { status: 502 });
+    clearTimeout(tid);
+    // If it was an abort, tell the client explicitly
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `team proxy failed: ${msg}` }, { status: 502 });
   }
 }

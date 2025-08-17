@@ -1,142 +1,111 @@
-// app/page.tsx
-import Link from "next/link";
+'use client';
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
-type StandingRow = {
-  entry: number;         // team id (entryId)
+type Standing = {
+  entry: number;
+  entry_name: string;
+  player_name: string;
   rank: number;
-  player_name: string;   // manager name
-  entry_name: string;    // team name
-  event_total: number;   // GW points
-  total: number;         // total points
+  total: number;
+  event_total?: number;
 };
 
-type LeaguePayload = {
-  league?: { name?: string };
-  standings?: { results?: StandingRow[] };
-};
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
+const LEAGUE_ID = process.env.NEXT_PUBLIC_LEAGUE_ID || '1391467';
 
-async function fetchWithTimeout(url: string, ms = 12000, init?: RequestInit) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ms);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal, cache: "no-store" });
-  } finally {
-    clearTimeout(timeout);
+async function fetchWithRetry(url: string, attempts = 3, delayMs = 1500) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as { standings: Standing[] };
+    } catch (err) {
+      if (i === attempts - 1) throw err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
   }
+  // unreachable
+  return { standings: [] };
 }
 
-export default async function HomePage() {
-  const base = process.env.API_BASE ?? "https://fpl-backend-poix.onrender.com";
-  const leagueId = process.env.LEAGUE_ID ?? "1391467";
+export default function HomePage() {
+  const [rows, setRows] = useState<Standing[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  let data: LeaguePayload | null = null;
-  try {
-    const res = await fetchWithTimeout(`${base}/league/${leagueId}`);
-    if (res.ok) data = await res.json();
-  } catch {
-    // ignore; we render a friendly fallback below
-  }
-
-  const rows: StandingRow[] = data?.standings?.results ?? [];
-  const leagueName = data?.league?.name ?? "League";
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchWithRetry(`${API_BASE}/league/${encodeURIComponent(LEAGUE_ID)}`);
+        if (!cancelled) setRows(data.standings ?? []);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
-    <main
-      style={{
-        padding: 24,
-        maxWidth: 1100,
-        margin: "0 auto",
-        fontFamily: "Helvetica, Arial, sans-serif",
-      }}
-    >
-      {/* Top navigation */}
-      <nav style={{ marginBottom: 16 }}>
-        <ul
-          style={{
-            display: "flex",
-            gap: 16,
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-          }}
-        >
-        </ul>
-      </nav>
+    <main style={{ fontFamily: 'Helvetica, Arial, sans-serif', padding: 20 }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h1 style={{ margin: 0 }}>🦞 The Lobster League</h1>
+        <nav style={{ display: 'flex', gap: 12 }}>
+          <Link href="/history">History</Link>
+          <Link href="/bonus">Bonus</Link>
+        </nav>
+      </header>
 
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>{leagueName} — Live Standings</h1>
-
-      {rows.length === 0 ? (
-        <>
-          <p style={{ marginTop: 12, opacity: 0.75 }}>
-            Couldn&#39;t load the league table right now. Your backend may be cold or busy.
-          </p>
-          <p style={{ marginTop: 6 }}>
-            Try again shortly, or view{" "}
-            <Link href="/history" style={{ textDecoration: "underline" }}>
-              saved history
-            </Link>
-            .
-          </p>
-        </>
-      ) : (
-        <div
-          style={{
-            overflowX: "auto",
-            border: "1px solid #eee",
-            borderRadius: 8,
-            marginTop: 12,
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Rank", "Player", "Team Name", "GW Points", "Total Points"].map((h) => (
-                  <th
-                    key={h}
-                    style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #eee" }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.entry}>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.rank}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
-                    <Link
-                      href={`/team/${r.entry}`}
-                      style={{ textDecoration: "underline" }}
-                      title={`View team for ${r.player_name}`}
-                    >
-                      {r.player_name}
-                    </Link>
-                  </td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>
-                    <Link
-                      href={`/team/${r.entry}`}
-                      style={{ textDecoration: "underline" }}
-                      title={`View ${r.entry_name}`}
-                    >
-                      {r.entry_name}
-                    </Link>
-                  </td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.event_total}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f3f3f3" }}>{r.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section style={{ border: '1px solid #e5e5e5', borderRadius: 12, padding: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>League Table</span>
+          <span style={{ fontSize: 12, opacity: 0.65 }}>ID {LEAGUE_ID}</span>
         </div>
-      )}
 
-      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.65 }}>
-        Tip: Click a team or manager name to open their squad view.
-      </p>
+        {err ? (
+          <div>
+            <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
+            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', padding: 10, borderRadius: 8, border: '1px solid #eee' }}>
+              {String(err)}
+            </pre>
+          </div>
+        ) : rows === null ? (
+          <p>Loading…</p>
+        ) : rows.length === 0 ? (
+          <p>{`Uh oh, you've gotten ahead of yourself — no league data yet.`}</p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>#</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Team</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Manager</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>GW</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e5e5e5', padding: 8, fontSize: 12 }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.entry}>
+                    <td style={{ padding: 8 }}>{r.rank}</td>
+                    <td style={{ padding: 8 }}>
+                      {/* Only team name is linked */}
+                      <Link href={`/team/${r.entry}`} style={{ textDecoration: 'underline' }}>
+                        {r.entry_name}
+                      </Link>
+                    </td>
+                    <td style={{ padding: 8, opacity: 0.8 }}>{r.player_name}</td>
+                    <td style={{ padding: 8, textAlign: 'right' }}>{r.event_total ?? '—'}</td>
+                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 700 }}>{r.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

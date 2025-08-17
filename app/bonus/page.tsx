@@ -1,26 +1,28 @@
-// app/bonus/page.tsx — SERVER COMPONENT (no CORS), with numbered leaderboard
-import Image from "next/image";
-import MatchHeader from "../components/MatchHeader";
+'use client';
 
-type Player = { id: number; web_name: string; team: number };
-type BonusStatEntry = { element: number; value: number };
-type BonusStat = { identifier: string; a: BonusStatEntry[]; h: BonusStatEntry[] };
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+
+type BonusEntry = { element: number; value: number };
+type BonusStat = { identifier: string; a: BonusEntry[]; h: BonusEntry[] };
+
 type Fixture = {
   id: number;
   team_h: number;
   team_a: number;
+  team_h_score: number | null;
+  team_a_score: number | null;
+  kickoff_time: string | null;
+  started?: boolean;
+  finished?: boolean;
   stats: BonusStat[];
-  finished: boolean;
-};
-type Event = { id: number; is_current: boolean; finished: boolean };
-type Bootstrap = {
-  elements: Player[];
-  teams: { id: number; name: string; short_name: string; code: number }[];
-  events: Event[];
 };
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+type Player = { id: number; web_name: string };
+
+type Event = { id: number; is_current: boolean; finished: boolean };
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
 
 const teamCrests: Record<number, string> = {
   1: "https://resources.premierleague.com/premierleague/badges/t3.png",
@@ -45,140 +47,133 @@ const teamCrests: Record<number, string> = {
   20: "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
-const faceUrl = (id: number) =>
-  `https://resources.premierleague.com/premierleague/photos/players/110x140/p${id}.png`;
+export default function BonusPage() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [gw, setGw] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
 
-async function fetchJSON<T>(url: string, ms = 12000): Promise<T> {
-  const ctl = new AbortController();
-  const to = setTimeout(() => ctl.abort(), ms);
-  try {
-    const res = await fetch(url, { cache: "no-store", signal: ctl.signal, next: { revalidate: 0 } });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  } finally {
-    clearTimeout(to);
-  }
-}
+  // Bootstrap: get events + players, decide current GW
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const bootstrap = await fetch(`${API_BASE}/bootstrap-static`, { cache: 'no-store' }).then((r) => r.json());
+        if (cancelled) return;
+        setPlayers(bootstrap.elements as Player[]);
+        setEvents(bootstrap.events as Event[]);
+        const current =
+          (bootstrap.events as Event[]).find((e) => e.is_current) ??
+          (bootstrap.events as Event[]).find((e) => !e.finished) ??
+          (bootstrap.events as Event[])[0];
+        setGw(current?.id ?? 1);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-export default async function BonusPage() {
-  let boot: Bootstrap | null = null;
-  try {
-    boot = await fetchJSON<Bootstrap>("https://fantasy.premierleague.com/api/bootstrap-static/");
-  } catch {
-    boot = null;
-  }
-  if (!boot) {
-    return (
-      <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
-        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Bonus Points</h1>
-        <p style={{ opacity: 0.7 }}>Couldn’t load FPL data. Try again shortly.</p>
-      </main>
-    );
-  }
+  // Fetch fixtures for GW
+  useEffect(() => {
+    if (gw == null) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await fetch(`${API_BASE}/fixtures?event=${gw}`, { cache: 'no-store' }).then((r) => r.json());
+        if (!cancelled) setFixtures(data as Fixture[]);
+      } catch {
+        if (!cancelled) setFixtures([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [gw]);
 
-  const current =
-    boot.events.find((e) => e.is_current) ??
-    boot.events.find((e) => !e.finished) ??
-    boot.events[0];
-  const gw = current?.id ?? 1;
+  // Sort: upcoming → live → finished
+  const sortedFixtures = useMemo(() => {
+    const stage = (f: Fixture) => (f.finished ? 2 : f.started ? 1 : 0);
+    return [...fixtures].sort((a, b) => {
+      const s = stage(a) - stage(b);
+      if (s !== 0) return s;
+      const ka = a.kickoff_time ? Date.parse(a.kickoff_time) : 0;
+      const kb = b.kickoff_time ? Date.parse(b.kickoff_time) : 0;
+      return ka - kb;
+    });
+  }, [fixtures]);
 
-  let fixtures: Fixture[] = [];
-  try {
-    fixtures = await fetchJSON<Fixture[]>(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`);
-  } catch {
-    fixtures = [];
-  }
-
-  const playersById = new Map(boot.elements.map((p) => [p.id, p] as const));
-
-  // Build bonus leaderboard from all fixtures (sum per player)
-  const tally: Record<number, number> = {};
-  for (const f of fixtures) {
-    const bonus = f.stats?.find((s) => s.identifier === "bonus");
-    if (!bonus) continue;
-    for (const e of [...(bonus.a ?? []), ...(bonus.h ?? [])]) {
-      tally[e.element] = (tally[e.element] ?? 0) + e.value;
+  const fmtTime = (iso: string | null) => {
+    if (!iso) return '';
+    try {
+      return new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+    } catch {
+      return '';
     }
-  }
-  const leaderboard = Object.entries(tally)
-    .map(([id, total]) => ({ player: playersById.get(Number(id)), total: Number(total) }))
-    .filter((x) => x.player)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 15);
+  };
+
+  const status = (f: Fixture) => (f.finished ? 'FT' : f.started ? 'LIVE' : fmtTime(f.kickoff_time));
 
   return (
-    <main style={{ fontFamily: "Helvetica, Arial, sans-serif", padding: 20 }}>
-      <h1 style={{ fontSize: 24, marginBottom: 16 }}>Bonus Points — GW {gw}</h1>
+    <main style={{ fontFamily: 'Helvetica, Arial, sans-serif', padding: 20 }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <h1 style={{ margin: 0 }}>{`Bonus — GW ${gw ?? '…'}`}</h1>
+        {/* Simple GW select (no hover) */}
+        <select
+          value={gw ?? ''}
+          onChange={(e) => setGw(Number(e.target.value))}
+          style={{ borderRadius: 999, padding: '6px 10px', border: '1px solid #e5e5e5', background: '#fff' }}
+        >
+          {(events.length ? events.map((e) => e.id) : Array.from({ length: 38 }, (_, i) => i + 1)).map((id) => (
+            <option key={id} value={id}>{`GW ${id}`}</option>
+          ))}
+        </select>
+        {loading && <span style={{ fontSize: 12, opacity: 0.7 }}>loading…</span>}
+      </header>
 
-      <div style={{ display: "flex", gap: 32 }}>
-        {/* LEFT: fixtures list */}
-        <div style={{ flex: 1 }}>
-          {/* Pills: finished fixtures, crests only */}
-          <div style={{ display: "flex", gap: 12, overflowX: "auto", marginBottom: 16 }}>
-            {fixtures.filter((f) => f.finished).map((f) => (
-              <div
-                key={`pill-${f.id}`}
-                className="pill"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  border: "1px solid #eee",
-                  background: "#fff",
-                }}
-              >
-                <Image src={teamCrests[f.team_h]} alt="home" width={20} height={20} />
-                <span style={{ fontSize: 12, opacity: 0.7 }}>vs</span>
-                <Image src={teamCrests[f.team_a]} alt="away" width={20} height={20} />
-              </div>
-            ))}
-          </div>
+      {sortedFixtures.length === 0 ? (
+        <p>{`No bonus data available yet.`}</p>
+      ) : (
+        <div style={{ display: 'grid', gap: 16 }}>
+          {sortedFixtures.map((f) => {
+            const bonus = f.stats?.find((s) => s.identifier === 'bonus');
+            const homeRows = bonus?.h ?? [];
+            const awayRows = bonus?.a ?? [];
+            const score =
+              f.team_h_score != null && f.team_a_score != null ? `${f.team_h_score}–${f.team_a_score}` : 'vs';
 
-          {/* Fixture cards */}
-          <div style={{ display: "grid", gap: 16 }}>
-            {fixtures.map((fixture) => {
-              const bonus = fixture.stats?.find((s) => s.identifier === "bonus");
-              const rows: BonusStatEntry[] = bonus ? [...(bonus.a ?? []), ...(bonus.h ?? [])] : [];
+            return (
+              <section key={f.id} style={{ border: '1px solid #e5e5e5', borderRadius: 12, padding: 12, background: '#fff' }}>
+                {/* Crest pill with score + status */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid #eee', borderRadius: 999, background: '#fff', marginBottom: 10 }}>
+                  <Image src={teamCrests[f.team_h]} alt="home" width={18} height={18} />
+                  <strong style={{ fontSize: 13 }}>{score}</strong>
+                  <Image src={teamCrests[f.team_a]} alt="away" width={18} height={18} />
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>{status(f)}</span>
+                </div>
 
-              return (
-                <section
-                  key={fixture.id}
-                  style={{
-                    border: "1px solid #eee",
-                    borderRadius: 10,
-                    background: "#fff",
-                    padding: 12,
-                  }}
-                >
-                  <MatchHeader
-                    homeCrest={teamCrests[fixture.team_h]}
-                    awayCrest={teamCrests[fixture.team_a]}
-                  />
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <h3 style={{ fontSize: 14, margin: '0 0 6px' }}>Home bonus</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Player</th>
-                          <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Bonus</th>
+                          <th style={{ textAlign: 'left', padding: 6, borderBottom: '1px solid #eee' }}>Player</th>
+                          <th style={{ textAlign: 'left', padding: 6, borderBottom: '1px solid #eee' }}>Bonus</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {rows.length === 0 ? (
-                          <tr>
-                            <td colSpan={2} style={{ padding: 8, opacity: 0.65 }}>
-                              No bonus yet for this fixture.
-                            </td>
-                          </tr>
+                        {homeRows.length === 0 ? (
+                          <tr><td colSpan={2} style={{ padding: 6, opacity: 0.65 }}>—</td></tr>
                         ) : (
-                          rows.map((p) => {
-                            const pl = playersById.get(p.element);
+                          homeRows.map((p) => {
+                            const pl = players.find((x) => x.id === p.element);
                             return (
-                              <tr key={`${fixture.id}-${p.element}`} className="fixture-row">
-                                <td style={{ padding: 8 }}>{pl?.web_name ?? "Unknown Player"}</td>
-                                <td style={{ padding: 8 }}>+{p.value}</td>
+                              <tr key={`h-${f.id}-${p.element}`}>
+                                <td style={{ padding: 6 }}>{pl?.web_name ?? `Player ${p.element}`}</td>
+                                <td style={{ padding: 6 }}>+{p.value}</td>
                               </tr>
                             );
                           })
@@ -186,55 +181,39 @@ export default async function BonusPage() {
                       </tbody>
                     </table>
                   </div>
-                </section>
-              );
-            })}
-          </div>
+
+                  <div>
+                    <h3 style={{ fontSize: 14, margin: '0 0 6px' }}>Away bonus</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: 6, borderBottom: '1px solid #eee' }}>Player</th>
+                          <th style={{ textAlign: 'left', padding: 6, borderBottom: '1px solid #eee' }}>Bonus</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {awayRows.length === 0 ? (
+                          <tr><td colSpan={2} style={{ padding: 6, opacity: 0.65 }}>—</td></tr>
+                        ) : (
+                          awayRows.map((p) => {
+                            const pl = players.find((x) => x.id === p.element);
+                            return (
+                              <tr key={`a-${f.id}-${p.element}`}>
+                                <td style={{ padding: 6 }}>{pl?.web_name ?? `Player ${p.element}`}</td>
+                                <td style={{ padding: 6 }}>+{p.value}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </div>
-
-        {/* Divider + RIGHT: leaderboard */}
-        <div className="divider" />
-
-        <aside style={{ width: 380, minWidth: 300 }}>
-          <h2 style={{ fontSize: 18, marginBottom: 12 }}>⚽️ Top 15 Bonus Leaders</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>#</th>
-                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Player</th>
-                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ddd" }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((entry, i) => (
-                  <tr key={entry.player!.id} className="leader-row">
-                    {/* Rank number */}
-                    <td style={{ padding: 8, fontWeight: 700 }}>{i + 1}</td>
-
-                    {/* Player face + name */}
-                    <td style={{ padding: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Image
-                          src={faceUrl(entry.player!.id)}
-                          alt={entry.player!.web_name}
-                          width={26}
-                          height={26}
-                          style={{ borderRadius: "50%", objectFit: "contain" }}
-                        />
-                        {entry.player!.web_name}
-                      </div>
-                    </td>
-
-                    {/* Total bonus */}
-                    <td style={{ padding: 8, fontWeight: 600 }}>+{entry.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </aside>
-      </div>
+      )}
     </main>
   );
 }

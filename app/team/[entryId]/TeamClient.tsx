@@ -37,41 +37,48 @@ function isArray<T>(x: unknown): x is T[] {
   return Array.isArray(x);
 }
 
-// --- Robust normalizer: turn any common pick shape into our Pick ---
-function normalizePick(raw: any): Pick | null {
-  if (!raw) return null;
+// Helpers for safe extraction
+function getNum(x: unknown): number | null {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+function getStr(x: unknown): string | null {
+  return typeof x === 'string' ? x : null;
+}
 
-  // id
-  const id = Number(raw.id ?? raw.element ?? raw.player_id ?? raw.code);
-  if (!Number.isFinite(id)) return null;
+// Normalize a single raw pick (unknown) into our Pick
+function normalizePick(raw: unknown): Pick | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
 
-  // web_name / display name
-  const web_name: string =
-    (typeof raw.web_name === 'string' && raw.web_name) ||
-    (typeof raw.name === 'string' && raw.name) ||
-    (typeof raw.player_name === 'string' && raw.player_name) ||
+  const id = getNum(obj.id ?? obj.element ?? obj.player_id ?? obj.code);
+  if (id == null) return null;
+
+  const web_name =
+    getStr(obj.web_name) ||
+    getStr(obj.name) ||
+    getStr(obj.player_name) ||
     `Player ${id}`;
 
-  // position: 1..4 (GK/DEF/MID/FWD)
-  const posRaw = raw.position ?? raw.element_type ?? raw.pos ?? null;
-  let position: PositionId | null = null;
-  const posNum = Number(posRaw);
-  if ([1, 2, 3, 4].includes(posNum)) position = posNum as PositionId;
-
-  // team id
-  const teamCandidate = raw.team ?? raw.team_id ?? raw.team_code;
-  const team = Number.isFinite(Number(teamCandidate)) ? Number(teamCandidate) : undefined;
-
-  // gw points
-  const ptsRaw = raw.gw_points ?? raw.event_points ?? raw.points;
-  const gw_points = ptsRaw == null ? null : Number(ptsRaw);
-
-  // captain flag
-  const is_captain = Boolean(raw.is_captain ?? raw.captain);
-
+  const posNum = getNum(obj.position ?? obj.element_type ?? obj.pos);
+  const position = posNum && [1, 2, 3, 4].includes(posNum) ? (posNum as PositionId) : null;
   if (!position) return null;
 
-  return { id, web_name, position, team, gw_points, is_captain };
+  const teamNum = getNum(obj.team ?? obj.team_id ?? obj.team_code) ?? undefined;
+
+  const pts = obj.gw_points ?? obj.event_points ?? obj.points;
+  const gw_points = pts == null ? null : getNum(pts);
+
+  const is_captain = Boolean((obj.is_captain ?? obj.captain) as unknown);
+
+  return {
+    id,
+    web_name: web_name || `Player ${id}`,
+    position,
+    team: teamNum,
+    gw_points: gw_points ?? null,
+    is_captain,
+  };
 }
 
 // Accept multiple payload shapes and normalize to TeamPayload
@@ -79,8 +86,7 @@ function coerceTeamPayload(raw: unknown): TeamPayload | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
 
-  // Possible containers that hold the picks array
-  const candidates = [
+  const candidates: unknown[] = [
     obj.picks,
     obj.squad,
     obj.results,
@@ -90,7 +96,7 @@ function coerceTeamPayload(raw: unknown): TeamPayload | null {
 
   let picks: Pick[] = [];
   for (const c of candidates) {
-    if (isArray<any>(c)) {
+    if (isArray<unknown>(c)) {
       const mapped = c.map(normalizePick).filter(Boolean) as Pick[];
       if (mapped.length) {
         picks = mapped;
@@ -99,23 +105,15 @@ function coerceTeamPayload(raw: unknown): TeamPayload | null {
     }
   }
 
-  // If still empty, bail
   if (!picks.length) return null;
 
-  const entry_id = typeof obj.entry_id === 'number' ? obj.entry_id : 0;
-  const team_name = typeof obj.team_name === 'string' ? obj.team_name : 'Team';
-  const manager_name = typeof obj.manager_name === 'string' ? obj.manager_name : 'Manager';
-  const gw = typeof obj.gw === 'number' ? obj.gw : 0;
+  const entry_id = getNum(obj.entry_id) ?? 0;
+  const team_name = getStr(obj.team_name) ?? 'Team';
+  const manager_name = getStr(obj.manager_name) ?? 'Manager';
+  const gw = getNum(obj.gw) ?? 0;
 
   return { entry_id, team_name, manager_name, gw, picks };
 }
-
-const POS_LABEL: Record<PositionId, string> = {
-  1: 'Goalkeepers',
-  2: 'Defenders',
-  3: 'Midfielders',
-  4: 'Forwards',
-};
 
 export default function TeamClient({ entryId }: { entryId: string }) {
   const [payload, setPayload] = useState<TeamPayload | null>(null);
@@ -230,7 +228,6 @@ export default function TeamClient({ entryId }: { entryId: string }) {
         <p>{`Uh oh, you've gotten ahead of yourself — no team data yet.`}</p>
       ) : (
         <section>
-          {/* tiny, safe hint to confirm we're reading picks */}
           {picksCount === 0 && (
             <div style={{ fontSize: 12, opacity: 0.65, marginBottom: 8 }}>
               No picks parsed from payload.

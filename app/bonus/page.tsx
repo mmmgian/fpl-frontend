@@ -21,8 +21,6 @@ type Fixture = {
 type Player = { id: number; web_name: string };
 type Event = { id: number; is_current: boolean; finished: boolean };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://fpl-backend-poix.onrender.com').replace(/\/+$/, '');
-
 const teamCrests: Record<number, string> = {
   1: "https://resources.premierleague.com/premierleague/badges/t3.png",
   2: "https://resources.premierleague.com/premierleague/badges/t7.png",
@@ -57,7 +55,7 @@ export default function BonusPage() {
   const [gw, setGw] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Bootstrap: events + players -> current GW
+  // Bootstrap: events + players
   useEffect(() => {
     let cancelled = false;
     (async () => {

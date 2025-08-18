@@ -2,11 +2,11 @@
   "private": true,
   "scripts": {
     "dev": "nuxt dev",
-    "prebuild": "npx nuxi prepare",
+    "postinstall": "nuxt prepare",
     "build": "nuxt build",
+    "vercel-build": "nuxt prepare && nuxt build",
     "start": "nuxt start",
-    "preview": "nuxt preview",
-    "vercel-build": "npx nuxi prepare && nuxt build"
+    "preview": "nuxt preview"
   },
   "dependencies": {
     "nuxt": "^3.18.1",

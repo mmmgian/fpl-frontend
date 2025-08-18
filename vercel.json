@@ -4,6 +4,5 @@
       "path": "/api/cron-autosnapshot",
       "schedule": "0 0 * * *"
     }
-  ],
-   "rootDirectory": "nuxt" 
+  ]
 }

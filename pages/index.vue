@@ -1,131 +1,68 @@
 <script setup lang="ts">
-type Standing = {
+type Row = {
   entry: number
   entry_name: string
   player_name: string
-  total: number
   event_total?: number | null
+  total: number
   rank?: number | null
   last_rank?: number | null
 }
-type LeagueResponse = { standings: Standing[] }
+type LeaguePayload = { standings: Row[] }
 
 const LEAGUE_ID = 1391467
-
-const { data, pending, error } = await useFetch<LeagueResponse>(`/api/league/${LEAGUE_ID}`, {
-  server: true,
-  key: `league-${LEAGUE_ID}`,
+const { data, error } = await useFetch<LeaguePayload>(`/api/league/${LEAGUE_ID}`, {
   headers: { 'cache-control': 'no-store' },
+  server: true, key: 'league-index'
 })
 
-const standings = computed<Standing[]>(() => data.value?.standings ?? [])
-
-// rank helpers
-function toNum(x: unknown): number | null {
-  const n = Number(x)
-  return Number.isFinite(n) ? n : null
+const rows = computed(() => data.value?.standings ?? [])
+const arrow = (r?: number|null, prev?: number|null) => {
+  if (!r || !prev || r === prev) return '•'
+  return r < prev ? '▲' : '▼'
 }
-function movementOf(s: Standing): 'up' | 'down' | 'same' | 'neutral' {
-  const r = toNum(s.rank)
-  const p = toNum(s.last_rank)
-  if (r == null || p == null) return 'neutral'
-  if (r < p) return 'up'
-  if (r > p) return 'down'
-  return 'same'
-}
-function movementIcon(m: 'up' | 'down' | 'same' | 'neutral'): string {
-  if (m === 'up') return '▲'
-  if (m === 'down') return '▼'
-  if (m === 'same') return '•'
-  return '•'
-}
-function movementClass(m: 'up' | 'down' | 'same' | 'neutral'): string {
-  if (m === 'up') return 'text-green-600'
-  if (m === 'down') return 'text-red-600'
-  return 'text-gray-500'
-}
-
-// navigate helper for row clicks
-function goTeam(entry: number) {
-  return navigateTo(`/team/${entry}`)
-}
+const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
 </script>
 
 <template>
-  <section class="max-w-4xl mx-auto px-4 py-6">
-    <h1 class="text-2xl font-bold mb-4">League Table</h1>
-
-    <div class="rounded-[28px] border border-black/10 bg-white/90 shadow-sm overflow-hidden">
+  <section>
+    <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[520px] sm:min-w-0">
+        <table class="w-full text-sm bg-transparent">
           <thead>
-            <tr class="bg-white/80 border-b border-black/10 text-left">
-              <th class="px-3 sm:px-4 py-2 w-10">#</th>
-              <th class="px-2 py-2 w-6 hidden sm:table-cell"></th>
-              <th class="px-3 sm:px-4 py-2">Team / Manager</th>
-              <th class="px-3 sm:px-4 py-2 w-20 hidden sm:table-cell">GW</th>
-              <th class="px-3 sm:px-4 py-2 w-24 text-right">Total</th>
+            <tr class="bg-white/60 border-b border-black/10 text-left">
+              <th class="px-3 py-2 w-14">#</th>
+              <th class="px-3 py-2">Team · Manager</th>
+              <th class="px-3 py-2 w-20 text-right">GW</th>
+              <th class="px-3 py-2 w-24 text-right">Total</th>
             </tr>
           </thead>
-
-          <tbody>
-            <tr v-if="pending">
-              <td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td>
-            </tr>
-            <tr v-else-if="error">
-              <td colspan="5" class="px-4 py-6 text-center text-red-600">Failed to fetch league data.</td>
-            </tr>
-            <tr v-else-if="!standings.length">
-              <td colspan="5" class="px-4 py-6 text-center text-gray-700">No league data yet.</td>
-            </tr>
-
-            <!-- Clickable rows -->
+          <tbody class="bg-transparent">
             <tr
-              v-for="(t, idx) in standings"
-              :key="t.entry"
-              class="border-t border-black/10 hover:bg-black/5 active:scale-[0.998] transition-[background,transform] cursor-pointer focus-within:bg-black/5"
-              role="link"
-              tabindex="0"
-              :aria-label="`Open ${t.entry_name} team page`"
-              @click="goTeam(t.entry)"
-              @keydown.enter.prevent="goTeam(t.entry)"
-              @keydown.space.prevent="goTeam(t.entry)"
+              v-for="(r, i) in rows" :key="r.entry"
+              class="border-t border-black/10 hover:bg-black/5 transition-colors cursor-pointer"
+              @click="toTeam(r.entry)"
             >
-              <td class="px-3 sm:px-4 py-3">{{ idx + 1 }}</td>
-
-              <!-- movement arrow (hidden on xs) -->
-              <td class="px-2 py-3 hidden sm:table-cell">
-                <span :class="['text-xs', movementClass(movementOf(t))]">
-                  {{ movementIcon(movementOf(t)) }}
-                </span>
+              <td class="px-3 py-2 font-medium">
+                <span class="mr-2 opacity-60">{{ arrow(r.rank, r.last_rank) }}</span>{{ (r.rank ?? i+1) }}
               </td>
-
-              <!-- team / manager -->
-              <td class="px-3 sm:px-4 py-3">
-                <div class="leading-tight">
-                  <span class="underline decoration-1 underline-offset-2 font-semibold">
-                    {{ t.entry_name }}
-                  </span>
-                  <div class="text-xs text-gray-600 mt-1">
-                    {{ t.player_name }}
-                  </div>
-                </div>
+              <td class="px-3 py-2">
+                <div class="font-semibold leading-tight">{{ r.entry_name }}</div>
+                <div class="text-xs text-gray-600 leading-tight">{{ r.player_name }}</div>
               </td>
-
-              <!-- GW points (hidden on xs) -->
-              <td class="px-3 sm:px-4 py-3 hidden sm:table-cell">
-                <span v-if="t.event_total != null">{{ t.event_total }}</span>
-                <span v-else>—</span>
-              </td>
-
-              <!-- Total points -->
-              <td class="px-3 sm:px-4 py-3 text-right font-semibold">
-                {{ t.total }}
+              <td class="px-3 py-2 text-right">{{ r.event_total ?? '—' }}</td>
+              <td class="px-3 py-2 text-right font-semibold">{{ r.total }}</td>
+            </tr>
+            <tr v-if="!rows.length">
+              <td colspan="4" class="px-3 py-6 text-center text-gray-600">
+                Uh oh, no league data yet.
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <p v-if="error" class="mt-3 text-sm text-red-500">Failed to load league.</p>
   </section>
 </template>

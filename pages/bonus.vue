@@ -162,7 +162,6 @@ const sortedFixtures = computed<Fixture[]>(() => {
   return [...live, ...upcoming, ...done]
 })
 
-// 🔧 MISSING BEFORE — now added:
 function badgeText(fx: Fixture): string {
   const s = statusOf(fx)
   if (s === 'LIVE') return 'LIVE'
@@ -183,8 +182,8 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
 </script>
 
 <template>
-  <section>
-    <h1 class="text-2xl font-bold mb-1">Bonus Points — GW {{ currentGw ?? '—' }}</h1>
+  <section class="px-4 py-6">
+    <h1 class="text-2xl font-extrabold tracking-tight mb-1">Bonus Points — GW {{ currentGw ?? '—' }}</h1>
     <p class="text-xs text-gray-500 mb-4">Official FPL bonus (live where available)</p>
 
     <div v-if="bootErr" class="text-red-600">Failed to load bootstrap.</div>
@@ -196,7 +195,7 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
       <CardSection
         v-for="fx in sortedFixtures"
         :key="fx.id"
-        :class="[statusOf(fx) === 'LIVE' ? 'live-card' : '']"
+        :class="['bg-white rounded-2xl border border-black/10 shadow-sm', statusOf(fx) === 'LIVE' ? 'live-card' : '']"
       >
         <!-- Compact centered two-line header -->
         <template #header>
@@ -225,77 +224,82 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
         </template>
 
         <!-- Two columns on md+, stacked on small screens -->
-<div class="grid gap-4 md:grid-cols-2">
-  <!-- Home -->
-  <div class="border-b md:border-b-0 md:border-r border-black/10 pb-4 md:pb-0 md:pr-4">
-    <table class="w-full text-sm">
-      <thead class="text-left">
-        <tr class="border-t border-black/10 bg-white">
-          <th class="px-3 py-2">Player</th>
-          <th class="px-3 py-2 w-28">Bonus</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="row in top3ForTeam(fx.stats, fx.team_h)"
-          :key="`${fx.id}-H-${row.element}-${row.bonus}`"
-          class="border-t border-black/10 hover:bg-black/5 transition-colors"
-        >
-          <td class="px-3 py-3">
-            {{ nameByElement.get(row.element) || `#${row.element}` }}
-          </td>
-          <td class="px-3 py-3">
-            <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
-          </td>
-        </tr>
-        <tr v-if="!top3ForTeam(fx.stats, fx.team_h).length">
-          <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <!-- Home -->
+          <div class="border-b md:border-b-0 md:border-r border-black/10 pb-4 md:pb-0 md:pr-4">
+            <table class="w-full text-sm">
+              <thead class="text-left">
+                <tr class="border-t border-black/10 bg-white">
+                  <th class="px-3 py-2">Player</th>
+                  <th class="px-3 py-2 w-28">Bonus</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in top3ForTeam(fx.stats, fx.team_h)"
+                  :key="`${fx.id}-H-${row.element}-${row.bonus}`"
+                  class="border-t border-black/10 hover:bg-gray-50 transition-colors"
+                >
+                  <td class="px-3 py-3">
+                    {{ nameByElement.get(row.element) || `#${row.element}` }}
+                  </td>
+                  <td class="px-3 py-3">
+                    <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
+                  </td>
+                </tr>
+                <tr v-if="!top3ForTeam(fx.stats, fx.team_h).length">
+                  <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-  <!-- Away -->
-  <div class="pt-4 md:pt-0 md:pl-4">
-    <table class="w-full text-sm">
-      <thead class="text-left">
-        <tr class="border-t border-black/10 bg-white">
-          <th class="px-3 py-2">Player</th>
-          <th class="px-3 py-2 w-28">Bonus</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="row in top3ForTeam(fx.stats, fx.team_a)"
-          :key="`${fx.id}-A-${row.element}-${row.bonus}`"
-          class="border-t border-black/10 hover:bg-black/5 transition-colors"
-        >
-          <td class="px-3 py-3">
-            {{ nameByElement.get(row.element) || `#${row.element}` }}
-          </td>
-          <td class="px-3 py-3">
-            <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
-          </td>
-        </tr>
-        <tr v-if="!top3ForTeam(fx.stats, fx.team_a).length">
-          <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+          <!-- Away -->
+          <div class="pt-4 md:pt-0 md:pl-4">
+            <table class="w-full text-sm">
+              <thead class="text-left">
+                <tr class="border-t border-black/10 bg-white">
+                  <th class="px-3 py-2">Player</th>
+                  <th class="px-3 py-2 w-28">Bonus</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in top3ForTeam(fx.stats, fx.team_a)"
+                  :key="`${fx.id}-A-${row.element}-${row.bonus}`"
+                  class="border-t border-black/10 hover:bg-gray-50 transition-colors"
+                >
+                  <td class="px-3 py-3">
+                    {{ nameByElement.get(row.element) || `#${row.element}` }}
+                  </td>
+                  <td class="px-3 py-3">
+                    <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
+                  </td>
+                </tr>
+                <tr v-if="!top3ForTeam(fx.stats, fx.team_a).length">
+                  <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </CardSection>
     </div>
   </section>
 </template>
 
 <style scoped>
-/* subtle live glow on card */
-.live-card {
-  animation: glow 1.6s ease-in-out infinite alternate;
-}
+/* subtle live glow on card (same as before) */
+.live-card { animation: glow 1.6s ease-in-out infinite alternate; }
 @keyframes glow {
   from { box-shadow: 0 0 0 rgba(255, 0, 0, 0.0); }
   to   { box-shadow: 0 0 24px rgba(255, 0, 0, 0.12); }
 }
+
+/* pulsing dot on LIVE badge (optional, matches other pages) */
+@keyframes pulseLive {
+  0%, 100% { filter: none; transform: none; }
+  50% { filter: brightness(1.05); transform: translateZ(0); }
+}
+.animate-pulse-live { animation: pulseLive 1.4s ease-in-out infinite; }
 </style>

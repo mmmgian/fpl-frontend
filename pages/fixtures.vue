@@ -169,7 +169,10 @@ function gwDate(gw: number): string {
         <table class="w-full text-sm bg-transparent">
           <thead>
             <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
-              <th class="px-3 py-2 w-48">Team</th>
+              <!-- STICKY header cell -->
+              <th class="px-3 py-2 w-48 sticky-col sticky-col--header">
+                Team
+              </th>
               <th
                 v-for="gw in columns"
                 :key="`h-${gw}`"
@@ -187,13 +190,15 @@ function gwDate(gw: number): string {
               :key="t.id"
               class="border-t border-black/10"
             >
-              <!-- Team label (crest with subtle badge so white logos pop) -->
-              <td class="px-3 py-2">
+              <!-- STICKY first column -->
+              <td class="px-3 py-2 sticky-col">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/5 ring-1 ring-black/5">
                     <img v-if="crestUrl(t.id)" :src="crestUrl(t.id)" alt="" class="w-4 h-4 object-contain" />
                   </span>
-                  <div class="font-semibold leading-tight">{{ t.short_name || t.name }}</div>
+                  <div class="font-semibold leading-tight whitespace-nowrap">
+                    {{ t.short_name || t.name }}
+                  </div>
                 </div>
               </td>
 
@@ -247,6 +252,23 @@ function gwDate(gw: number): string {
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
   padding-right: 28px; /* room for chevrons */
+}
+
+/* Sticky first column (header + cells) */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 10;                /* above scrolling cells */
+  background: rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-right: 1px solid rgba(0,0,0,0.08);
+  /* subtle divider shadow on the right */
+  box-shadow: 6px 0 8px -6px rgba(0,0,0,0.15);
+}
+.sticky-col--header {
+  z-index: 11;                /* slightly above row cells */
+  background: rgba(255,255,255,0.6);
 }
 
 /* Make the sticky header (if you wrap page with one) sit above dots nicely */

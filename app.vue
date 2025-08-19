@@ -1,5 +1,8 @@
 <script setup lang="ts">
-// Add polka dot background to <body>
+import { useBootstrapStore } from '~/stores/bootstrap'
+
+const boot = useBootstrapStore()
+await boot.load()  // runs once per session
 useHead({
   bodyAttrs: { class: 'dots-scroll' }
 })

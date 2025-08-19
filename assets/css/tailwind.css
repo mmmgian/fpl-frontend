@@ -10,8 +10,8 @@
 @layer utilities {
   /* Apply on html or body so it sits behind everything */
   .kiko-polka {
-    --dot-size: 2px;            /* slightly bigger for visibility */
-    --dot-gap: 120px;           /* more spaced out */
+    --dot-size: 1px;            /* slightly bigger for visibility */
+    --dot-gap: 60px;           /* more spaced out */
     --dot-color: #000;          /* solid black dots */
 
     background:
@@ -20,4 +20,24 @@
     background-position: 0.5px 0.5px; /* crisp on HiDPI */
     background-attachment: fixed;
   }
+}
+
+.visualGrid {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: calc(100vw - 20px);
+  min-height: calc(100vh - 20px);
+
+  /* Dot pattern */
+  background-image: radial-gradient(circle at 1px 1px, #000 1.5px, transparent 0);
+  background-size: calc((100vw - 20px) / var(--grid-max))
+                   calc((100vw - 20px) / var(--grid-max));
+
+  /* Let dots sit behind everything */
+  pointer-events: none;
+  z-index: 0; /* keep below your content */
+
+  /* Optional: fade so it doesn’t overpower text */
+  opacity: 0.15;
 }

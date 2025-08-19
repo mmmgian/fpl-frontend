@@ -55,14 +55,14 @@ const goHome = () => navigateTo('/')
 <template>
   <section class="px-4 py-6">
     <div class="max-w-2xl md:max-w-3xl mx-auto mb-6">
-      <button
-        type="button"
-        class="px-4 py-1.5 rounded-full border border-black/10 bg-white/70 hover:bg-black/5 transition text-sm"
-        @click="goHome"
-      >
-        ← Home
-      </button>
-    </div>
+  <button
+    type="button"
+    class="px-4 py-1.5 rounded-full border border-black/10 bg-white/70 hover:bg-black/5 transition text-sm"
+    @click="goHome"
+  >
+    ← back to 🦞
+  </button>
+</div>
 
     <!-- Identity -->
     <div class="max-w-2xl md:max-w-3xl mx-auto text-center mb-8">
@@ -103,49 +103,58 @@ const goHome = () => navigateTo('/')
                 </tr>
               </thead>
               <tbody class="bg-transparent">
-                <tr
-                  v-for="p in sec.rows"
-                  :key="`${sec.key}-${p.id}`"
-                  class="border-t border-black/10 hover:bg-black/5 transition-colors"
-                >
-                  <td class="px-3 py-2">
-                    <span class="font-medium">{{ p.web_name }}</span>
-                    <span v-if="p.is_captain" class="ml-1 text-xs opacity-70">(c)</span>
-                  </td>
-                  <td class="px-3 py-2">
-                    <div class="flex items-center gap-2">
-                      <img
-                        v-if="crestUrl(p.team)"
-                        :src="crestUrl(p.team)" alt=""
-                        class="w-5 h-5 object-contain"
-                        decoding="async" loading="lazy" referrerpolicy="no-referrer"
-                      />
-                      <span>{{ short(p.team) }}</span>
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 text-right font-semibold">{{ p.gw_points ?? 0 }}</td>
-                </tr>
-                <tr class="border-t border-black/10 bg-white/40">
-                  <td class="px-3 py-2 font-semibold" colspan="2">Subtotal</td>
-                  <td class="px-3 py-2 text-right font-bold">
-                    {{
-                      sec.rows.reduce((s,p)=>s+(p.gw_points ?? 0),0)
-                    }}
-                  </td>
-                </tr>
-                <tr v-if="!sec.rows.length">
-                  <td class="px-3 py-3 text-gray-600" colspan="3">No players found.</td>
-                </tr>
-              </tbody>
+  <tr
+    v-for="p in sec.rows"
+    :key="`${sec.key}-${p.id}`"
+    class="border-t border-black/10 hover:bg-black/5 transition-colors"
+  >
+    <td class="px-3 py-2">
+      <span class="font-medium">{{ p.web_name }}</span>
+      <span v-if="p.is_captain" class="ml-1 text-xs opacity-70">(c)</span>
+    </td>
+    <td class="px-3 py-2">
+      <div class="flex items-center gap-2">
+        <img
+          v-if="crestUrl(p.team)"
+          :src="crestUrl(p.team)" alt=""
+          class="w-5 h-5 object-contain"
+        />
+        <span>{{ short(p.team) }}</span>
+      </div>
+    </td>
+    <td class="px-3 py-2 text-right font-semibold">{{ p.gw_points ?? 0 }}</td>
+  </tr>
+
+  <!-- Subtotal (rounded grey pill divider) -->
+<tr class="bg-transparent">
+  <td colspan="3" class="px-3 pt-2">
+    <div
+      class="w-full rounded-full bg-gray-200 border border-gray-300 px-4 py-2
+             flex items-center justify-between"
+    >
+      <span class="text-[13px] font-semibold text-gray-700">Subtotal</span>
+      <span class="text-[13px] font-extrabold text-gray-900">
+        {{ sec.rows.reduce((s,p)=>s+(p.gw_points ?? 0),0) }}
+      </span>
+    </div>
+  </td>
+</tr>
+
+  <tr v-if="!sec.rows.length">
+    <td class="px-3 py-3 text-gray-600" colspan="3">No players found.</td>
+  </tr>
+</tbody>
             </table>
           </div>
         </div>
 
-        <!-- Grand total -->
-        <div class="mt-4 pt-3 border-t border-black/10 flex items-center justify-between">
-          <div class="text-sm font-semibold">Grand Total</div>
-          <div class="text-right text-base font-extrabold">{{ grandTotal }}</div>
-        </div>
+        <!-- Grand total (centered black pill) -->
+<div class="mt-6 flex justify-center">
+  <div class="inline-flex items-center gap-3 rounded-full bg-black text-white px-5 py-2 shadow-sm">
+    <span class="text-xs uppercase tracking-wide opacity-90">Grand Total</span>
+    <span class="text-base font-extrabold">{{ grandTotal }}</span>
+  </div>
+</div>
       </div>
     </div>
   </section>

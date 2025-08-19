@@ -1,6 +1,11 @@
 <script setup lang="ts">
 // --- Types (aligned with your other pages)
-type Event = { id: number; is_current?: boolean; finished?: boolean }
+type Event = {
+  id: number
+  is_current?: boolean
+  finished?: boolean
+  deadline_time?: string | null // added for header date
+}
 type Team  = { id: number; name: string; short_name: string; code?: number }
 type Element = { id: number; web_name: string; team: number }
 type Bootstrap = { events: Event[]; teams: Team[]; elements: Element[] }
@@ -114,6 +119,15 @@ function crestUrl(teamId?: number) {
   const code = teamById.value.get(teamId)?.code
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
+
+// --- NEW: pretty date under the GW header (uses event.deadline_time)
+function gwDate(gw: number): string {
+  const ev = events.value.find(e => e.id === gw)
+  const iso = ev?.deadline_time
+  if (!iso) return ''
+  const d = new Date(iso)
+  return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' }).format(d)
+}
 </script>
 
 <template>
@@ -135,20 +149,12 @@ function crestUrl(teamId?: number) {
       <!-- Controls -->
       <div class="flex items-center gap-2 ml-auto">
         <label for="start-gw" class="text-[11px] uppercase tracking-wide text-gray-600">Start GW</label>
-        <select
-          id="start-gw"
-          v-model="startGw"
-          class="kiko-select"
-        >
+        <select id="start-gw" v-model="startGw" class="kiko-select">
           <option v-for="id in gwOptions" :key="id" :value="id">GW {{ id }}</option>
         </select>
 
         <label for="span" class="ml-2 text-[11px] uppercase tracking-wide text-gray-600">Span</label>
-        <select
-          id="span"
-          v-model="span"
-          class="kiko-select"
-        >
+        <select id="span" v-model="span" class="kiko-select">
           <option :value="4">4</option>
           <option :value="6">6</option>
           <option :value="8">8</option>
@@ -162,14 +168,15 @@ function crestUrl(teamId?: number) {
       <div class="overflow-x-auto">
         <table class="w-full text-sm bg-transparent">
           <thead>
-            <tr class="bg-white/60 border-b border-black/10 text-left">
+            <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
               <th class="px-3 py-2 w-48">Team</th>
               <th
                 v-for="gw in columns"
                 :key="`h-${gw}`"
                 class="px-3 py-2 text-center w-32"
               >
-                GW {{ gw }}
+                <div class="font-medium leading-tight">GW {{ gw }}</div>
+                <div class="text-[11px] text-gray-500 mt-0.5 leading-none">{{ gwDate(gw) }}</div>
               </th>
             </tr>
           </thead>
@@ -206,7 +213,6 @@ function crestUrl(teamId?: number) {
                   <div class="text-xs font-medium leading-tight">
                     {{ opponentCell(t.id, gw)!.text }}
                   </div>
-                  <!-- no explicit "FDR n" text to keep cells clean -->
                 </div>
                 <div v-else class="text-gray-400 text-xs">—</div>
               </td>

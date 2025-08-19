@@ -6,22 +6,24 @@
 .live-card {
   @apply animate-pulse-live border-2 border-red-400 rounded-xl;
 }
-/* --- Kiko-esque polka background --- */
-@layer utilities {
-  /* Apply on html or body so it sits behind everything */
-  .kiko-polka {
-    --dot-size: 1px;            /* slightly bigger for visibility */
-    --dot-gap: 60px;           /* more spaced out */
-    --dot-color: #000;          /* solid black dots */
 
-    background:
-      radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size));
+/* --- Kiko-esque polka background (scrolls with content) --- */
+@layer utilities {
+  .dots-scroll {
+    background-color: #fff;
+
+    --dot-size: 1.5px;
+    --dot-gap: 60px;
+    --dot-color: #000;
+
+    background-image: radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size));
     background-size: var(--dot-gap) var(--dot-gap);
-    background-position: 0.5px 0.5px; /* crisp on HiDPI */
-    background-attachment: fixed;
+    background-position: 0.5px 0.5px;
+    background-attachment: local; /* scrolls with content */
   }
 }
 
+/* Optional: experimental fixed visual grid overlay */
 .visualGrid {
   position: fixed;
   top: 10px;
@@ -29,15 +31,11 @@
   width: calc(100vw - 20px);
   min-height: calc(100vh - 20px);
 
-  /* Dot pattern */
   background-image: radial-gradient(circle at 1px 1px, #000 1.5px, transparent 0);
   background-size: calc((100vw - 20px) / var(--grid-max))
                    calc((100vw - 20px) / var(--grid-max));
 
-  /* Let dots sit behind everything */
   pointer-events: none;
-  z-index: 0; /* keep below your content */
-
-  /* Optional: fade so it doesn’t overpower text */
+  z-index: 0;
   opacity: 0.15;
 }

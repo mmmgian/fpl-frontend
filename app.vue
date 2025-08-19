@@ -1,3 +1,11 @@
+<script setup lang="ts">
+// Add polka dot background to <body>
+useHead({
+  bodyAttrs: { class: 'dots-scroll' }
+})
+</script>
+
+
 <template>
   <div class="kiko-polka min-h-screen">
     <header class="sticky top-0 z-20 bg-white/70 backdrop-blur-sm border-b border-black/10">

@@ -8,19 +8,32 @@ type Row = {
   rank?: number | null
   last_rank?: number | null
 }
-type LeaguePayload = { standings: Row[] }
+
+// Support both shapes:
+// 1) { standings: Row[] }
+// 2) { standings: { results: Row[] } }
+type LeaguePayload =
+  | { standings: Row[] }
+  | { standings: { results: Row[] } }
 
 const LEAGUE_ID = 1391467
-const { data, error } = await useFetch<LeaguePayload>(`/api/league/${LEAGUE_ID}`, {
-  headers: { 'cache-control': 'no-store' },
-  server: true, key: 'league-index'
+
+const { data, error, pending } = await useFetch<LeaguePayload>(
+  () => `/api/league/${LEAGUE_ID}`,
+  { headers: { 'cache-control': 'no-store' }, server: true, key: 'league-index' }
+)
+
+const rows = computed<Row[]>(() => {
+  const s = data.value?.standings as any
+  if (!s) return []
+  return Array.isArray(s) ? s : (s.results ?? [])
 })
 
-const rows = computed(() => data.value?.standings ?? [])
 const arrow = (r?: number|null, prev?: number|null) => {
   if (!r || !prev || r === prev) return '•'
   return r < prev ? '▲' : '▼'
 }
+
 const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
 </script>
 
@@ -38,8 +51,15 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
             </tr>
           </thead>
           <tbody class="bg-transparent">
+            <!-- Loading row (prevents flashing the empty state) -->
+            <tr v-if="pending">
+              <td colspan="4" class="px-3 py-6 text-center text-gray-600">Loading…</td>
+            </tr>
+
             <tr
-              v-for="(r, i) in rows" :key="r.entry"
+              v-else
+              v-for="(r, i) in rows"
+              :key="r.entry"
               class="border-t border-black/10 hover:bg-black/5 transition-colors cursor-pointer"
               @click="toTeam(r.entry)"
             >
@@ -53,7 +73,8 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
               <td class="px-3 py-2 text-right">{{ r.event_total ?? '—' }}</td>
               <td class="px-3 py-2 text-right font-semibold">{{ r.total }}</td>
             </tr>
-            <tr v-if="!rows.length">
+
+            <tr v-if="!pending && !rows.length">
               <td colspan="4" class="px-3 py-6 text-center text-gray-600">
                 Uh oh, no league data yet.
               </td>

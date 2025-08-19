@@ -39,6 +39,11 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
 
 <template>
   <section>
+    <!-- NEW: Lobster League heading -->
+    <h1 class="text-2xl font-extrabold tracking-tight mb-4">
+      🦞 The Lobster League
+    </h1>
+
     <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm bg-transparent">

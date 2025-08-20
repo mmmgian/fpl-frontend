@@ -25,6 +25,7 @@ type Fixture = {
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot',
+  headers: { 'cache-control': 'no-store' },
 })
 const events = computed<Event[]>(() => bootRes.value?.events ?? [])
 const teams = computed<Team[]>(() => bootRes.value?.teams ?? [])
@@ -38,16 +39,25 @@ const currentGw = computed<number | null>(() => {
   return cur?.id ?? null
 })
 
-// Fixtures for current GW
+// 🔧 Drive fetching off a real ref so it runs as soon as currentGw appears
+const gw = ref<number | null>(null)
+watch(currentGw, (v) => { if (v) gw.value = v }, { immediate: true })
+
+// Fixtures for the chosen GW
 const { data: fixRes, pending, error } = await useFetch<Fixture[] | (Fixture | null)[]>(
-  () => (currentGw.value ? `/api/fixtures?event=${currentGw.value}` : null),
-  { server: true, key: () => `fixtures-${currentGw.value ?? 'none'}` }
+  () => (gw.value ? `/api/fixtures?event=${gw.value}` : null),
+  {
+    server: true,
+    key: () => `fixtures-${gw.value ?? 'none'}`,
+    headers: { 'cache-control': 'no-store' },
+  }
 )
 
-// Normalize fixtures
-const fixtures = computed<Fixture[]>(() =>
-  Array.isArray(fixRes.value) ? (fixRes.value.filter(Boolean) as Fixture[]) : []
-)
+// Normalize fixtures (defensively filter by event === gw)
+const fixtures = computed<Fixture[]>(() => {
+  const list = Array.isArray(fixRes.value) ? (fixRes.value.filter(Boolean) as Fixture[]) : []
+  return gw.value ? list.filter(f => f.event === gw.value) : list
+})
 
 // Maps
 const teamById = computed(() => {
@@ -183,7 +193,7 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
 
 <template>
   <section class="px-4 py-6">
-    <h1 class="text-2xl font-extrabold tracking-tight mb-1">Bonus Points — GW {{ currentGw ?? '—' }}</h1>
+    <h1 class="text-2xl font-extrabold tracking-tight mb-1">Bonus Points — GW {{ gw ?? '—' }}</h1>
     <p class="text-xs text-gray-500 mb-4">Official FPL bonus (live where available)</p>
 
     <div v-if="bootErr" class="text-red-600">Failed to load bootstrap.</div>

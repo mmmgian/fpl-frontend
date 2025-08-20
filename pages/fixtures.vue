@@ -60,18 +60,21 @@ const columns = computed(() => {
 })
 
 // Fetch fixtures for each visible gw (parallel, memoized)
-const fixturesByGw = reactive(new Map<number, Fixture[]>())
+const fixturesByGw = reactive({} as Record<number, Fixture[]>)
 
 async function loadVisible() {
-  await Promise.all(columns.value.map(async gw => {
-    if (!fixturesByGw.has(gw)) {
-      const data = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
-        headers: { 'cache-control': 'no-store' }
-      }).catch(() => [])
-      fixturesByGw.set(gw, Array.isArray(data) ? data : [])
-    }
-  }))
+  await Promise.all(
+    columns.value.map(async (gw) => {
+      if (!fixturesByGw[gw]) {
+        const data = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
+          headers: { 'cache-control': 'no-store' }
+        }).catch(() => [])
+        fixturesByGw[gw] = Array.isArray(data) ? data : []
+      }
+    })
+  )
 }
+
 
 // initial load (SSR) – load current window
 await loadVisible()
@@ -87,7 +90,7 @@ const teamById = computed(() => {
 })
 
 function opponentCell(teamId: number, gw: number) {
-  const list = fixturesByGw.get(gw) || []
+  const list = fixturesByGw[gw] || []        // <— instead of .get(gw)
   const fx = list.find(f => f.team_h === teamId || f.team_a === teamId)
   if (!fx) return null
 
@@ -101,6 +104,7 @@ function opponentCell(teamId: number, gw: number) {
     diff: diff ?? 0
   }
 }
+
 
 // FDR color classes (sharper, FPL-ish)
 function fdrClass(n: number) {

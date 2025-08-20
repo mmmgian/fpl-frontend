@@ -4,7 +4,7 @@ type Event = {
   id: number
   is_current?: boolean
   finished?: boolean
-  deadline_time?: string | null // added for header date
+  deadline_time?: string | null
 }
 type Team  = { id: number; name: string; short_name: string; code?: number }
 type Element = { id: number; web_name: string; team: number }
@@ -105,11 +105,11 @@ function opponentCell(teamId: number, gw: number) {
 // FDR color classes (sharper, FPL-ish)
 function fdrClass(n: number) {
   switch (n) {
-    case 1: return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]' // light green
-    case 2: return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]' // mid green
-    case 3: return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]' // yellow
-    case 4: return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]' // orange
-    case 5: return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]' // red
+    case 1: return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
+    case 2: return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]'
+    case 3: return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]'
+    case 4: return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]'
+    case 5: return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]'
     default: return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 }
@@ -120,7 +120,7 @@ function crestUrl(teamId?: number) {
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
 
-// --- NEW: pretty date under the GW header (uses event.deadline_time)
+// Pretty date under the GW header (uses event.deadline_time)
 function gwDate(gw: number): string {
   const ev = events.value.find(e => e.id === gw)
   const iso = ev?.deadline_time
@@ -258,16 +258,15 @@ function gwDate(gw: number): string {
 .sticky-col {
   position: sticky;
   left: 0;
-  z-index: 10;                /* above scrolling cells */
+  z-index: 10; /* above scrolling cells */
   background: rgba(255,255,255,0.8);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   border-right: 1px solid rgba(0,0,0,0.08);
-  /* subtle divider shadow on the right */
   box-shadow: 6px 0 8px -6px rgba(0,0,0,0.15);
 }
 .sticky-col--header {
-  z-index: 11;                /* slightly above row cells */
+  z-index: 11; /* slightly above row cells */
   background: rgba(255,255,255,0.6);
 }
 

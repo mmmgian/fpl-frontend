@@ -11,9 +11,9 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '',
     },
   },
-
+  ssr: true,
   nitro: {
-    preset: 'vercel-edge',
+    preset: 'vercel',
     compressPublicAssets: true,
     timing: true,
   },

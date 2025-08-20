@@ -4,7 +4,7 @@ type Event = {
   id: number
   is_current?: boolean
   finished?: boolean
-  deadline_time?: string | null // added for header date
+  deadline_time?: string | null // for header date
 }
 type Team  = { id: number; name: string; short_name: string; code?: number }
 type Element = { id: number; web_name: string; team: number }
@@ -34,7 +34,7 @@ const teamsList = computed(() =>
     .sort((a, b) => (a.short_name || a.name).localeCompare(b.short_name || b.name))
 )
 
-// Determine current GW (default start)
+// Determine current GW
 const currentGw = computed<number | null>(() => {
   const ev = events.value
   if (!ev.length) return null
@@ -45,9 +45,10 @@ const currentGw = computed<number | null>(() => {
 // Controls: start GW & window length
 const gwOptions = computed(() => events.value.map(e => e.id))
 
-// Start at current GW (auto-sync when bootstrap arrives)
-const startGw = ref<number>(1)
-watch(currentGw, (val) => { if (val) startGw.value = val }, { immediate: true })
+// ✅ Lock initial start to real current GW (no brief GW1 phase)
+const initialStart = computed(() => currentGw.value ?? (gwOptions.value[0] ?? 1))
+const startGw = ref<number>(initialStart.value)
+watch(currentGw, (val) => { if (val && startGw.value !== val) startGw.value = val })
 
 const span = ref<number>(6) // show next 6 GWs by default
 
@@ -59,26 +60,6 @@ const columns = computed(() => {
   return all.slice(idx, idx + span.value)
 })
 
-// Fetch fixtures for each visible gw (parallel, memoized)
-const fixturesByGw = reactive(new Map<number, Fixture[]>())
-
-async function loadVisible() {
-  await Promise.all(columns.value.map(async gw => {
-    if (!fixturesByGw.has(gw)) {
-      const data = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
-        headers: { 'cache-control': 'no-store' }
-      }).catch(() => [])
-      fixturesByGw.set(gw, Array.isArray(data) ? data : [])
-    }
-  }))
-}
-
-// initial load (SSR) – load current window
-await loadVisible()
-
-// If user changes controls, fetch additional GWs (client)
-watch([startGw, span], async () => { await loadVisible() })
-
 // Helpers
 const teamById = computed(() => {
   const m = new Map<number, Team>()
@@ -86,20 +67,19 @@ const teamById = computed(() => {
   return m
 })
 
-function opponentCell(teamId: number, gw: number) {
-  const list = fixturesByGw.get(gw) || []
-  const fx = list.find(f => f.team_h === teamId || f.team_a === teamId)
-  if (!fx) return null
+function crestUrl(teamId?: number) {
+  if (!teamId) return ''
+  const code = teamById.value.get(teamId)?.code
+  return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
+}
 
-  const isHome = fx.team_h === teamId
-  const oppId = isHome ? fx.team_a : fx.team_h
-  const opp = teamById.value.get(oppId)
-  const diff = isHome ? fx.team_h_difficulty : fx.team_a_difficulty
-
-  return {
-    text: `${opp?.short_name ?? opp?.name ?? '—'} ${isHome ? '(H)' : '(A)'}`,
-    diff: diff ?? 0
-  }
+// --- Pretty date under the GW header (uses event.deadline_time)
+function gwDate(gw: number): string {
+  const ev = events.value.find(e => e.id === gw)
+  const iso = ev?.deadline_time
+  if (!iso) return ''
+  const d = new Date(iso)
+  return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' }).format(d)
 }
 
 // FDR color classes (sharper, FPL-ish)
@@ -114,19 +94,49 @@ function fdrClass(n: number) {
   }
 }
 
-function crestUrl(teamId?: number) {
-  if (!teamId) return ''
-  const code = teamById.value.get(teamId)?.code
-  return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
+/* -------------------------
+   FIXTURE INDEX (no flicker)
+   ------------------------- */
+
+// Build an immutable index: gw -> teamId -> { text, diff }
+const fixturesIndex = reactive({} as Record<number, Record<number, Readonly<{ text: string; diff: number }>>>)
+
+async function loadVisible() {
+  const gwList = columns.value.slice() // freeze for this tick
+  await Promise.all(
+    gwList.map(async (gw) => {
+      if (fixturesIndex[gw]) return
+
+      const raw = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
+        headers: { 'cache-control': 'no-store' }
+      }).catch(() => [])
+
+      const byTeam: Record<number, { text: string; diff: number }> = {}
+
+      for (const fx of raw) {
+        const home = teamById.value.get(fx.team_h)
+        const away = teamById.value.get(fx.team_a)
+        if (!home || !away) continue
+
+        byTeam[fx.team_h] = { text: `${away.short_name ?? away.name} (H)`, diff: fx.team_h_difficulty ?? 0 }
+        byTeam[fx.team_a] = { text: `${home.short_name ?? home.name} (A)`, diff: fx.team_a_difficulty ?? 0 }
+      }
+
+      fixturesIndex[gw] = Object.freeze(byTeam)
+    })
+  )
 }
 
-// --- NEW: pretty date under the GW header (uses event.deadline_time)
-function gwDate(gw: number): string {
-  const ev = events.value.find(e => e.id === gw)
-  const iso = ev?.deadline_time
-  if (!iso) return ''
-  const d = new Date(iso)
-  return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' }).format(d)
+// initial load (SSR) – load current window AFTER initialStart is set
+await loadVisible()
+
+// When controls change, fetch only missing GWs
+watch([startGw, span], async () => { await loadVisible() })
+
+// Cell resolver (O(1))
+function cellFor(teamId: number, gw: number) {
+  const byTeam = fixturesIndex[gw]
+  return byTeam ? byTeam[teamId] ?? null : null
 }
 </script>
 
@@ -166,7 +176,8 @@ function gwDate(gw: number): string {
     <!-- Matrix -->
     <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm bg-transparent">
+        <!-- 🔑 Key the table by visible GWs to avoid VDOM reuse glitches -->
+        <table class="w-full text-sm bg-transparent" :key="columns.join('-')">
           <thead>
             <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
               <!-- STICKY header cell -->
@@ -209,14 +220,14 @@ function gwDate(gw: number): string {
                 class="px-2 py-2 text-center align-middle"
               >
                 <div
-                  v-if="opponentCell(t.id, gw)"
+                  v-if="cellFor(t.id, gw)"
                   class="rounded-lg border px-2 py-1 inline-flex flex-col items-center justify-center min-w-[7.5rem]"
-                  :class="fdrClass(opponentCell(t.id, gw)!.diff)"
-                  :aria-label="`${opponentCell(t.id, gw)!.text}, difficulty ${opponentCell(t.id, gw)!.diff}`"
+                  :class="fdrClass(cellFor(t.id, gw)!.diff)"
+                  :aria-label="`${cellFor(t.id, gw)!.text}, difficulty ${cellFor(t.id, gw)!.diff}`"
                   role="img"
                 >
                   <div class="text-xs font-medium leading-tight">
-                    {{ opponentCell(t.id, gw)!.text }}
+                    {{ cellFor(t.id, gw)!.text }}
                   </div>
                 </div>
                 <div v-else class="text-gray-400 text-xs">—</div>

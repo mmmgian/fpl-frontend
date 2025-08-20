@@ -20,28 +20,23 @@ type Fixture = {
 };
 
 export default defineEventHandler<Promise<Fixture[]>>(async (event) => {
-  const cfg = useRuntimeConfig();
-  const base = (cfg.public.apiBase || "").replace(/\/+$/, "");
-  const q = getQuery(event);
-  const ev = typeof q.event === "string" && q.event.trim() ? q.event.trim() : null;
+  const cfg = useRuntimeConfig()
+  const base = (cfg.public.apiBase || '').replace(/\/+$/, '')
+  const { event: ev } = getQuery(event)
+  const evNum = ev ? Number(ev) : null
 
-  // 1) Try your backend first (if configured)
+  let data: Fixture[]
+
   if (base) {
-    const url = ev ? `${base}/fixtures?event=${encodeURIComponent(ev)}` : `${base}/fixtures`;
-    try {
-      return await $fetch<Fixture[]>(url, { cache: "no-store" });
-    } catch {
-      // fall through to FPL
-    }
+    const url = `${base}/fixtures${ev ? `?event=${encodeURIComponent(String(ev))}` : ''}`
+    data = await $fetch<Fixture[]>(url, { cache: 'no-store' })
+  } else {
+    data = await $fetch<Fixture[]>(
+      'https://fantasy.premierleague.com/api/fixtures/',
+      { headers: { referer: 'https://fantasy.premierleague.com/' } }
+    )
   }
 
-  // 2) Fallback: official FPL
-  // If ?event is provided, we can either ask FPL for that GW only or fetch all and filter.
-  // Use server-side filter to keep behavior consistent with your original code.
-  const all = await $fetch<Fixture[]>("https://fantasy.premierleague.com/api/fixtures/", {
-    headers: { referer: "https://fantasy.premierleague.com/" },
-    cache: "no-store",
-  });
-
-  return ev ? all.filter((f) => f.event === Number(ev)) : all;
-});
+  return evNum ? data.filter(f => f.event === evNum) : data
+})
+;

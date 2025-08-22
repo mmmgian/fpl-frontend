@@ -1,39 +1,26 @@
 <script setup lang="ts">
-// --- Types (aligned with your other pages)
-type Event = {
-  id: number
-  is_current?: boolean
-  finished?: boolean
-  deadline_time?: string | null // for header date
-}
+// --- Types
+type Event = { id: number; is_current?: boolean; finished?: boolean; deadline_time?: string | null }
 type Team  = { id: number; name: string; short_name: string; code?: number }
-type Element = { id: number; web_name: string; team: number }
-type Bootstrap = { events: Event[]; teams: Team[]; elements: Element[] }
-
+type Bootstrap = { events: Event[]; teams: Team[] }
 type Fixture = {
-  id: number
-  event: number | null
-  kickoff_time: string | null
-  team_h: number
-  team_a: number
-  team_h_difficulty: number
-  team_a_difficulty: number
+  id: number; event: number|null; kickoff_time: string|null;
+  team_h: number; team_a: number; team_h_difficulty: number; team_a_difficulty: number
 }
 
-// --- Fetch bootstrap (events & teams) – SSR-enabled and deterministic
+// Bootstrap
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot-fixtures',
 })
 
 const events = computed(() => bootRes.value?.events ?? [])
-const teamsList = computed(() =>
-  (bootRes.value?.teams ?? [])
-    .slice()
-    .sort((a, b) => (a.short_name || a.name).localeCompare(b.short_name || b.name))
-)
 
-// Determine current GW
+// STABLE team order: by id (no locale)
+const teamsRaw = computed(() => bootRes.value?.teams ?? [])
+const teamsList = computed(() => (teamsRaw.value.slice().sort((a,b) => a.id - b.id)))
+
+// Current GW
 const currentGw = computed<number | null>(() => {
   const ev = events.value
   if (!ev.length) return null
@@ -41,15 +28,12 @@ const currentGw = computed<number | null>(() => {
   return cur?.id ?? null
 })
 
-// Controls: start GW & window length
+// Controls
 const gwOptions = computed(() => events.value.map(e => e.id))
-// Start at current GW once available
 const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
 watch(currentGw, (val) => { if (val) startGw.value = val }, { immediate: true })
+const span = ref<number>(6)
 
-const span = ref<number>(6) // show next 6 GWs
-
-// Visible columns
 const columns = computed(() => {
   const all = gwOptions.value
   const idx = all.indexOf(startGw.value)
@@ -57,10 +41,10 @@ const columns = computed(() => {
   return all.slice(idx, idx + span.value)
 })
 
-// Maps
+// team map from RAW teams (not sorted)
 const teamById = computed(() => {
   const m = new Map<number, Team>()
-  for (const t of teamsList.value) m.set(t.id, t)
+  for (const t of teamsRaw.value) m.set(t.id, t)
   return m
 })
 
@@ -70,7 +54,6 @@ function crestUrl(teamId?: number) {
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
 
-// Header date
 function gwDate(gw: number): string {
   const ev = events.value.find(e => e.id === gw)
   const iso = ev?.deadline_time
@@ -79,7 +62,6 @@ function gwDate(gw: number): string {
   return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' }).format(d)
 }
 
-// FDR color classes (sharper, FPL-ish)
 function fdrClass(n: number) {
   switch (n) {
     case 1: return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
@@ -91,21 +73,19 @@ function fdrClass(n: number) {
   }
 }
 
-/* -----------------------------------------
-   STABLE FIXTURE INDEX (SSR + Client)
-   gw -> teamId -> { oppId, home, diff }
-   ----------------------------------------- */
+// ----- Stable fixture index + load sequence guard
 type Cell = Readonly<{ oppId: number; home: boolean; diff: number }>
 const fixturesIndex = reactive({} as Record<number, Record<number, Cell>>)
 const loadedForKey = ref('')
+let loadSeq = 0
 
-// internal loader for a single gw
-async function loadGw(gw: number) {
+async function loadGw(gw: number, seq: number) {
   if (fixturesIndex[gw]) return
   const raw = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
-    // we *want* fresh here; Vercel edge will still SWR cache server-side
     headers: { 'cache-control': 'no-store' }
   }).catch(() => [])
+  // if another load started since, ignore this result
+  if (seq !== loadSeq) return
 
   const mapForGw: Record<number, Cell> = Object.create(null)
   for (const fx of raw) {
@@ -115,50 +95,41 @@ async function loadGw(gw: number) {
   fixturesIndex[gw] = Object.freeze(mapForGw)
 }
 
-// load all visible columns
 async function loadVisible() {
   const cols = columns.value
   if (!cols.length) return
-  await Promise.all(cols.map(loadGw))
-  loadedForKey.value = cols.join('-')
+  const seq = ++loadSeq
+  await Promise.all(cols.map(gw => loadGw(gw, seq)))
+  if (seq === loadSeq) loadedForKey.value = cols.join('-')
 }
 
-// ---- Ensure SSR and Client both load before rendering table ----
+// SSR build index for the current window to match client HTML
 if (import.meta.server) {
-  // On server: if we have teams + columns, prebuild index so SSR HTML matches client
-  if (teamsList.value.length && columns.value.length) {
+  if (teamsRaw.value.length && columns.value.length) {
     await loadVisible()
   }
 } else {
-  // On client: also load (in case navigation changed columns after hydration)
   onMounted(loadVisible)
 }
 
-// React to control changes (client)
 watch([startGw, span], async () => {
   await loadVisible()
 })
 
-// Ready flag – render table only when consistent
 const ready = computed(() =>
-  teamsList.value.length > 0 &&
+  teamsRaw.value.length > 0 &&
   columns.value.length > 0 &&
   columns.value.every(gw => !!fixturesIndex[gw])
 )
 
-// O(1) cell lookup
 function cellFor(teamId: number, gw: number): Cell | null {
   const byTeam = fixturesIndex[gw]
-  if (!byTeam) return null
-  return byTeam[teamId] ?? null
+  return byTeam ? (byTeam[teamId] ?? null) : null
 }
-
-// Derive text at render time
 function cellText(c: Cell | null) {
   if (!c) return ''
   const opp = teamById.value.get(c.oppId)
-  const label = opp?.short_name ?? opp?.name ?? '—'
-  return `${label} ${c.home ? '(H)' : '(A)'}`
+  return `${opp?.short_name ?? opp?.name ?? '—'} ${c.home ? '(H)' : '(A)'}`
 }
 </script>
 
@@ -168,7 +139,6 @@ function cellText(c: Cell | null) {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <h1 class="text-2xl font-extrabold tracking-tight">Fixture Difficulty (FDR)</h1>
 
-      <!-- Legend -->
       <div class="flex items-center gap-1 text-xs ml-2">
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(1)">1</span>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(2)">2</span>
@@ -178,7 +148,6 @@ function cellText(c: Cell | null) {
         <span class="ml-2 text-gray-600">Easy → Hard</span>
       </div>
 
-      <!-- Controls -->
       <div class="flex items-center gap-2 ml-auto">
         <label for="start-gw" class="text-[11px] uppercase tracking-wide text-gray-600">Start GW</label>
         <select id="start-gw" v-model="startGw" class="kiko-select">
@@ -198,11 +167,9 @@ function cellText(c: Cell | null) {
     <!-- Matrix -->
     <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <!-- Render only when data is consistent to avoid SSR/client mismatch -->
         <table v-if="ready" class="w-full text-sm bg-transparent" :key="loadedForKey">
           <thead>
             <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
-              <!-- STICKY header cell -->
               <th class="px-3 py-2 w-48 sticky-col sticky-col--header">Team</th>
               <th v-for="gw in columns" :key="`h-${gw}`" class="px-3 py-2 text-center w-32">
                 <div class="font-medium leading-tight">GW {{ gw }}</div>
@@ -210,10 +177,8 @@ function cellText(c: Cell | null) {
               </th>
             </tr>
           </thead>
-
           <tbody class="bg-transparent">
             <tr v-for="t in teamsList" :key="t.id" class="border-t border-black/10">
-              <!-- STICKY first column -->
               <td class="px-3 py-2 sticky-col">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/5 ring-1 ring-black/5">
@@ -224,8 +189,6 @@ function cellText(c: Cell | null) {
                   </div>
                 </div>
               </td>
-
-              <!-- FDR cells -->
               <td v-for="gw in columns" :key="`${t.id}-${gw}`" class="px-2 py-2 text-center align-middle">
                 <div
                   v-if="cellFor(t.id, gw)"
@@ -244,7 +207,6 @@ function cellText(c: Cell | null) {
           </tbody>
         </table>
 
-        <!-- Skeleton while not ready (prevents hydration mismatches) -->
         <div v-else class="p-8 text-center text-gray-500 text-sm">Loading fixtures…</div>
       </div>
     </div>
@@ -254,7 +216,6 @@ function cellText(c: Cell | null) {
 </template>
 
 <style scoped>
-/* KiKo-ish select */
 .kiko-select {
   @apply px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm cursor-pointer
          hover:bg-black/5 transition outline-none;
@@ -270,7 +231,7 @@ function cellText(c: Cell | null) {
   padding-right: 28px;
 }
 
-/* Sticky first column (header + cells) */
+/* Sticky first column */
 .sticky-col {
   position: sticky;
   left: 0;
@@ -286,8 +247,5 @@ function cellText(c: Cell | null) {
   background: rgba(255,255,255,0.6);
 }
 
-/* Sticky site header prettiness */
-:deep(header) {
-  backdrop-filter: saturate(1.1) blur(4px);
-}
+:deep(header) { backdrop-filter: saturate(1.1) blur(4px); }
 </style>

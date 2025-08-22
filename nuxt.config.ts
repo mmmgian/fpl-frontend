@@ -1,15 +1,10 @@
 export default defineNuxtConfig({
   pages: true,
 
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt',
-  ],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
   runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || '',
-    },
+    public: { apiBase: process.env.NUXT_PUBLIC_API_BASE || '' },
   },
 
   ssr: true,
@@ -21,19 +16,21 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // ISR for pages
     '/': { isr: 60 },
     '/bonus': { isr: 60 },
-    '/fixtures': { isr: 600 },
+
+    // IMPORTANT: render /fixtures fresh each request (no ISR),
+    // or set a very small ISR window like 15s if you prefer.
+    '/fixtures': { isr: false },
+
     '/team/**': { isr: 120 },
 
-    // API SWR (Vercel keys by full URL, so ?event=… is respected)
     '/api/bootstrap-static': {
       swr: 900,
       headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
     '/api/fixtures': {
-      swr: 180, // slightly shorter, reduces chance of stale HTML vs fresh client data
+      swr: 180,
       headers: { 'cache-control': 's-maxage=180, stale-while-revalidate=86400' },
     },
     '/api/league/**': {
@@ -64,9 +61,7 @@ export default defineNuxtConfig({
   tailwindcss: { cssPath: '~/assets/css/tailwind.css' },
   postcss: { plugins: { tailwindcss: {}, autoprefixer: {} } },
 
-  experimental: {
-    payloadExtraction: true,
-  },
+  experimental: { payloadExtraction: true },
 
   vite: {
     plugins: process.env.NODE_ENV === 'development' ? [] : [],

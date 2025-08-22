@@ -28,29 +28,23 @@ const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootst
   headers: { 'cache-control': 'no-store' },
 })
 const events = computed<Event[]>(() => bootRes.value?.events ?? [])
-const teams = computed<Team[]>(() => bootRes.value?.teams ?? [])
+const teams  = computed<Team[]>(() => bootRes.value?.teams ?? [])
 const elements = computed<Element[]>(() => bootRes.value?.elements ?? [])
 
-// Current GW
+// Current GW → drive fetching off a real ref so it runs as soon as currentGw appears
 const currentGw = computed<number | null>(() => {
   const ev = events.value
   if (!ev.length) return null
   const cur = ev.find(e => e.is_current) ?? ev.find(e => !e.finished) ?? ev[0]
   return cur?.id ?? null
 })
-
-// 🔧 Drive fetching off a real ref so it runs as soon as currentGw appears
 const gw = ref<number | null>(null)
 watch(currentGw, (v) => { if (v) gw.value = v }, { immediate: true })
 
 // Fixtures for the chosen GW
 const { data: fixRes, pending, error } = await useFetch<Fixture[] | (Fixture | null)[]>(
   () => (gw.value ? `/api/fixtures?event=${gw.value}` : null),
-  {
-    server: true,
-    key: () => `fixtures-${gw.value ?? 'none'}`,
-    headers: { 'cache-control': 'no-store' },
-  }
+  { server: true, key: () => `fixtures-${gw.value ?? 'none'}`, headers: { 'cache-control': 'no-store' } }
 )
 
 // Normalize fixtures (defensively filter by event === gw)
@@ -79,7 +73,7 @@ const teamOfElement = computed(() => {
 function crestUrl(teamId?: number): string {
   if (!teamId) return ''
   const t = teamById.value.get(teamId)
-  const code = (t?.code ?? 0)
+  const code = t?.code ?? 0
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
 function fmtTime(iso?: string | null): string {
@@ -100,7 +94,6 @@ function bonusMapFromStats(stats?: Stat[]): Map<number, number> {
 
   const merged: BonusEntry[] = [...(bps.h ?? []), ...(bps.a ?? [])]
   if (!merged.length) return map
-
   merged.sort((a, b) => b.value - a.value)
 
   const groups: { value: number; elements: number[] }[] = []
@@ -133,47 +126,43 @@ function mergedWithTeamAndBonus(stats?: Stat[]): { element: number; bps: number;
       bonus: bmap.get(r.element) ?? 0,
     }))
     .sort((x, y) =>
-      y.bonus - x.bonus || // higher bonus first
-      y.bps - x.bps || // then higher BPS
+      y.bonus - x.bonus ||
+      y.bps - x.bps ||
       (nameByElement.value.get(x.element) || '').localeCompare(nameByElement.value.get(y.element) || '')
     )
 }
 
-// Status & sorting helpers
+// Status & sorting (finished fixtures sorted: most recently finished first)
 function toMs(iso?: string | null): number {
-  if (!iso) return Number.POSITIVE_INFINITY
+  if (!iso) return Number.NaN
   const t = Date.parse(iso)
-  return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY
+  return Number.isFinite(t) ? t : Number.NaN
 }
 const nowMs = () => Date.now()
-
 function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
   if (fx.finished || fx.finished_provisional) return 'COMPLETED'
   const kick = toMs(fx.kickoff_time)
-  if (kick <= nowMs() && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
-  if (kick > nowMs()) return 'UPCOMING'
+  if (Number.isFinite(kick) && kick <= nowMs() && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
+  if (!Number.isFinite(kick) || kick > nowMs()) return 'UPCOMING'
   return 'LIVE'
 }
 
-// ⬇️ ONLY change: COMPLETED are now sorted DESC (most recently ended first).
 const sortedFixtures = computed<Fixture[]>(() => {
   const live: Fixture[] = []
   const upcoming: Fixture[] = []
   const done: Fixture[] = []
-
   for (const f of fixtures.value) {
     const s = statusOf(f)
     if (s === 'LIVE') live.push(f)
     else if (s === 'UPCOMING') upcoming.push(f)
     else done.push(f)
   }
+  const byKickAsc  = (a: Fixture, b: Fixture) => (toMs(a.kickoff_time) || 0) - (toMs(b.kickoff_time) || 0)
+  const byKickDesc = (a: Fixture, b: Fixture) => (toMs(b.kickoff_time) || 0) - (toMs(a.kickoff_time) || 0)
 
-  const byKickAsc = (a: Fixture, b: Fixture) => toMs(a.kickoff_time) - toMs(b.kickoff_time)
-  const byKickDesc = (a: Fixture, b: Fixture) => toMs(b.kickoff_time) - toMs(a.kickoff_time)
-
-  live.sort(byKickAsc)      // unchanged
-  upcoming.sort(byKickAsc)  // unchanged
-  done.sort(byKickDesc)     // ✅ newest finished on top
+  live.sort(byKickAsc)         // soonest live first
+  upcoming.sort(byKickAsc)     // earliest KO first
+  done.sort(byKickDesc)        // ✅ most recently finished first
 
   return [...live, ...upcoming, ...done]
 })
@@ -190,20 +179,17 @@ function badgeClass(fx: Fixture): string {
   if (s === 'COMPLETED') return 'bg-gray-100 text-gray-700'
   return 'bg-blue-100 text-blue-700'
 }
-
-// Top 3 per side
-function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
-  return mergedWithTeamAndBonus(stats).filter(row => row.teamId === teamId).slice(0, 3)
-}
 </script>
 
 <template>
   <section class="px-4 py-6">
-    <h1 class="text-2xl font-extrabold tracking-tight mb-1">Bonus Points — GW {{ gw ?? '—' }}</h1>
-    <p class="text-xs text-gray-500 mb-4">Official FPL bonus (live where available)</p>
+    <div class="mb-2">
+      <h1 class="text-2xl font-extrabold tracking-tight">Bonus Points — GW {{ gw ?? '—' }}</h1>
+      <p class="text-xs text-gray-500">Official FPL bonus (live where available)</p>
+    </div>
 
     <div v-if="bootErr" class="text-red-600">Failed to load bootstrap.</div>
-    <div v-else-if="pending" class="text-gray-500">Loading…</div>
+    <div v-else-if="pending" class="text-gray-600">Loading…</div>
     <div v-else-if="error" class="text-red-600">Failed to load fixtures.</div>
     <div v-else-if="!sortedFixtures.length" class="text-gray-600">No fixtures for this gameweek yet.</div>
 
@@ -211,22 +197,28 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
       <CardSection
         v-for="fx in sortedFixtures"
         :key="fx.id"
-        :class="['bg-white rounded-2xl border border-black/10 shadow-sm', statusOf(fx) === 'LIVE' ? 'live-card' : '']"
+        :class="[
+          'rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden',
+          statusOf(fx) === 'LIVE' ? 'live-card' : ''
+        ]"
       >
-        <!-- Compact centered two-line header -->
+        <!-- Header: centered, with crests in subtle circles (matches other views) -->
         <template #header>
-          <div class="flex flex-col items-center text-center w-full space-y-1">
-            <!-- Line 1 -->
+          <div class="flex flex-col items-center text-center w-full gap-1">
             <div class="flex items-center justify-center gap-2">
-              <img v-if="crestUrl(fx.team_h)" :src="crestUrl(fx.team_h)" alt="home" class="w-5 h-5" />
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/5 ring-1 ring-black/5">
+                <img v-if="crestUrl(fx.team_h)" :src="crestUrl(fx.team_h)" alt="home" class="w-4 h-4 object-contain" />
+              </span>
               <span class="font-semibold">{{ teamById.get(fx.team_h)?.short_name || 'Home' }}</span>
               <span class="font-semibold">{{ fx.team_h_score ?? '-' }}</span>
               <span class="mx-1">vs</span>
               <span class="font-semibold">{{ fx.team_a_score ?? '-' }}</span>
               <span class="font-semibold">{{ teamById.get(fx.team_a)?.short_name || 'Away' }}</span>
-              <img v-if="crestUrl(fx.team_a)" :src="crestUrl(fx.team_a)" alt="away" class="w-5 h-5" />
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/5 ring-1 ring-black/5">
+                <img v-if="crestUrl(fx.team_a)" :src="crestUrl(fx.team_a)" alt="away" class="w-4 h-4 object-contain" />
+              </span>
             </div>
-            <!-- Line 2 -->
+
             <div class="text-xs text-gray-600">
               <span
                 class="px-2 py-0.5 rounded-full border border-black/10 mr-2"
@@ -239,22 +231,22 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
           </div>
         </template>
 
-        <!-- Two columns on md+, stacked on small screens -->
+        <!-- Two tables styled like other pages -->
         <div class="grid gap-4 md:grid-cols-2">
           <!-- Home -->
           <div class="border-b md:border-b-0 md:border-r border-black/10 pb-4 md:pb-0 md:pr-4">
-            <table class="w-full text-sm">
-              <thead class="text-left">
-                <tr class="border-t border-black/10 bg-white">
+            <table class="w-full text-sm bg-transparent">
+              <thead>
+                <tr class="bg-white/60 border-b border-black/10 text-left">
                   <th class="px-3 py-2">Player</th>
                   <th class="px-3 py-2 w-28">Bonus</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody class="bg-transparent">
                 <tr
-                  v-for="row in top3ForTeam(fx.stats, fx.team_h)"
+                  v-for="row in mergedWithTeamAndBonus(fx.stats).filter(r => r.teamId === fx.team_h).slice(0,3)"
                   :key="`${fx.id}-H-${row.element}-${row.bonus}`"
-                  class="border-t border-black/10 hover:bg-gray-50 transition-colors"
+                  class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
                     {{ nameByElement.get(row.element) || `#${row.element}` }}
@@ -263,7 +255,7 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
                     <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
                   </td>
                 </tr>
-                <tr v-if="!top3ForTeam(fx.stats, fx.team_h).length">
+                <tr v-if="!mergedWithTeamAndBonus(fx.stats).some(r => r.teamId === fx.team_h)">
                   <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
                 </tr>
               </tbody>
@@ -272,18 +264,18 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
 
           <!-- Away -->
           <div class="pt-4 md:pt-0 md:pl-4">
-            <table class="w-full text-sm">
-              <thead class="text-left">
-                <tr class="border-t border-black/10 bg-white">
+            <table class="w-full text-sm bg-transparent">
+              <thead>
+                <tr class="bg-white/60 border-b border-black/10 text-left">
                   <th class="px-3 py-2">Player</th>
                   <th class="px-3 py-2 w-28">Bonus</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody class="bg-transparent">
                 <tr
-                  v-for="row in top3ForTeam(fx.stats, fx.team_a)"
+                  v-for="row in mergedWithTeamAndBonus(fx.stats).filter(r => r.teamId === fx.team_a).slice(0,3)"
                   :key="`${fx.id}-A-${row.element}-${row.bonus}`"
-                  class="border-t border-black/10 hover:bg-gray-50 transition-colors"
+                  class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
                     {{ nameByElement.get(row.element) || `#${row.element}` }}
@@ -292,7 +284,7 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
                     <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
                   </td>
                 </tr>
-                <tr v-if="!top3ForTeam(fx.stats, fx.team_a).length">
+                <tr v-if="!mergedWithTeamAndBonus(fx.stats).some(r => r.teamId === fx.team_a)">
                   <td class="px-3 py-3 text-gray-600" colspan="2">No bonus yet.</td>
                 </tr>
               </tbody>
@@ -312,7 +304,7 @@ function top3ForTeam(stats: Stat[] | undefined, teamId: number) {
   to   { box-shadow: 0 0 24px rgba(255, 0, 0, 0.12); }
 }
 
-/* pulsing dot on LIVE badge (optional, matches other pages) */
+/* pulsing badge for LIVE */
 @keyframes pulseLive {
   0%, 100% { filter: none; transform: none; }
   50% { filter: brightness(1.05); transform: translateZ(0); }

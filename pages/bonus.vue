@@ -21,14 +21,16 @@ type Fixture = {
   stats?: Stat[]
 }
 
+const nowTick = useState<number>('now-tick', () => Date.now()) // same value SSR→CSR hydration
+
 // Bootstrap: events/teams/elements
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot',
   headers: { 'cache-control': 'no-store' },
 })
-const events = computed<Event[]>(() => bootRes.value?.events ?? [])
-const teams  = computed<Team[]>(() => bootRes.value?.teams ?? [])
+const events  = computed<Event[]>(() => bootRes.value?.events ?? [])
+const teams   = computed<Team[]>(() => bootRes.value?.teams ?? [])
 const elements = computed<Element[]>(() => bootRes.value?.elements ?? [])
 
 // Current GW → drive fetching off a real ref so it runs as soon as currentGw appears
@@ -93,10 +95,23 @@ function crestUrl(teamId?: number): string {
   const code = t?.code ?? 0
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
-function fmtTime(iso?: string | null): string {
+
+// --- Hydration-safe time: UTC on SSR, local after mount ---
+const isClient = ref(false)
+onMounted(() => { isClient.value = true })
+
+function fmtTimeUtc(iso?: string | null): string {
   if (!iso) return 'TBD'
   const d = new Date(iso)
-  return d.toLocaleString()
+  return new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+    timeZone: 'UTC'
+  }).format(d) + ' UTC'
+}
+function fmtTimeLocal(iso?: string | null): string {
+  if (!iso) return 'TBD'
+  return new Date(iso).toLocaleString()
 }
 
 // ✅ CDG-style bold numerals (no circled glyphs)
@@ -157,12 +172,12 @@ function toMs(iso?: string | null): number {
   const t = Date.parse(iso)
   return Number.isFinite(t) ? t : Number.NaN
 }
-const nowMs = () => Date.now()
 function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
   if (fx.finished || fx.finished_provisional) return 'COMPLETED'
   const kick = toMs(fx.kickoff_time)
-  if (Number.isFinite(kick) && kick <= nowMs() && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
-  if (!Number.isFinite(kick) || kick > nowMs()) return 'UPCOMING'
+  const now = nowTick.value
+  if (Number.isFinite(kick) && kick <= now && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
+  if (!Number.isFinite(kick) || kick > now) return 'UPCOMING'
   return 'LIVE'
 }
 
@@ -199,7 +214,7 @@ function badgeClass(fx: Fixture): string {
   return 'bg-blue-100 text-blue-700'
 }
 
-// --- NEW: jersey helper (same shirts used on /team/id) ---
+// --- jersey helper (same shirts used on /team/id) ---
 function shirtUrl(teamId?: number) {
   if (!teamId) return ''
   const code = teamById.value.get(teamId)?.code
@@ -254,7 +269,8 @@ function shirtUrl(teamId?: number) {
               >
                 {{ badgeText(fx) }}
               </span>
-              {{ fmtTime(fx.kickoff_time) }}
+              <span v-if="isClient">{{ fmtTimeLocal(fx.kickoff_time) }}</span>
+              <span v-else>{{ fmtTimeUtc(fx.kickoff_time) }}</span>
             </div>
           </div>
         </template>

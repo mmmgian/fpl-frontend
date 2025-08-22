@@ -179,6 +179,15 @@ function badgeClass(fx: Fixture): string {
   if (s === 'COMPLETED') return 'bg-gray-100 text-gray-700'
   return 'bg-blue-100 text-blue-700'
 }
+
+// --- NEW: jersey helper (same shirts used on /team/id) ---
+function shirtUrl(teamId?: number) {
+  if (!teamId) return ''
+  const code = teamById.value.get(teamId)?.code
+  return code
+    ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${code}-110.png`
+    : ''
+}
 </script>
 
 <template>
@@ -249,7 +258,15 @@ function badgeClass(fx: Fixture): string {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    {{ nameByElement.get(row.element) || `#${row.element}` }}
+                    <!-- 🆕 jersey + name (inline; minimal layout change) -->
+                    <img
+                      v-if="shirtUrl(teamOfElement.get(row.element))"
+                      :src="shirtUrl(teamOfElement.get(row.element))"
+                      alt=""
+                      class="inline-block align-middle h-4 w-auto mr-2"
+                      decoding="async" loading="lazy" referrerpolicy="no-referrer"
+                    />
+                    <span class="align-middle">{{ nameByElement.get(row.element) || `#${row.element}` }}</span>
                   </td>
                   <td class="px-3 py-3">
                     <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
@@ -278,7 +295,15 @@ function badgeClass(fx: Fixture): string {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    {{ nameByElement.get(row.element) || `#${row.element}` }}
+                    <!-- 🆕 jersey + name (inline; minimal layout change) -->
+                    <img
+                      v-if="shirtUrl(teamOfElement.get(row.element))"
+                      :src="shirtUrl(teamOfElement.get(row.element))"
+                      alt=""
+                      class="inline-block align-middle h-4 w-auto mr-2"
+                      decoding="async" loading="lazy" referrerpolicy="no-referrer"
+                    />
+                    <span class="align-middle">{{ nameByElement.get(row.element) || `#${row.element}` }}</span>
                   </td>
                   <td class="px-3 py-3">
                     <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}

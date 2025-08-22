@@ -29,7 +29,7 @@ export default defineNuxtConfig({
       swr: 900,
       headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
-    '/api/fixtures': {
+    '/api/fixtures/**': {
       swr: 180,
       headers: { 'cache-control': 's-maxage=180, stale-while-revalidate=86400' },
     },

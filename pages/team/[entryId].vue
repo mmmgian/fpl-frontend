@@ -38,6 +38,15 @@ const crestUrl = (teamId?:number) => {
   const code = teamById.value.get(teamId)?.code
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
+
+// ✅ New: team shirt (home kit) sprite like FPL uses
+const shirtUrl = (teamId?: number) => {
+  if (!teamId) return ''
+  const code = teamById.value.get(teamId)?.code
+  // FPL's standard shirt sprites (66px variant). Using team "code", not id.
+  return code ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${code}-66.png` : ''
+}
+
 const pts = (p?:number|null) => (p ?? 0)
 const byPtsDesc = (a:Pick,b:Pick) => pts(b.gw_points) - pts(a.gw_points)
 
@@ -115,10 +124,21 @@ const goHome = () => navigateTo('/')
                   :key="`${sec.key}-${p.id}`"
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
+                  <!-- ✅ Player cell: (jersey + name), same layout otherwise -->
                   <td class="px-3 py-2">
-                    <span class="font-medium">{{ p.web_name }}</span>
+                    <span class="inline-flex items-center gap-2">
+                      <img
+                        v-if="shirtUrl(p.team)"
+                        :src="shirtUrl(p.team)"
+                        alt=""
+                        class="w-6 h-6 object-contain"
+                        decoding="async" loading="lazy" referrerpolicy="no-referrer"
+                      />
+                      <span class="font-medium">{{ p.web_name }}</span>
+                    </span>
                     <span v-if="p.is_captain" class="ml-1 text-xs opacity-70">(c)</span>
                   </td>
+
                   <td class="px-3 py-2">
                     <div class="flex items-center gap-2">
                       <img
@@ -130,6 +150,7 @@ const goHome = () => navigateTo('/')
                       <span>{{ short(p.team) }}</span>
                     </div>
                   </td>
+
                   <td class="px-3 py-2 text-right font-semibold">{{ p.gw_points ?? 0 }}</td>
                 </tr>
 

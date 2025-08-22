@@ -155,7 +155,6 @@ function cellText(c: Cell | null) {
 
         <label for="span" class="ml-2 text-[11px] uppercase tracking-wide text-gray-600">Span</label>
         <select id="span" v-model="span" class="kiko-select">
-          <option :value="4">4</option>
           <option :value="6">6</option>
           <option :value="8">8</option>
           <option :value="10">10</option>

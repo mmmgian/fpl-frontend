@@ -41,11 +41,28 @@ const currentGw = computed<number | null>(() => {
 const gw = ref<number | null>(null)
 watch(currentGw, (v) => { if (v) gw.value = v }, { immediate: true })
 
-// Fixtures for the chosen GW
-const { data: fixRes, pending, error } = await useFetch<Fixture[] | (Fixture | null)[]>(
-  () => (gw.value ? `/api/fixtures?event=${gw.value}` : null),
-  { server: true, key: () => `fixtures-${gw.value ?? 'none'}`, headers: { 'cache-control': 'no-store' } }
+// Fixtures for the chosen GW (🔁 live endpoint + stable default + refresh handle)
+const { data: fixRes, pending, error, refresh } = await useFetch<Fixture[] | (Fixture | null)[]>(
+  () => (gw.value ? `/api/fixtures-live?event=${gw.value}` : null),
+  {
+    server: true,
+    key: () => `fixtures-live-${gw.value ?? 'none'}`,
+    headers: { 'cache-control': 'no-store' },
+    default: () => [], // avoid hydration flashes
+  }
 )
+
+// Gentle client polling during live matches (visibility-aware)
+let poll: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  const start = () => { if (!poll) poll = setInterval(() => refresh(), 12_000) }
+  const stop  = () => { if (poll) { clearInterval(poll); poll = null } }
+  start()
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { start(); refresh() } else { stop() }
+  })
+})
+onBeforeUnmount(() => { if (poll) clearInterval(poll) })
 
 // Normalize fixtures (defensively filter by event === gw)
 const fixtures = computed<Fixture[]>(() => {
@@ -81,8 +98,10 @@ function fmtTime(iso?: string | null): string {
   const d = new Date(iso)
   return d.toLocaleString()
 }
+
+// ✅ CDG-style bold numerals (no circled glyphs)
 function keycap(n: number): string {
-  return n === 3 ? '3️⃣' : n === 2 ? '2️⃣' : n === 1 ? '1️⃣' : ''
+  return n === 3 ? '3' : n === 2 ? '2' : n === 1 ? '1' : ''
 }
 
 // Build actual bonus (3/2/1) from BPS by tie groups
@@ -258,7 +277,7 @@ function shirtUrl(teamId?: number) {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    <!-- 🆕 jersey + name (inline; minimal layout change) -->
+                    <!-- jersey + name (inline; minimal layout change) -->
                     <img
                       v-if="shirtUrl(teamOfElement.get(row.element))"
                       :src="shirtUrl(teamOfElement.get(row.element))"
@@ -269,7 +288,7 @@ function shirtUrl(teamId?: number) {
                     <span class="align-middle">{{ nameByElement.get(row.element) || `#${row.element}` }}</span>
                   </td>
                   <td class="px-3 py-3">
-                    <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
+                    <span class="mr-2 bonus-icon">{{ keycap(row.bonus) }}</span>{{ row.bps }}
                   </td>
                 </tr>
                 <tr v-if="!mergedWithTeamAndBonus(fx.stats).some(r => r.teamId === fx.team_h)">
@@ -295,7 +314,7 @@ function shirtUrl(teamId?: number) {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    <!-- 🆕 jersey + name (inline; minimal layout change) -->
+                    <!-- jersey + name (inline; minimal layout change) -->
                     <img
                       v-if="shirtUrl(teamOfElement.get(row.element))"
                       :src="shirtUrl(teamOfElement.get(row.element))"
@@ -306,7 +325,7 @@ function shirtUrl(teamId?: number) {
                     <span class="align-middle">{{ nameByElement.get(row.element) || `#${row.element}` }}</span>
                   </td>
                   <td class="px-3 py-3">
-                    <span class="mr-2">{{ keycap(row.bonus) }}</span>{{ row.bps }}
+                    <span class="mr-2 bonus-icon">{{ keycap(row.bonus) }}</span>{{ row.bps }}
                   </td>
                 </tr>
                 <tr v-if="!mergedWithTeamAndBonus(fx.stats).some(r => r.teamId === fx.team_a)">
@@ -335,4 +354,13 @@ function shirtUrl(teamId?: number) {
   50% { filter: brightness(1.05); transform: translateZ(0); }
 }
 .animate-pulse-live { animation: pulseLive 1.4s ease-in-out infinite; }
+
+/* ✅ Bold, modern numbers for 3/2/1 */
+.bonus-icon {
+  display: inline-block;
+  font-weight: 900;
+  font-size: 1.125rem; /* ~18px, subtle but strong */
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
 </style>

@@ -81,12 +81,11 @@ let loadSeq = 0
 
 async function loadGw(gw: number, seq: number) {
   if (fixturesIndex[gw]) return
-  const raw = await $fetch<Fixture[]>(`/api/fixtures?event=${gw}`, {
+  // NOTE: path-based url → unique cache key per GW
+  const raw = await $fetch<Fixture[]>(`/api/fixtures/${gw}`, {
     headers: { 'cache-control': 'no-store' }
   }).catch(() => [])
-  // if another load started since, ignore this result
   if (seq !== loadSeq) return
-
   const mapForGw: Record<number, Cell> = Object.create(null)
   for (const fx of raw) {
     mapForGw[fx.team_h] = Object.freeze({ oppId: fx.team_a, home: true,  diff: fx.team_h_difficulty ?? 0 })

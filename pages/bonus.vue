@@ -23,11 +23,12 @@ type Fixture = {
 
 const nowTick = useState<number>('now-tick', () => Date.now()) // same value SSR→CSR hydration
 
-// Bootstrap: events/teams/elements
+// Bootstrap: events/teams/elements  ✨ no payload reuse + no-store
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
-  key: 'boot',
+  key: 'boot-static',
   headers: { 'cache-control': 'no-store' },
+  getCachedData: () => null,
 })
 const events  = computed<Event[]>(() => bootRes.value?.events ?? [])
 const teams   = computed<Team[]>(() => bootRes.value?.teams ?? [])
@@ -44,6 +45,7 @@ const gw = ref<number | null>(null)
 watch(currentGw, (v) => { if (v) gw.value = v }, { immediate: true })
 
 // Fixtures for the chosen GW (🔁 live endpoint + stable default + refresh handle)
+// ✨ no payload reuse + no-store
 const { data: fixRes, pending, error, refresh } = await useFetch<Fixture[] | (Fixture | null)[]>(
   () => (gw.value ? `/api/fixtures-live?event=${gw.value}` : null),
   {
@@ -51,12 +53,16 @@ const { data: fixRes, pending, error, refresh } = await useFetch<Fixture[] | (Fi
     key: () => `fixtures-live-${gw.value ?? 'none'}`,
     headers: { 'cache-control': 'no-store' },
     default: () => [], // avoid hydration flashes
+    getCachedData: () => null,
   }
 )
 
-// Gentle client polling during live matches (visibility-aware)
+// Gentle client polling during live matches (visibility-aware) + immediate refresh
 let poll: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
+  // immediate refresh so CSR view never reverts to SSR payload
+  refresh()
+
   const start = () => { if (!poll) poll = setInterval(() => refresh(), 12_000) }
   const stop  = () => { if (poll) { clearInterval(poll); poll = null } }
   start()

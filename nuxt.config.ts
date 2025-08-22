@@ -34,10 +34,9 @@ export default defineNuxtConfig({
     },
 
     // …but add a live endpoint with much tighter SWR for the bonus page
-    '/api/fixtures-live': {
-      swr: 10, // ~10s freshness at the edge
-      headers: { 'cache-control': 's-maxage=10, stale-while-revalidate=60' },
-    },
+    '/api/fixtures-live/**': {
+      swr: false, // ~10s freshness at the edge
+    headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },    },
 
     '/api/league/**': {
       swr: 120,

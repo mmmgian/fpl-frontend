@@ -139,7 +139,7 @@ function mergedWithTeamAndBonus(stats?: Stat[]): { element: number; bps: number;
     )
 }
 
-// Status & sorting
+// Status & sorting helpers
 function toMs(iso?: string | null): number {
   if (!iso) return Number.POSITIVE_INFINITY
   const t = Date.parse(iso)
@@ -155,20 +155,26 @@ function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
   return 'LIVE'
 }
 
+// ⬇️ ONLY change: COMPLETED are now sorted DESC (most recently ended first).
 const sortedFixtures = computed<Fixture[]>(() => {
   const live: Fixture[] = []
   const upcoming: Fixture[] = []
   const done: Fixture[] = []
+
   for (const f of fixtures.value) {
     const s = statusOf(f)
     if (s === 'LIVE') live.push(f)
     else if (s === 'UPCOMING') upcoming.push(f)
     else done.push(f)
   }
+
   const byKickAsc = (a: Fixture, b: Fixture) => toMs(a.kickoff_time) - toMs(b.kickoff_time)
-  live.sort(byKickAsc)
-  upcoming.sort(byKickAsc)
-  done.sort(byKickAsc)
+  const byKickDesc = (a: Fixture, b: Fixture) => toMs(b.kickoff_time) - toMs(a.kickoff_time)
+
+  live.sort(byKickAsc)      // unchanged
+  upcoming.sort(byKickAsc)  // unchanged
+  done.sort(byKickDesc)     // ✅ newest finished on top
+
   return [...live, ...upcoming, ...done]
 })
 

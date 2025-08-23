@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   routeRules: {
     // Pages
-    '/': { isr: 60 },
+    '/': { isr: 15 },
     '/fixtures': { isr: 600 },
     '/team/**': { isr: 120 },
 
@@ -39,8 +39,8 @@ export default defineNuxtConfig({
     headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },    },
 
     '/api/league/**': {
-      swr: 120,
-      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
+      swr: 30,
+      headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' },
     },
     '/api/team/**': {
       swr: 120,

@@ -133,8 +133,8 @@ const goHome = () => navigateTo('/')
               <thead>
                 <tr class="bg-white/60 border-b border-black/10 text-left">
                   <th class="px-3 py-2">Player</th>
-                  <th class="px-3 py-2 w-36">Team</th>
-                  <th class="px-3 py-2 w-28 text-right">Points (GW)</th>
+                  <th class="px-3 py-2 w-28">Team</th>
+                  <th class="px-3 py-2 w-20 text-right">Points</th>
                 </tr>
               </thead>
               <tbody class="bg-transparent">
@@ -143,7 +143,7 @@ const goHome = () => navigateTo('/')
                   :key="`${sec.key}-${p.id}`"
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
-                  <!-- Player cell: shirt + name + (c/vc) inline, perfectly centered -->
+                  <!-- Player cell: shirt + name + (c/vc) inline -->
                   <td class="px-3 py-2">
                     <div class="flex items-center gap-2 min-w-0">
                       <img
@@ -153,14 +153,13 @@ const goHome = () => navigateTo('/')
                         class="w-6 h-6 object-contain shrink-0"
                         decoding="async" loading="lazy"
                       />
-                      <!-- let name be the only thing that can truncate -->
                       <span class="font-medium truncate">{{ p.web_name }}</span>
                       <span v-if="p.is_captain" class="text-xs opacity-70 whitespace-nowrap">(c)</span>
                       <span v-if="p.is_vice_captain" class="text-xs opacity-60 whitespace-nowrap">(vc)</span>
                     </div>
                   </td>
 
-                  <!-- Team cell: crest + short name inline, no wrap -->
+                  <!-- Team cell: crest + abbrev inline -->
                   <td class="px-3 py-2">
                     <div class="flex items-center gap-2 whitespace-nowrap">
                       <img
@@ -169,11 +168,11 @@ const goHome = () => navigateTo('/')
                         class="w-5 h-5 object-contain shrink-0"
                         decoding="async" loading="lazy"
                       />
-                      <span class="truncate">{{ short(p.team) }}</span>
+                      <span>{{ short(p.team) }}</span>
                     </div>
                   </td>
 
-                  <!-- Points: right-aligned, mono-like spacing, no wrap -->
+                  <!-- Points -->
                   <td class="px-3 py-2 text-right font-semibold whitespace-nowrap [font-variant-numeric:tabular-nums]">
                     {{ p.gw_points ?? 0 }}
                   </td>
@@ -212,5 +211,5 @@ const goHome = () => navigateTo('/')
 </template>
 
 <style scoped>
-/* no extra styles needed */
+/* nothing extra needed */
 </style>

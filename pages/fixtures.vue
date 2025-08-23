@@ -16,9 +16,8 @@ const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootst
 
 const events = computed(() => bootRes.value?.events ?? [])
 
-// STABLE team order: by id (no locale)
+// RAW teams (unsorted)
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
-const teamsList = computed(() => (teamsRaw.value.slice().sort((a,b) => a.id - b.id)))
 
 // Current GW
 const currentGw = computed<number | null>(() => {
@@ -32,13 +31,22 @@ const currentGw = computed<number | null>(() => {
 const gwOptions = computed(() => events.value.map(e => e.id))
 const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
 watch(currentGw, (val) => { if (val) startGw.value = val }, { immediate: true })
-const span = ref<number>(6)
+const span = ref<number>(6) // visible columns
 
+// Visible columns (table)
 const columns = computed(() => {
   const all = gwOptions.value
   const idx = all.indexOf(startGw.value)
   if (idx === -1) return []
   return all.slice(idx, idx + span.value)
+})
+
+// 🔢 Difficulty sort window = next 5 GWs from startGw (inclusive)
+const sortWindow = computed(() => {
+  const all = gwOptions.value
+  const idx = all.indexOf(startGw.value)
+  if (idx === -1) return []
+  return all.slice(idx, idx + 5)
 })
 
 // team map from RAW teams (not sorted)
@@ -81,7 +89,6 @@ let loadSeq = 0
 
 async function loadGw(gw: number, seq: number) {
   if (fixturesIndex[gw]) return
-  // NOTE: path-based url → unique cache key per GW
   const raw = await $fetch<Fixture[]>(`/api/fixtures/${gw}`, {
     headers: { 'cache-control': 'no-store' }
   }).catch(() => [])
@@ -94,17 +101,18 @@ async function loadGw(gw: number, seq: number) {
   fixturesIndex[gw] = Object.freeze(mapForGw)
 }
 
+// Load visible table columns + sort window (next 5) so sorting is correct
 async function loadVisible() {
-  const cols = columns.value
-  if (!cols.length) return
+  const need = Array.from(new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]))
+  if (!need.length) return
   const seq = ++loadSeq
-  await Promise.all(cols.map(gw => loadGw(gw, seq)))
-  if (seq === loadSeq) loadedForKey.value = cols.join('-')
+  await Promise.all(need.map(gw => loadGw(gw, seq)))
+  if (seq === loadSeq) loadedForKey.value = need.join('-')
 }
 
 // SSR build index for the current window to match client HTML
 if (import.meta.server) {
-  if (teamsRaw.value.length && columns.value.length) {
+  if (teamsRaw.value.length && (columns.value.length || sortWindow.value.length)) {
     await loadVisible()
   }
 } else {
@@ -115,11 +123,14 @@ watch([startGw, span], async () => {
   await loadVisible()
 })
 
-const ready = computed(() =>
-  teamsRaw.value.length > 0 &&
-  columns.value.length > 0 &&
-  columns.value.every(gw => !!fixturesIndex[gw])
-)
+const ready = computed(() => {
+  const need = Array.from(new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]))
+  return (
+    teamsRaw.value.length > 0 &&
+    need.length > 0 &&
+    need.every(gw => !!fixturesIndex[gw])
+  )
+})
 
 function cellFor(teamId: number, gw: number): Cell | null {
   const byTeam = fixturesIndex[gw]
@@ -130,6 +141,33 @@ function cellText(c: Cell | null) {
   const opp = teamById.value.get(c.oppId)
   return `${opp?.short_name ?? opp?.name ?? '—'} ${c.home ? '(H)' : '(A)'}`
 }
+
+// 🔽 Difficulty score over next 5 GWs (lower = easier).
+// If a fixture missing for a GW, treat as neutral 3 to avoid gaming blanks/doubles.
+function diffScore(teamId: number): number {
+  const window = sortWindow.value
+  if (!window.length) return 0
+  let sum = 0
+  for (const gw of window) {
+    const c = cellFor(teamId, gw)
+    sum += c?.diff ?? 3
+  }
+  return sum
+}
+
+// 🔽 Sorted list: easiest → hardest, then by short_name
+const teamsSorted = computed(() =>
+  teamsRaw.value
+    .slice()
+    .sort((a, b) => {
+      const da = diffScore(a.id)
+      const db = diffScore(b.id)
+      if (da !== db) return da - db
+      const an = a.short_name || a.name
+      const bn = b.short_name || b.name
+      return String(an).localeCompare(String(bn))
+    })
+)
 </script>
 
 <template>
@@ -144,7 +182,7 @@ function cellText(c: Cell | null) {
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(3)">3</span>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(4)">4</span>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(5)">5</span>
-        <span class="ml-2 text-gray-600">Easy → Hard</span>
+        <span class="ml-2 text-gray-600">Easy → Hard (sorted by next 5 GWs)</span>
       </div>
 
       <div class="flex items-center gap-2 ml-auto">
@@ -176,7 +214,7 @@ function cellText(c: Cell | null) {
             </tr>
           </thead>
           <tbody class="bg-transparent">
-            <tr v-for="t in teamsList" :key="t.id" class="border-t border-black/10">
+            <tr v-for="t in teamsSorted" :key="t.id" class="border-t border-black/10">
               <td class="px-3 py-2 sticky-col">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/5 ring-1 ring-black/5">

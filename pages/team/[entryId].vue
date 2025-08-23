@@ -2,7 +2,15 @@
 import { useBootstrapStore } from '~/stores/bootstrap'
 
 type Pos = 1 | 2 | 3 | 4
-type Pick = { id:number; web_name:string; position:Pos; team?:number; gw_points?:number|null; is_captain?:boolean }
+type Pick = {
+  id: number
+  web_name: string
+  position: Pos
+  team?: number
+  gw_points?: number | null
+  is_captain?: boolean
+  is_vice_captain?: boolean
+}
 type TeamPayload = { entry_id:number; team_name:string; manager_name:string; gw:number; picks:Pick[] }
 type Team = { id:number; short_name:string; code:number }
 type Tenure = { entry_id:number; seasons_played:number; first_season:string|null; playing_since_year:number|null; seasons:string[] }
@@ -12,16 +20,30 @@ const entryId = computed(() => String(route.params.entryId ?? ''))
 
 const fetchOpts = { headers: { 'cache-control': 'no-store' }, server: true as const, initialCache: false as const }
 
-// Team + tenure (unchanged)
-const { data: teamRes } =
+// Team + tenure
+const { data: teamRes, refresh: refreshTeam } =
   await useFetch<TeamPayload>(() => entryId.value ? `/api/team/${entryId.value}` : null, { ...fetchOpts, key: () => `team-${entryId.value}` })
 
-const { data: tenure } =
+const { data: tenure, refresh: refreshTenure } =
   await useFetch<Tenure>(() => entryId.value ? `/api/tenure/${entryId.value}` : null, { ...fetchOpts, key: () => `tenure-${entryId.value}` })
 
-// ---- Bootstrap via Pinia store (loads once, reused across pages) ----
+// Revalidation on SPA nav / visibility
+onMounted(() => {
+  const handler = () => {
+    if (document.visibilityState === 'visible') {
+      refreshTeam()
+      refreshTenure()
+    }
+  }
+  refreshTeam(); refreshTenure()
+  document.addEventListener('visibilitychange', handler)
+  onBeforeUnmount(() => document.removeEventListener('visibilitychange', handler))
+})
+watch(entryId, () => { refreshTeam(); refreshTenure() })
+
+// Bootstrap via Pinia
 const bootStore = useBootstrapStore()
-await bootStore.load() // no-op after first time
+await bootStore.load()
 
 const teamById = computed(() => {
   const m = new Map<number, Team>()
@@ -29,7 +51,7 @@ const teamById = computed(() => {
   return m
 })
 
-// ---- UI helpers (unchanged) ----
+// Helpers
 const payload = computed(() => teamRes.value)
 const POS_LABEL: Record<Pos,string> = { 1:'Goalkeeper', 2:'Defenders', 3:'Midfielders', 4:'Forwards' }
 const short = (teamId?:number) => teamId ? (teamById.value.get(teamId)?.short_name ?? '—') : '—'
@@ -38,12 +60,9 @@ const crestUrl = (teamId?:number) => {
   const code = teamById.value.get(teamId)?.code
   return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
 }
-
-// ✅ New: team shirt (home kit) sprite like FPL uses
 const shirtUrl = (teamId?: number) => {
   if (!teamId) return ''
   const code = teamById.value.get(teamId)?.code
-  // FPL's standard shirt sprites (66px variant). Using team "code", not id.
   return code ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${code}-66.png` : ''
 }
 
@@ -124,20 +143,22 @@ const goHome = () => navigateTo('/')
                   :key="`${sec.key}-${p.id}`"
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
-                  <!-- ✅ Player cell: (jersey + name), same layout otherwise -->
+                  <!-- Player cell: jersey + name + badges -->
                   <td class="px-3 py-2">
-                    <span class="inline-flex items-center gap-2">
-                      <img
-                        v-if="shirtUrl(p.team)"
-                        :src="shirtUrl(p.team)"
-                        alt=""
-                        class="w-6 h-6 object-contain"
-                        decoding="async" loading="lazy" referrerpolicy="no-referrer"
-                      />
-                      <span class="font-medium">{{ p.web_name }}</span>
-                    </span>
-                    <span v-if="p.is_captain" class="ml-1 text-xs opacity-70">(c)</span>
-                  </td>
+  <span class="inline-flex items-baseline gap-2 whitespace-nowrap">
+    <img
+      v-if="shirtUrl(p.team)"
+      :src="shirtUrl(p.team)"
+      alt=""
+      class="w-6 h-6 object-contain"
+      decoding="async" loading="lazy"
+    />
+    <span class="font-medium align-middle">{{ p.web_name }}</span>
+    <!-- ✅ badges render independently -->
+    <span v-if="p.is_captain" class="ml-1 text-xs opacity-70 align-middle">(c)</span>
+    <span v-if="p.is_vice_captain" class="ml-1 text-xs opacity-60 align-middle">(vc)</span>
+  </span>
+</td>
 
                   <td class="px-3 py-2">
                     <div class="flex items-center gap-2">
@@ -145,7 +166,7 @@ const goHome = () => navigateTo('/')
                         v-if="crestUrl(p.team)"
                         :src="crestUrl(p.team)" alt=""
                         class="w-5 h-5 object-contain"
-                        decoding="async" loading="lazy" referrerpolicy="no-referrer"
+                        decoding="async" loading="lazy"
                       />
                       <span>{{ short(p.team) }}</span>
                     </div>
@@ -154,13 +175,10 @@ const goHome = () => navigateTo('/')
                   <td class="px-3 py-2 text-right font-semibold">{{ p.gw_points ?? 0 }}</td>
                 </tr>
 
-                <!-- Subtotal (rounded grey pill divider) -->
+                <!-- Subtotal -->
                 <tr class="bg-transparent">
                   <td colspan="3" class="px-3 pt-2">
-                    <div
-                      class="w-full rounded-full bg-gray-200 border border-gray-300 px-4 py-2
-                             flex items-center justify-between"
-                    >
+                    <div class="w-full rounded-full bg-gray-200 border border-gray-300 px-4 py-2 flex items-center justify-between">
                       <span class="text-[13px] font-semibold text-gray-700">Subtotal</span>
                       <span class="text-[13px] font-extrabold text-gray-900">
                         {{ sec.rows.reduce((s,p)=>s+(p.gw_points ?? 0),0) }}
@@ -177,7 +195,7 @@ const goHome = () => navigateTo('/')
           </div>
         </div>
 
-        <!-- Grand total (centered black pill) -->
+        <!-- Grand total -->
         <div class="mt-6 flex justify-center">
           <div class="inline-flex items-center gap-3 rounded-full bg-black text-white px-5 py-2 shadow-sm">
             <span class="text-xs uppercase tracking-wide opacity-90">Grand Total</span>
@@ -188,3 +206,7 @@ const goHome = () => navigateTo('/')
     </div>
   </section>
 </template>
+
+<style scoped>
+/* Optional: if you want (c)/(vc) a hair bolder without changing size */
+</style>

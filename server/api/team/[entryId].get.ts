@@ -7,6 +7,7 @@ type Pick = {
   team?: number;
   gw_points?: number | null;
   is_captain?: boolean;
+  is_vice_captain?: boolean; // ✅ added
 };
 type TeamPayload = {
   entry_id: number;
@@ -39,9 +40,7 @@ export default defineEventHandler(async (event) => {
   let bootstrap: any = null;
   try {
     bootstrap = await $fetch("/api/bootstrap-static", { cache: "no-store" });
-  } catch {
-    /* noop */
-  }
+  } catch {}
   const elById = new Map<number, any>();
   if (bootstrap?.elements) {
     for (const e of bootstrap.elements) {
@@ -84,9 +83,9 @@ export default defineEventHandler(async (event) => {
           web_name: str(r?.web_name) || e2name(id),
           position: e2pos(id),
           team: e2team(id),
-          // we'll overwrite gw_points after live lookup
           gw_points: num(r?.gw_points ?? r?.event_points ?? r?.points, null),
           is_captain: Boolean(r?.is_captain ?? r?.captain),
+          is_vice_captain: Boolean(r?.is_vice_captain ?? r?.vice_captain), // ✅ normalize from backend too
           _mult: num(r?.multiplier ?? 1, 1),
         };
       })
@@ -124,8 +123,7 @@ export default defineEventHandler(async (event) => {
   }
   if (!gw) gw = 1;
 
-  // --- If backend gave us picks but gw_points are missing/zero, we'll enrich below
-  // If backend didn't provide picks, fetch official picks
+  // --- If backend didn’t provide picks, fetch official picks
   if (!normalized || !normalized.picks.length) {
     let picksJson: any = null;
     const pull = async (g: number) =>
@@ -151,13 +149,13 @@ export default defineEventHandler(async (event) => {
         web_name: e2name(id),
         position: e2pos(id),
         team: e2team(id),
-        gw_points: null, // to fill from live points
+        gw_points: null,
         is_captain: Boolean(r?.is_captain),
+        is_vice_captain: Boolean(r?.is_vice_captain), // ✅ FPL official flag
         _mult: num(r?.multiplier ?? 1, 1),
       });
     }
 
-    // get entry labels if we didn’t already
     if (!entrySummary) {
       try {
         entrySummary = await fetchJSON(
@@ -174,12 +172,10 @@ export default defineEventHandler(async (event) => {
       picks,
     };
   } else {
-    // ensure GW reflects our final choice
     normalized.gw = gw;
   }
 
-  // --- Enrich with LIVE points (total_points) * multiplier
-  //     event/{gw}/live/ → elements[].stats.total_points
+  // --- Enrich with LIVE points (event/{gw}/live)
   let liveMap = new Map<number, number>();
   try {
     const live = await fetchJSON(
@@ -190,9 +186,7 @@ export default defineEventHandler(async (event) => {
       const pts = num(el?.stats?.total_points, null);
       if (id != null && pts != null) liveMap.set(id, pts);
     }
-  } catch {
-    // if live endpoint fails, leave map empty
-  }
+  } catch {}
 
   for (const p of normalized.picks as (Pick & { _mult?: number })[]) {
     const base = liveMap.get(p.id);

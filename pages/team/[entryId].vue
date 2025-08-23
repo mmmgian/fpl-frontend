@@ -72,7 +72,7 @@ const byPtsDesc = (a:Pick,b:Pick) => pts(b.gw_points) - pts(a.gw_points)
 const gk  = computed(() => (payload.value?.picks ?? []).filter(p => p.position===1).sort(byPtsDesc))
 const def = computed(() => (payload.value?.picks ?? []).filter(p => p.position===2).sort(byPtsDesc))
 const mid = computed(() => (payload.value?.picks ?? []).filter(p => p.position===3).sort(byPtsDesc))
-const fwd = computed(() => (payload.value?.picks ?? []).filter(p => p.position===4).sort(byPtsDesc))
+const fwd = computed (() => (payload.value?.picks ?? []).filter(p => p.position===4).sort(byPtsDesc))
 
 const subtotal = (rows:Pick[]) => rows.reduce((s,p)=>s+pts(p.gw_points),0)
 const grandTotal = computed(()=> subtotal(gk.value)+subtotal(def.value)+subtotal(mid.value)+subtotal(fwd.value))
@@ -143,36 +143,40 @@ const goHome = () => navigateTo('/')
                   :key="`${sec.key}-${p.id}`"
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
-                  <!-- Player cell: jersey + name + badges -->
+                  <!-- Player cell: shirt + name + (c/vc) inline, perfectly centered -->
                   <td class="px-3 py-2">
-  <span class="inline-flex items-baseline gap-2 whitespace-nowrap">
-    <img
-      v-if="shirtUrl(p.team)"
-      :src="shirtUrl(p.team)"
-      alt=""
-      class="w-6 h-6 object-contain"
-      decoding="async" loading="lazy"
-    />
-    <span class="font-medium align-middle">{{ p.web_name }}</span>
-    <!-- ✅ badges render independently -->
-    <span v-if="p.is_captain" class="ml-1 text-xs opacity-70 align-middle">(c)</span>
-    <span v-if="p.is_vice_captain" class="ml-1 text-xs opacity-60 align-middle">(vc)</span>
-  </span>
-</td>
-
-                  <td class="px-3 py-2">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
                       <img
-                        v-if="crestUrl(p.team)"
-                        :src="crestUrl(p.team)" alt=""
-                        class="w-5 h-5 object-contain"
+                        v-if="shirtUrl(p.team)"
+                        :src="shirtUrl(p.team)"
+                        alt=""
+                        class="w-6 h-6 object-contain shrink-0"
                         decoding="async" loading="lazy"
                       />
-                      <span>{{ short(p.team) }}</span>
+                      <!-- let name be the only thing that can truncate -->
+                      <span class="font-medium truncate">{{ p.web_name }}</span>
+                      <span v-if="p.is_captain" class="text-xs opacity-70 whitespace-nowrap">(c)</span>
+                      <span v-if="p.is_vice_captain" class="text-xs opacity-60 whitespace-nowrap">(vc)</span>
                     </div>
                   </td>
 
-                  <td class="px-3 py-2 text-right font-semibold">{{ p.gw_points ?? 0 }}</td>
+                  <!-- Team cell: crest + short name inline, no wrap -->
+                  <td class="px-3 py-2">
+                    <div class="flex items-center gap-2 whitespace-nowrap">
+                      <img
+                        v-if="crestUrl(p.team)"
+                        :src="crestUrl(p.team)" alt=""
+                        class="w-5 h-5 object-contain shrink-0"
+                        decoding="async" loading="lazy"
+                      />
+                      <span class="truncate">{{ short(p.team) }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Points: right-aligned, mono-like spacing, no wrap -->
+                  <td class="px-3 py-2 text-right font-semibold whitespace-nowrap [font-variant-numeric:tabular-nums]">
+                    {{ p.gw_points ?? 0 }}
+                  </td>
                 </tr>
 
                 <!-- Subtotal -->
@@ -208,5 +212,5 @@ const goHome = () => navigateTo('/')
 </template>
 
 <style scoped>
-/* Optional: if you want (c)/(vc) a hair bolder without changing size */
+/* no extra styles needed */
 </style>

@@ -45,37 +45,72 @@ const gw = ref<number | null>(null)
 watch(currentGw, (v) => { if (v) gw.value = v }, { immediate: true })
 
 // Fixtures for the chosen GW (🔁 live endpoint + stable default + refresh handle)
-// ✨ no payload reuse + no-store
 const { data: fixRes, pending, error, refresh } = await useFetch<Fixture[] | (Fixture | null)[]>(
   () => (gw.value ? `/api/fixtures-live?event=${gw.value}` : null),
   {
     server: true,
     key: () => `fixtures-live-${gw.value ?? 'none'}`,
     headers: { 'cache-control': 'no-store' },
-    default: () => [], // avoid hydration flashes
-    getCachedData: () => null,
+    default: () => [],              // avoid hydration flashes
+    getCachedData: () => null,      // don't reuse payload
   }
 )
-
-// Gentle client polling during live matches (visibility-aware) + immediate refresh
-let poll: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  // immediate refresh so CSR view never reverts to SSR payload
-  refresh()
-
-  const start = () => { if (!poll) poll = setInterval(() => refresh(), 12_000) }
-  const stop  = () => { if (poll) { clearInterval(poll); poll = null } }
-  start()
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') { start(); refresh() } else { stop() }
-  })
-})
-onBeforeUnmount(() => { if (poll) clearInterval(poll) })
 
 // Normalize fixtures (defensively filter by event === gw)
 const fixtures = computed<Fixture[]>(() => {
   const list = Array.isArray(fixRes.value) ? (fixRes.value.filter(Boolean) as Fixture[]) : []
   return gw.value ? list.filter(f => f.event === gw.value) : list
+})
+
+// ---- Only poll while there are LIVE fixtures ----
+function toMs(iso?: string | null): number {
+  if (!iso) return Number.NaN
+  const t = Date.parse(iso)
+  return Number.isFinite(t) ? t : Number.NaN
+}
+function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
+  if (fx.finished || fx.finished_provisional) return 'COMPLETED'
+  const kick = toMs(fx.kickoff_time)
+  const now = nowTick.value
+  if (Number.isFinite(kick) && kick <= now && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
+  if (!Number.isFinite(kick) || kick > now) return 'UPCOMING'
+  return 'LIVE'
+}
+
+// Whether there is any live fixture right now
+const hasLive = computed(() => fixtures.value.some(f => statusOf(f) === 'LIVE'))
+
+// Gentle client polling only when live (visibility-aware)
+let poll: ReturnType<typeof setInterval> | null = null
+const startPolling = () => {
+  if (!poll) poll = setInterval(() => refresh(), 12_000)
+}
+const stopPolling = () => {
+  if (poll) { clearInterval(poll); poll = null }
+}
+
+onMounted(() => {
+  // One immediate refresh after mount is fine; we'll guard the loader in the template
+  refresh()
+
+  // manage polling based on visibility and live status
+  const vis = () => {
+    if (document.visibilityState === 'visible' && hasLive.value) startPolling()
+    else stopPolling()
+  }
+  document.addEventListener('visibilitychange', vis)
+
+  // react to live-status changes
+  watch(hasLive, (live) => {
+    if (document.visibilityState !== 'visible') return
+    if (live) startPolling()
+    else stopPolling()
+  }, { immediate: true })
+
+  onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', vis)
+    stopPolling()
+  })
 })
 
 // Maps
@@ -172,21 +207,7 @@ function mergedWithTeamAndBonus(stats?: Stat[]): { element: number; bps: number;
     )
 }
 
-// Status & sorting (finished fixtures sorted: most recently finished first)
-function toMs(iso?: string | null): number {
-  if (!iso) return Number.NaN
-  const t = Date.parse(iso)
-  return Number.isFinite(t) ? t : Number.NaN
-}
-function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
-  if (fx.finished || fx.finished_provisional) return 'COMPLETED'
-  const kick = toMs(fx.kickoff_time)
-  const now = nowTick.value
-  if (Number.isFinite(kick) && kick <= now && (fx.started || fx.team_h_score !== null || fx.team_a_score !== null)) return 'LIVE'
-  if (!Number.isFinite(kick) || kick > now) return 'UPCOMING'
-  return 'LIVE'
-}
-
+// Sorting (finished fixtures: most recently finished first)
 const sortedFixtures = computed<Fixture[]>(() => {
   const live: Fixture[] = []
   const upcoming: Fixture[] = []
@@ -202,7 +223,7 @@ const sortedFixtures = computed<Fixture[]>(() => {
 
   live.sort(byKickAsc)         // soonest live first
   upcoming.sort(byKickAsc)     // earliest KO first
-  done.sort(byKickDesc)        // ✅ most recently finished first
+  done.sort(byKickDesc)        // most recently finished first
 
   return [...live, ...upcoming, ...done]
 })
@@ -220,7 +241,7 @@ function badgeClass(fx: Fixture): string {
   return 'bg-blue-100 text-blue-700'
 }
 
-// --- jersey helper (same shirts used on /team/id) ---
+// jersey helper
 function shirtUrl(teamId?: number) {
   if (!teamId) return ''
   const code = teamById.value.get(teamId)?.code
@@ -238,7 +259,10 @@ function shirtUrl(teamId?: number) {
     </div>
 
     <div v-if="bootErr" class="text-red-600">Failed to load bootstrap.</div>
-    <div v-else-if="pending" class="text-gray-600">Loading…</div>
+
+    <!-- Only show the big loader on first load (no data yet) -->
+    <div v-else-if="pending && !sortedFixtures.length" class="text-gray-600">Loading…</div>
+
     <div v-else-if="error" class="text-red-600">Failed to load fixtures.</div>
     <div v-else-if="!sortedFixtures.length" class="text-gray-600">No fixtures for this gameweek yet.</div>
 
@@ -251,7 +275,6 @@ function shirtUrl(teamId?: number) {
           statusOf(fx) === 'LIVE' ? 'live-card' : ''
         ]"
       >
-        <!-- Header: centered, with crests in subtle circles (matches other views) -->
         <template #header>
           <div class="flex flex-col items-center text-center w-full gap-1">
             <div class="flex items-center justify-center gap-2">
@@ -281,7 +304,6 @@ function shirtUrl(teamId?: number) {
           </div>
         </template>
 
-        <!-- Two tables styled like other pages -->
         <div class="grid gap-4 md:grid-cols-2">
           <!-- Home -->
           <div class="border-b md:border-b-0 md:border-r border-black/10 pb-4 md:pb-0 md:pr-4">
@@ -299,7 +321,6 @@ function shirtUrl(teamId?: number) {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    <!-- jersey + name (inline; minimal layout change) -->
                     <img
                       v-if="shirtUrl(teamOfElement.get(row.element))"
                       :src="shirtUrl(teamOfElement.get(row.element))"
@@ -336,7 +357,6 @@ function shirtUrl(teamId?: number) {
                   class="border-t border-black/10 hover:bg-black/5 transition-colors"
                 >
                   <td class="px-3 py-3">
-                    <!-- jersey + name (inline; minimal layout change) -->
                     <img
                       v-if="shirtUrl(teamOfElement.get(row.element))"
                       :src="shirtUrl(teamOfElement.get(row.element))"
@@ -381,7 +401,7 @@ function shirtUrl(teamId?: number) {
 .bonus-icon {
   display: inline-block;
   font-weight: 900;
-  font-size: 1.125rem; /* ~18px, subtle but strong */
+  font-size: 1.125rem; /* ~18px */
   line-height: 1;
   letter-spacing: -0.02em;
 }

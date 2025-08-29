@@ -36,8 +36,8 @@ const { data: bootstrap } = await useFetch<Bootstrap>(
 const currentGw = computed<number | null>(() => {
   const ev = bootstrap.value?.events ?? []
   const cur = ev.find(e => e.is_current)
-            ?? ev.find(e => !e.finished)
-            ?? ev[ev.length - 1]
+             ?? ev.find(e => !e.finished)
+             ?? ev[ev.length - 1]
   return cur?.id ?? null
 })
 
@@ -47,7 +47,7 @@ const rows = computed<Row[]>(() => {
   return Array.isArray(s) ? s : (s.results ?? [])
 })
 
-// Arrow helpers: always render a glyph (• if unknown/unchanged)
+// Arrow helpers
 const arrowSym = (r?: number | string | null, prev?: number | string | null) => {
   const cur  = Number(r)
   const last = Number(prev)
@@ -76,7 +76,6 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
         <table class="w-full text-sm bg-transparent">
           <thead>
             <tr class="bg-white/60 border-b border-black/10 text-left">
-              <!-- slightly wider to prevent wraps -->
               <th class="px-3 py-2 w-16">#</th>
               <th class="px-3 py-2">Team · Manager</th>
               <th class="px-3 py-2 w-20 text-right">
@@ -96,10 +95,12 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
                 v-for="(r, i) in rows"
                 :key="r.entry"
                 class="border-t border-black/10 hover:bg-black/5 transition-colors cursor-pointer"
+                role="button"
+                tabindex="0"
                 @click="toTeam(r.entry)"
+                @keydown.enter="toTeam(r.entry)"
               >
                 <td class="px-3 py-2 font-medium">
-                  <!-- keep arrow + number on one line, with tabular digits -->
                   <span class="inline-flex items-center gap-1.5 whitespace-nowrap [font-variant-numeric:tabular-nums]">
                     <span
                       :class="arrowClass(r.rank, r.last_rank)"
@@ -111,13 +112,21 @@ const toTeam = (entry:number) => navigateTo(`/team/${entry}`)
                   </span>
                 </td>
 
+                <!-- Make the cell itself a NuxtLink for bullet-proof navigation -->
                 <td class="px-3 py-2">
-                  <div class="font-semibold leading-tight">{{ r.entry_name }}</div>
-                  <div class="text-xs text-gray-600 leading-tight">{{ r.player_name }}</div>
+                  <NuxtLink
+                    :to="`/team/${r.entry}`"
+                    class="block focus:outline-none focus:ring-2 focus:ring-black/20 rounded"
+                    aria-label="Open team details"
+                    @click.stop
+                  >
+                    <div class="font-semibold leading-tight">{{ r.entry_name }}</div>
+                    <div class="text-xs text-gray-600 leading-tight">{{ r.player_name }}</div>
+                  </NuxtLink>
                 </td>
 
-                <td class="px-3 py-2 text-right">{{ r.event_total ?? '—' }}</td>
-                <td class="px-3 py-2 text-right font-semibold">{{ r.total }}</td>
+                <td class="px-3 py-2 text-right [font-variant-numeric:tabular-nums]">{{ r.event_total ?? '—' }}</td>
+                <td class="px-3 py-2 text-right font-semibold [font-variant-numeric:tabular-nums]">{{ r.total }}</td>
               </tr>
 
               <tr v-if="!rows.length">

@@ -2,52 +2,61 @@
 export default defineNuxtConfig({
   pages: true,
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+
   runtimeConfig: {
     public: { apiBase: process.env.NUXT_PUBLIC_API_BASE || '' },
   },
+
   ssr: true,
+
   nitro: {
     preset: 'vercel',
     compressPublicAssets: true,
     timing: true,
+
+    // 🔥 extra: cache headers for static assets (shirts, crests, etc.)
+    staticAssets: {
+      headers: {
+        'cache-control': 'public, max-age=31536000, immutable',
+      },
+    },
   },
 
   routeRules: {
-    // Pages
-    '/': { isr: 15 },
-    '/fixtures': { isr: 600 },
-    '/team/**': { isr: 120 },
+    // ---- Pages ----
+    '/': { isr: 15 },           // Home: refresh often (ranks etc.)
+    '/fixtures': { isr: 600 },  // Fixture difficulty grid: fine to be slower
+    '/team/**': { isr: 120 },   // Individual teams: not too stale
+    '/bonus': { isr: false },   // Always fresh server-rendered HTML
 
-    // 👇 Make /bonus always server-render fresh HTML so nav → page shows current data
-    '/bonus': { isr: false },
-
-    // APIs
+    // ---- APIs ----
     '/api/bootstrap-static': {
-      swr: 900,
+      swr: 900, // 15m
       headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
 
-    // Keep general fixtures reasonably cached…
     '/api/fixtures': {
-      swr: 120,
+      swr: 120, // 2m
       headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
     },
 
-    // …but add a live endpoint with much tighter SWR for the bonus page
     '/api/fixtures-live/**': {
-      swr: false, // ~10s freshness at the edge
-    headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },    },
+      swr: false, // Always live
+      headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },
+    },
 
     '/api/league/**': {
-      swr: 30,
+      swr: 30, // 30s → fresher ranks
       headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' },
     },
+
     '/api/team/**': {
-      swr: 120,
+      swr: 120, // 2m
       headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
     },
+
     '/api/tenure/**': {
-      swr: 21600,
+      swr: 21600, // 6h
       headers: { 'cache-control': 's-maxage=21600, stale-while-revalidate=86400' },
     },
   },
@@ -65,7 +74,12 @@ export default defineNuxtConfig({
 
   tailwindcss: { cssPath: '~/assets/css/tailwind.css' },
   postcss: { plugins: { tailwindcss: {}, autoprefixer: {} } },
+
   experimental: { payloadExtraction: true },
-  vite: { define: { __VRV_ENABLED__: false } },
+
+  vite: {
+    define: { __VRV_ENABLED__: false },
+  },
+
   devtools: { enabled: false },
 })

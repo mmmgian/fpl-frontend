@@ -16,29 +16,48 @@ type Team = { id:number; short_name:string; code:number }
 type Tenure = { entry_id:number; seasons_played:number; first_season:string|null; playing_since_year:number|null; seasons:string[] }
 
 const route = useRoute()
+const nuxtApp = useNuxtApp()
 const entryId = computed(() => String(route.params.entryId ?? ''))
 
-const fetchOpts = { headers: { 'cache-control': 'no-store' }, server: true as const, initialCache: false as const }
+// Force fresh fetches on CSR/SPA nav
+const fetchOpts = {
+  headers: { 'cache-control': 'no-store' },
+  server: true as const,
+  initialCache: false as const,
+  getCachedData: () => null as any
+}
 
 // Team + tenure
 const { data: teamRes, refresh: refreshTeam } =
-  await useFetch<TeamPayload>(() => entryId.value ? `/api/team/${entryId.value}` : null, { ...fetchOpts, key: () => `team-${entryId.value}` })
+  await useFetch<TeamPayload>(
+    () => entryId.value ? `/api/team/${entryId.value}` : null,
+    { ...fetchOpts, key: () => `team-${entryId.value}` }
+  )
 
 const { data: tenure, refresh: refreshTenure } =
-  await useFetch<Tenure>(() => entryId.value ? `/api/tenure/${entryId.value}` : null, { ...fetchOpts, key: () => `tenure-${entryId.value}` })
+  await useFetch<Tenure>(
+    () => entryId.value ? `/api/tenure/${entryId.value}` : null,
+    { ...fetchOpts, key: () => `tenure-${entryId.value}` }
+  )
 
-// Revalidation on SPA nav / visibility
+// Revalidation on SPA nav / visibility / route-change
 onMounted(() => {
-  const handler = () => {
+  refreshTeam(); refreshTenure()
+
+  nuxtApp.hook('page:finish', () => {
+    refreshTeam(); refreshTenure()
+  })
+
+  const onVis = () => {
     if (document.visibilityState === 'visible') {
-      refreshTeam()
-      refreshTenure()
+      refreshTeam(); refreshTenure()
     }
   }
-  refreshTeam(); refreshTenure()
-  document.addEventListener('visibilitychange', handler)
-  onBeforeUnmount(() => document.removeEventListener('visibilitychange', handler))
+  document.addEventListener('visibilitychange', onVis)
+  onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVis))
 })
+
+watch(() => route.fullPath, () => { refreshTeam(); refreshTenure() })
 watch(entryId, () => { refreshTeam(); refreshTenure() })
 
 // Bootstrap via Pinia
@@ -72,7 +91,7 @@ const byPtsDesc = (a:Pick,b:Pick) => pts(b.gw_points) - pts(a.gw_points)
 const gk  = computed(() => (payload.value?.picks ?? []).filter(p => p.position===1).sort(byPtsDesc))
 const def = computed(() => (payload.value?.picks ?? []).filter(p => p.position===2).sort(byPtsDesc))
 const mid = computed(() => (payload.value?.picks ?? []).filter(p => p.position===3).sort(byPtsDesc))
-const fwd = computed (() => (payload.value?.picks ?? []).filter(p => p.position===4).sort(byPtsDesc))
+const fwd = computed(() => (payload.value?.picks ?? []).filter(p => p.position===4).sort(byPtsDesc))
 
 const subtotal = (rows:Pick[]) => rows.reduce((s,p)=>s+pts(p.gw_points),0)
 const grandTotal = computed(()=> subtotal(gk.value)+subtotal(def.value)+subtotal(mid.value)+subtotal(fwd.value))
@@ -83,20 +102,18 @@ const sections = computed(() => ([
   { key:3 as Pos, label: POS_LABEL[3], rows:mid.value },
   { key:4 as Pos, label: POS_LABEL[4], rows:fwd.value },
 ]))
-
-const goHome = () => navigateTo('/')
 </script>
 
 <template>
   <section class="px-4 py-6">
     <div class="max-w-2xl md:max-w-3xl mx-auto mb-6">
-      <button
-        type="button"
-        class="px-4 py-1.5 rounded-full border border-black/10 bg-white/70 hover:bg-black/5 transition text-sm"
-        @click="goHome"
+      <!-- Use NuxtLink for reliable client routing back home -->
+      <NuxtLink
+        to="/"
+        class="inline-block px-4 py-1.5 rounded-full border border-black/10 bg-white/70 hover:bg-black/5 transition text-sm"
       >
         ← back to 🦞
-      </button>
+      </NuxtLink>
     </div>
 
     <!-- Identity -->

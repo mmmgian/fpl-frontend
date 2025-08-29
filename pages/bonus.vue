@@ -21,6 +21,9 @@ type Fixture = {
   stats?: Stat[]
 }
 
+const route = useRoute()
+const nuxtApp = useNuxtApp()
+
 const nowTick = useState<number>('now-tick', () => Date.now()) // same value SSR→CSR hydration
 
 // Bootstrap: events/teams/elements  ✨ no payload reuse + no-store
@@ -76,42 +79,48 @@ function statusOf(fx: Fixture): 'LIVE' | 'UPCOMING' | 'COMPLETED' {
   if (!Number.isFinite(kick) || kick > now) return 'UPCOMING'
   return 'LIVE'
 }
-
-// Whether there is any live fixture right now
 const hasLive = computed(() => fixtures.value.some(f => statusOf(f) === 'LIVE'))
 
-// Gentle client polling only when live (visibility-aware)
+// Polling & SPA revalidation
 let poll: ReturnType<typeof setInterval> | null = null
-const startPolling = () => {
-  if (!poll) poll = setInterval(() => refresh(), 12_000)
-}
-const stopPolling = () => {
-  if (poll) { clearInterval(poll); poll = null }
-}
+const startPolling = () => { if (!poll) poll = setInterval(() => refresh(), 12_000) }
+const stopPolling  = () => { if (poll) { clearInterval(poll); poll = null } }
 
 onMounted(() => {
-  // One immediate refresh after mount is fine; we'll guard the loader in the template
+  // Immediate revalidation on SPA entry
   refresh()
 
-  // manage polling based on visibility and live status
-  const vis = () => {
-    if (document.visibilityState === 'visible' && hasLive.value) startPolling()
-    else stopPolling()
-  }
-  document.addEventListener('visibilitychange', vis)
+  // Revalidate after Nuxt route transitions (SPA nav)
+  nuxtApp.hook('page:finish', () => { refresh() })
 
-  // react to live-status changes
-  watch(hasLive, (live) => {
+  // Visibility-aware refresh + polling
+  const onVis = () => {
+    if (document.visibilityState === 'visible') {
+      refresh()
+      stopPolling()
+      if (hasLive.value) startPolling()
+    } else {
+      stopPolling()
+    }
+  }
+  document.addEventListener('visibilitychange', onVis)
+
+  // React when LIVE status flips
+  const stopWatch = watch(hasLive, (live) => {
     if (document.visibilityState !== 'visible') return
+    stopPolling()
     if (live) startPolling()
-    else stopPolling()
   }, { immediate: true })
 
   onBeforeUnmount(() => {
-    document.removeEventListener('visibilitychange', vis)
+    stopWatch()
+    document.removeEventListener('visibilitychange', onVis)
     stopPolling()
   })
 })
+
+// Also revalidate if the route (path/query) changes while we’re kept alive
+watch(() => route.fullPath, () => refresh())
 
 // Maps
 const teamById = computed(() => {
@@ -221,9 +230,9 @@ const sortedFixtures = computed<Fixture[]>(() => {
   const byKickAsc  = (a: Fixture, b: Fixture) => (toMs(a.kickoff_time) || 0) - (toMs(b.kickoff_time) || 0)
   const byKickDesc = (a: Fixture, b: Fixture) => (toMs(b.kickoff_time) || 0) - (toMs(a.kickoff_time) || 0)
 
-  live.sort(byKickAsc)         // soonest live first
-  upcoming.sort(byKickAsc)     // earliest KO first
-  done.sort(byKickDesc)        // most recently finished first
+  live.sort(byKickAsc)
+  upcoming.sort(byKickAsc)
+  done.sort(byKickDesc)
 
   return [...live, ...upcoming, ...done]
 })

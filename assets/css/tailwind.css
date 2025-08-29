@@ -21,6 +21,9 @@
     background-position: 0.5px 0.5px;
     background-attachment: fixed; /* static on desktop */
   }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* iOS/mobile fix: emulate fixed background with a fixed ::before layer */

@@ -8,48 +8,49 @@ type Fixture = {
   team_h: number; team_a: number; team_h_difficulty: number; team_a_difficulty: number
 }
 
-// Bootstrap
+// Bootstrap (static-ish)
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot-fixtures',
 })
 
-const events = computed(() => bootRes.value?.events ?? [])
-
-// RAW teams (unsorted)
+const events   = computed(() => bootRes.value?.events ?? [])
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
 
-// Current GW
+// Current GW (advance to next if "current" is marked finished)
 const currentGw = computed<number | null>(() => {
   const ev = events.value
   if (!ev.length) return null
-  const cur = ev.find(e => e.is_current) ?? ev.find(e => !e.finished) ?? ev[0]
-  return cur?.id ?? null
+  const idx = ev.findIndex(e => e.is_current)
+  if (idx !== -1) return ev[idx].finished ? (ev[idx + 1]?.id ?? ev[idx].id) : ev[idx].id
+  return (ev.find(e => !e.finished) ?? ev[0])?.id ?? null
 })
 
-// Controls
-const gwOptions = computed(() => events.value.map(e => e.id))
-const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
-watch(currentGw, (val) => { if (val) startGw.value = val }, { immediate: true })
-const span = ref<number>(6) // visible columns
+// Controls (numeric)
+const gwOptions = computed<number[]>(() => events.value.map(e => e.id))
+const startGw   = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
+watch(currentGw, v => { if (v) startGw.value = v }, { immediate: true })
+const span      = ref<number>(6)
 
-// Visible columns (table)
-const columns = computed(() => {
+// Visible columns
+const columns = computed<number[]>(() => {
   const all = gwOptions.value
-  const idx = all.indexOf(startGw.value)
+  const start = Number(startGw.value)
+  const idx = all.indexOf(start)
   if (idx === -1) return []
-  return all.slice(idx, idx + span.value)
+  return all.slice(idx, idx + Number(span.value))
 })
 
-// 🔢 Difficulty sort window = next 5 GWs from startGw (inclusive)
-const sortWindow = computed(() => {
+// Sort window = next 5 GWs from startGw
+const sortWindow = computed<number[]>(() => {
   const all = gwOptions.value
-  const idx = all.indexOf(startGw.value)
+  const start = Number(startGw.value)
+  const idx = all.indexOf(start)
   if (idx === -1) return []
   return all.slice(idx, idx + 5)
 })
 
-// team map from RAW teams (not sorted)
+// Maps
 const teamById = computed(() => {
   const m = new Map<number, Team>()
   for (const t of teamsRaw.value) m.set(t.id, t)
@@ -81,10 +82,9 @@ function fdrClass(n: number) {
   }
 }
 
-// ----- Stable fixture index + load sequence guard
+// ----- Fixtures index + guarded loads
 type Cell = Readonly<{ oppId: number; home: boolean; diff: number }>
 const fixturesIndex = reactive({} as Record<number, Record<number, Cell>>)
-const loadedForKey = ref('')
 let loadSeq = 0
 
 async function loadGw(gw: number, seq: number) {
@@ -101,37 +101,41 @@ async function loadGw(gw: number, seq: number) {
   fixturesIndex[gw] = Object.freeze(mapForGw)
 }
 
-// Load visible table columns + sort window (next 5) so sorting is correct
 async function loadVisible() {
   const need = Array.from(new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]))
   if (!need.length) return
   const seq = ++loadSeq
   await Promise.all(need.map(gw => loadGw(gw, seq)))
-  if (seq === loadSeq) loadedForKey.value = need.join('-')
 }
 
-// SSR build index for the current window to match client HTML
+// 🔑 Force DOM redraw immediately on any control or column change
+const tableKey = ref('')
+function bumpKey() {
+  tableKey.value = `gw:${startGw.value}|span:${span.value}|cols:${columns.value.join(',')}|t:${Date.now()}`
+}
+
+// Initial load
 if (import.meta.server) {
   if (teamsRaw.value.length && (columns.value.length || sortWindow.value.length)) {
     await loadVisible()
+    bumpKey()
   }
 } else {
-  onMounted(loadVisible)
+  onMounted(async () => {
+    await loadVisible()
+    bumpKey()
+  })
 }
 
+// Reactivity: on control changes, re-render then fetch any missing GWs
 watch([startGw, span], async () => {
+  bumpKey()
   await loadVisible()
 })
+// If columns recompute for any other reason, also bump key
+watch(columns, () => bumpKey())
 
-const ready = computed(() => {
-  const need = Array.from(new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]))
-  return (
-    teamsRaw.value.length > 0 &&
-    need.length > 0 &&
-    need.every(gw => !!fixturesIndex[gw])
-  )
-})
-
+// Helpers
 function cellFor(teamId: number, gw: number): Cell | null {
   const byTeam = fixturesIndex[gw]
   return byTeam ? (byTeam[teamId] ?? null) : null
@@ -142,8 +146,7 @@ function cellText(c: Cell | null) {
   return `${opp?.short_name ?? opp?.name ?? '—'} ${c.home ? '(H)' : '(A)'}`
 }
 
-// 🔽 Difficulty score over next 5 GWs (lower = easier).
-// If a fixture missing for a GW, treat as neutral 3 to avoid gaming blanks/doubles.
+// Difficulty score over next 5 (lower = easier). Missing = neutral 3.
 function diffScore(teamId: number): number {
   const window = sortWindow.value
   if (!window.length) return 0
@@ -155,7 +158,7 @@ function diffScore(teamId: number): number {
   return sum
 }
 
-// 🔽 Sorted list: easiest → hardest, then by short_name
+// Sorted list: easiest → hardest, then by short_name
 const teamsSorted = computed(() =>
   teamsRaw.value
     .slice()
@@ -187,12 +190,12 @@ const teamsSorted = computed(() =>
 
       <div class="flex items-center gap-2 ml-auto">
         <label for="start-gw" class="text-[11px] uppercase tracking-wide text-gray-600">Start GW</label>
-        <select id="start-gw" v-model="startGw" class="kiko-select">
+        <select id="start-gw" v-model.number="startGw" class="kiko-select">
           <option v-for="id in gwOptions" :key="id" :value="id">GW {{ id }}</option>
         </select>
 
         <label for="span" class="ml-2 text-[11px] uppercase tracking-wide text-gray-600">Span</label>
-        <select id="span" v-model="span" class="kiko-select">
+        <select id="span" v-model.number="span" class="kiko-select">
           <option :value="6">6</option>
           <option :value="8">8</option>
           <option :value="10">10</option>
@@ -203,7 +206,7 @@ const teamsSorted = computed(() =>
     <!-- Matrix -->
     <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <table v-if="ready" class="w-full text-sm bg-transparent" :key="loadedForKey">
+        <table v-if="columns.length" class="w-full text-sm bg-transparent" :key="tableKey">
           <thead>
             <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
               <th class="px-3 py-2 w-48 sticky-col sticky-col--header">Team</th>

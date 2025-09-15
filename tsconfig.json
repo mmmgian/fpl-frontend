@@ -3,5 +3,10 @@
   "compilerOptions": {
     "types": ["@types/node"],
     "baseUrl": "."
-  }
+  },
+  "include": [
+    "env.d.ts",
+    "tests/**/*.ts",
+    "tests/**/*.d.ts"
+  ]
 }

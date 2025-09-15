@@ -84,11 +84,12 @@ function fdrClass(n: number) {
 
 // ----- Fixtures index + guarded loads
 type Cell = Readonly<{ oppId: number; home: boolean; diff: number }>
-const fixturesIndex = reactive({} as Record<number, Record<number, Cell>>)
+// Use a ref so replacements of the index object trigger reactivity
+const fixturesIndex = ref<Record<number, Record<number, Cell>>>({})
 let loadSeq = 0
 
 async function loadGw(gw: number, seq: number) {
-  if (fixturesIndex[gw]) return
+  if (fixturesIndex.value[gw]) return
   const raw = await $fetch<Fixture[]>(`/api/fixtures/${gw}`, {
     headers: { 'cache-control': 'no-store' }
   }).catch(() => [])
@@ -98,7 +99,7 @@ async function loadGw(gw: number, seq: number) {
     mapForGw[fx.team_h] = Object.freeze({ oppId: fx.team_a, home: true,  diff: fx.team_h_difficulty ?? 0 })
     mapForGw[fx.team_a] = Object.freeze({ oppId: fx.team_h, home: false, diff: fx.team_a_difficulty ?? 0 })
   }
-  fixturesIndex[gw] = Object.freeze(mapForGw)
+  fixturesIndex.value = { ...fixturesIndex.value, [gw]: Object.freeze(mapForGw) }
 }
 
 async function loadVisible() {
@@ -127,17 +128,17 @@ if (import.meta.server) {
   })
 }
 
-// Reactivity: on control changes, re-render then fetch any missing GWs
+// Reactivity: on control changes, fetch any missing GWs then re-render
 watch([startGw, span], async () => {
-  bumpKey()
   await loadVisible()
-})
+  bumpKey()
+}, { immediate: true })
 // If columns recompute for any other reason, also bump key
 watch(columns, () => bumpKey())
 
 // Helpers
 function cellFor(teamId: number, gw: number): Cell | null {
-  const byTeam = fixturesIndex[gw]
+  const byTeam = fixturesIndex.value[gw]
   return byTeam ? (byTeam[teamId] ?? null) : null
 }
 function cellText(c: Cell | null) {
@@ -147,30 +148,32 @@ function cellText(c: Cell | null) {
 }
 
 // Difficulty score over next 5 (lower = easier). Missing = neutral 3.
-function diffScore(teamId: number): number {
-  const window = sortWindow.value
+function diffScore(teamId: number, idx: Record<number, Record<number, Cell>>, window: readonly number[]): number {
   if (!window.length) return 0
   let sum = 0
   for (const gw of window) {
-    const c = cellFor(teamId, gw)
+    const byTeam = idx[gw]
+    const c = byTeam ? byTeam[teamId] ?? null : null
     sum += c?.diff ?? 3
   }
   return sum
 }
 
 // Sorted list: easiest → hardest, then by short_name
-const teamsSorted = computed(() =>
-  teamsRaw.value
+const teamsSorted = computed(() => {
+  const idx = fixturesIndex.value
+  const window = sortWindow.value
+  return teamsRaw.value
     .slice()
     .sort((a, b) => {
-      const da = diffScore(a.id)
-      const db = diffScore(b.id)
+      const da = diffScore(a.id, idx, window)
+      const db = diffScore(b.id, idx, window)
       if (da !== db) return da - db
       const an = a.short_name || a.name
       const bn = b.short_name || b.name
       return String(an).localeCompare(String(bn))
     })
-)
+})
 </script>
 
 <template>

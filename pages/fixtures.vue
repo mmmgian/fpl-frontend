@@ -148,30 +148,32 @@ function cellText(c: Cell | null) {
 }
 
 // Difficulty score over next 5 (lower = easier). Missing = neutral 3.
-function diffScore(teamId: number): number {
-  const window = sortWindow.value
+function diffScore(teamId: number, idx: Record<number, Record<number, Cell>>, window: readonly number[]): number {
   if (!window.length) return 0
   let sum = 0
   for (const gw of window) {
-    const c = cellFor(teamId, gw)
+    const byTeam = idx[gw]
+    const c = byTeam ? byTeam[teamId] ?? null : null
     sum += c?.diff ?? 3
   }
   return sum
 }
 
 // Sorted list: easiest → hardest, then by short_name
-const teamsSorted = computed(() =>
-  teamsRaw.value
+const teamsSorted = computed(() => {
+  const idx = fixturesIndex.value
+  const window = sortWindow.value
+  return teamsRaw.value
     .slice()
     .sort((a, b) => {
-      const da = diffScore(a.id)
-      const db = diffScore(b.id)
+      const da = diffScore(a.id, idx, window)
+      const db = diffScore(b.id, idx, window)
       if (da !== db) return da - db
       const an = a.short_name || a.name
       const bn = b.short_name || b.name
       return String(an).localeCompare(String(bn))
     })
-)
+})
 </script>
 
 <template>

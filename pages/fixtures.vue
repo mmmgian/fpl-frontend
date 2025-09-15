@@ -127,11 +127,11 @@ if (import.meta.server) {
   })
 }
 
-// Reactivity: on control changes, re-render then fetch any missing GWs
+// Reactivity: on control changes, fetch any missing GWs then re-render
 watch([startGw, span], async () => {
-  bumpKey()
   await loadVisible()
-})
+  bumpKey()
+}, { immediate: true })
 // If columns recompute for any other reason, also bump key
 watch(columns, () => bumpKey())
 

@@ -84,11 +84,12 @@ function fdrClass(n: number) {
 
 // ----- Fixtures index + guarded loads
 type Cell = Readonly<{ oppId: number; home: boolean; diff: number }>
-const fixturesIndex = reactive({} as Record<number, Record<number, Cell>>)
+// Use a ref so replacements of the index object trigger reactivity
+const fixturesIndex = ref<Record<number, Record<number, Cell>>>({})
 let loadSeq = 0
 
 async function loadGw(gw: number, seq: number) {
-  if (fixturesIndex[gw]) return
+  if (fixturesIndex.value[gw]) return
   const raw = await $fetch<Fixture[]>(`/api/fixtures/${gw}`, {
     headers: { 'cache-control': 'no-store' }
   }).catch(() => [])
@@ -98,7 +99,7 @@ async function loadGw(gw: number, seq: number) {
     mapForGw[fx.team_h] = Object.freeze({ oppId: fx.team_a, home: true,  diff: fx.team_h_difficulty ?? 0 })
     mapForGw[fx.team_a] = Object.freeze({ oppId: fx.team_h, home: false, diff: fx.team_a_difficulty ?? 0 })
   }
-  fixturesIndex[gw] = Object.freeze(mapForGw)
+  fixturesIndex.value = { ...fixturesIndex.value, [gw]: Object.freeze(mapForGw) }
 }
 
 async function loadVisible() {
@@ -137,7 +138,7 @@ watch(columns, () => bumpKey())
 
 // Helpers
 function cellFor(teamId: number, gw: number): Cell | null {
-  const byTeam = fixturesIndex[gw]
+  const byTeam = fixturesIndex.value[gw]
   return byTeam ? (byTeam[teamId] ?? null) : null
 }
 function cellText(c: Cell | null) {

@@ -108,32 +108,26 @@ async function loadVisible() {
   await Promise.all(need.map(gw => loadGw(gw, seq)))
 }
 
-// 🔑 Force DOM redraw immediately on any control or column change
-const tableKey = ref('')
-function bumpKey() {
-  tableKey.value = `gw:${startGw.value}|span:${span.value}|cols:${columns.value.join(',')}|t:${Date.now()}`
-}
+// 🔑 Table key reacts to control/column changes
+const tableKey = computed(() =>
+  `gw:${startGw.value}|span:${span.value}|cols:${columns.value.join(',')}`
+)
 
 // Initial load
 if (import.meta.server) {
   if (teamsRaw.value.length && (columns.value.length || sortWindow.value.length)) {
     await loadVisible()
-    bumpKey()
   }
 } else {
   onMounted(async () => {
     await loadVisible()
-    bumpKey()
   })
 }
 
-// Reactivity: on control changes, re-render then fetch any missing GWs
-watch([startGw, span], async () => {
-  bumpKey()
+// Reactivity: fetch any missing GWs when controls/columns change
+watchEffect(async () => {
   await loadVisible()
 })
-// If columns recompute for any other reason, also bump key
-watch(columns, () => bumpKey())
 
 // Helpers
 function cellFor(teamId: number, gw: number): Cell | null {

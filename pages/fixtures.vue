@@ -1,17 +1,7 @@
 <script setup lang="ts">
 // --- Types
-type Event = {
-  id: number
-  is_current?: boolean
-  finished?: boolean
-  deadline_time?: string | null
-}
-type Team = {
-  id: number
-  name: string
-  short_name: string
-  code?: number
-}
+type Event = { id: number; is_current?: boolean; finished?: boolean; deadline_time?: string | null }
+type Team  = { id: number; name: string; short_name: string; code?: number }
 type Bootstrap = { events: Event[]; teams: Team[] }
 type Fixture = {
   id: number
@@ -29,7 +19,7 @@ const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootst
   server: true,
   key: 'boot-fixtures',
 })
-const events = computed(() => bootRes.value?.events ?? [])
+const events   = computed(() => bootRes.value?.events ?? [])
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
 
 // Current GW (advance to next if "current" is marked finished)
@@ -46,15 +36,10 @@ const currentGw = computed<number | null>(() => {
 
 // Controls (numeric)
 const gwOptions = computed<number[]>(() => events.value.map(e => e.id))
-const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
-
-watch(
-  currentGw,
-  v => {
-    if (v) startGw.value = v
-  },
-  { immediate: true }
-)
+const startGw   = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
+watch(currentGw, v => {
+  if (v) startGw.value = v
+}, { immediate: true })
 
 const span = ref<number>(6)
 
@@ -99,18 +84,12 @@ function gwDate(gw: number): string {
 
 function fdrClass(n: number) {
   switch (n) {
-    case 1:
-      return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
-    case 2:
-      return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]'
-    case 3:
-      return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]'
-    case 4:
-      return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]'
-    case 5:
-      return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
+    case 1: return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
+    case 2: return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]'
+    case 3: return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]'
+    case 4: return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]'
+    case 5: return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]'
+    default: return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 }
 
@@ -128,7 +107,7 @@ function setGwInIndex(gw: number, gwMap: Map<number, Cell>) {
 async function loadGw(gw: number, seq: number) {
   if (fixturesIndex.value.has(gw)) return
 
-  // IMPORTANT: use query param, your handler is /api/fixtures?event=GW
+  // 🔴 IMPORTANT FIX: call /api/fixtures?event=GW, not /api/fixtures/${gw}
   const raw = await $fetch<Fixture[]>('/api/fixtures', {
     params: { event: gw },
     headers: { 'cache-control': 'no-store' },
@@ -182,7 +161,7 @@ watchEffect(async () => {
 // Helpers
 function cellFor(teamId: number, gw: number): Cell | null {
   const byGw = fixturesIndex.value.get(gw)
-  return byGw ? byGw.get(teamId) ?? null : null
+  return byGw ? (byGw.get(teamId) ?? null) : null
 }
 
 function cellText(c: Cell | null) {
@@ -314,7 +293,9 @@ const teamsSorted = computed(() =>
       </div>
     </div>
 
-    <p v-if="bootErr" class="mt-3 text-sm text-red-500">Failed to load bootstrap.</p>
+    <p v-if="bootErr" class="mt-3 text-sm text-red-500">
+      Failed to load bootstrap.
+    </p>
   </section>
 </template>
 
@@ -339,15 +320,15 @@ const teamsSorted = computed(() =>
   position: sticky;
   left: 0;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255,255,255,0.8);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.15);
+  border-right: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 6px 0 8px -6px rgba(0,0,0,0.15);
 }
 .sticky-col--header {
   z-index: 11;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255,255,255,0.6);
 }
 :deep(header) {
   backdrop-filter: saturate(1.1) blur(4px);

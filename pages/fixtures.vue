@@ -24,7 +24,12 @@ type Fixture = {
 }
 type Cell = { oppId: number; home: boolean; diff: number }
 
-// Bootstrap (static-ish)
+// 🔊 Debug so we know this script actually runs in browser
+if (import.meta.client) {
+  console.log('[FDR] fixtures page script setup running on client')
+}
+
+// Bootstrap data
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot-fixtures',
@@ -47,6 +52,7 @@ const currentGw = computed<number | null>(() => {
 // Controls (numeric)
 const gwOptions = computed<number[]>(() => events.value.map((e) => e.id))
 const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
+const span = ref<number>(6)
 
 watch(
   currentGw,
@@ -55,8 +61,6 @@ watch(
   },
   { immediate: true },
 )
-
-const span = ref<number>(6)
 
 // Visible columns
 const columns = computed<number[]>(() => {
@@ -131,7 +135,10 @@ function setGwInIndex(gw: number, gwMap: Map<number, Cell>) {
 }
 
 async function loadGw(gw: number, seq: number) {
-  if (fixturesIndex.value.has(gw)) return
+  if (fixturesIndex.value.has(gw)) {
+    console.log('[FDR] GW', gw, 'already cached in fixturesIndex')
+    return
+  }
 
   console.log('[FDR] fetching fixtures for GW', gw)
 
@@ -169,24 +176,21 @@ async function loadVisible() {
   )
   if (!need.length) return
   const seq = ++loadSeq
+  console.log('[FDR] loadVisible → need GWs', need)
   await Promise.all(need.map((gw) => loadGw(gw, seq)))
 }
 
-// Initial load (SSR/CSR)
-if (import.meta.server) {
-  if (teamsRaw.value.length && (columns.value.length || sortWindow.value.length)) {
-    await loadVisible()
-  }
-} else {
+// Initial load (CSR will re-run this after hydration)
+if (import.meta.client) {
   onMounted(async () => {
+    console.log('[FDR] onMounted() running')
     await loadVisible()
   })
 }
 
 // Drive loading automatically when inputs change
 watchEffect(async () => {
-  void startGw.value
-  void span.value
+  console.log('[FDR] watchEffect → startGw', startGw.value, 'span', span.value)
   void columns.value.length
   void sortWindow.value.length
   await loadVisible()

@@ -27,26 +27,26 @@ export default defineEventHandler<Promise<Fixture[]>>(async (event) => {
   const { event: ev } = getQuery(event)
   const evNum = ev ? Number(ev) : null
 
-  // 🔴 Force no caching anywhere
+  // 🔴 Force no caching
   setResponseHeaders(event, {
     'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
-    pragma: 'no-cache',
-    expires: '0',
+    'pragma': 'no-cache',
+    'expires': '0',
   })
 
   let data: Fixture[]
 
   if (base) {
-    // Your FastAPI backend (which already supports ?event=)
+    // Your FastAPI backend
     const url = `${base}/fixtures${ev ? `?event=${encodeURIComponent(String(ev))}` : ''}`
     data = await $fetch<Fixture[]>(url, { cache: 'no-store' })
   } else {
-    // Fallback directly to FPL
+    // Direct FPL fallback
     data = await $fetch<Fixture[]>(
       'https://fantasy.premierleague.com/api/fixtures/',
       {
         headers: { referer: 'https://fantasy.premierleague.com/' },
-      },
+      }
     )
   }
 

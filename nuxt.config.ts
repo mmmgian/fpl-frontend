@@ -1,3 +1,4 @@
+// nuxt.config.ts
 export default defineNuxtConfig({
   pages: true,
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
@@ -16,45 +17,46 @@ export default defineNuxtConfig({
     staticAssets: {
       headers: {
         'cache-control': 'public, max-age=31536000, immutable',
-      }
-    }
+      },
+    },
   },
 
   routeRules: {
     '/': { isr: 15 },
-    '/fixtures': { ssr: true, isr: false }, // Disable ISR - always fresh SSR for rapid updates
+    '/fixtures': { ssr: true, isr: false }, // Fixtures page always fresh SSR
     '/team/**': { isr: 120 },
     '/bonus': { isr: false },
 
-    // Cache for APIs with stale-while-revalidate
+    // Bootstrap can be cached, not super volatile
     '/api/bootstrap-static': {
       swr: 900,
-      headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
 
+    // 🔴 Fixtures: do NOT cache at the edge at all
     '/api/fixtures': {
-      swr: 120,
-      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' }
+      swr: false,
+      headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },
     },
 
     '/api/fixtures/**': {
       swr: false,
-      headers: { 'cache-control': 'no-store' }
+      headers: { 'cache-control': 'no-store, no-cache, must-revalidate, max-age=0' },
     },
 
     '/api/league/**': {
       swr: 30,
-      headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' }
+      headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' },
     },
 
     '/api/team/**': {
       swr: 120,
-      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
     },
 
     '/api/tenure/**': {
       swr: 21600,
-      headers: { 'cache-control': 's-maxage=21600, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=21600, stale-while-revalidate=86400' },
     },
   },
 
@@ -65,8 +67,8 @@ export default defineNuxtConfig({
         { rel: 'dns-prefetch', href: 'https://resources.premierleague.com' },
         { rel: 'preconnect', href: 'https://fantasy.premierleague.com', crossorigin: '' },
         { rel: 'preconnect', href: 'https://resources.premierleague.com', crossorigin: '' },
-      ]
-    }
+      ],
+    },
   },
 
   tailwindcss: { cssPath: '~/assets/css/tailwind.css' },
@@ -76,5 +78,5 @@ export default defineNuxtConfig({
 
   vite: { define: { __VRV_ENABLED__: false } },
 
-  devtools: { enabled: false }
+  devtools: { enabled: false },
 })

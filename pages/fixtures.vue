@@ -1,7 +1,17 @@
 <script setup lang="ts">
 // --- Types
-type Event = { id: number; is_current?: boolean; finished?: boolean; deadline_time?: string | null }
-type Team  = { id: number; name: string; short_name: string; code?: number }
+type Event = {
+  id: number
+  is_current?: boolean
+  finished?: boolean
+  deadline_time?: string | null
+}
+type Team = {
+  id: number
+  name: string
+  short_name: string
+  code?: number
+}
 type Bootstrap = { events: Event[]; teams: Team[] }
 type Fixture = {
   id: number
@@ -9,8 +19,8 @@ type Fixture = {
   kickoff_time: string | null
   team_h: number
   team_a: number
-  team_h_difficulty: number
-  team_a_difficulty: number
+  team_h_difficulty?: number
+  team_a_difficulty?: number
 }
 type Cell = { oppId: number; home: boolean; diff: number }
 
@@ -19,27 +29,32 @@ const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootst
   server: true,
   key: 'boot-fixtures',
 })
-const events   = computed(() => bootRes.value?.events ?? [])
+const events = computed(() => bootRes.value?.events ?? [])
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
 
 // Current GW (advance to next if "current" is marked finished)
 const currentGw = computed<number | null>(() => {
   const ev = events.value
   if (!ev.length) return null
-  const idx = ev.findIndex(e => e.is_current)
+  const idx = ev.findIndex((e) => e.is_current)
   if (idx !== -1) {
     const cur = ev[idx]
     return cur.finished ? (ev[idx + 1]?.id ?? cur.id) : cur.id
   }
-  return (ev.find(e => !e.finished) ?? ev[0])?.id ?? null
+  return (ev.find((e) => !e.finished) ?? ev[0])?.id ?? null
 })
 
 // Controls (numeric)
-const gwOptions = computed<number[]>(() => events.value.map(e => e.id))
-const startGw   = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
-watch(currentGw, v => {
-  if (v) startGw.value = v
-}, { immediate: true })
+const gwOptions = computed<number[]>(() => events.value.map((e) => e.id))
+const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
+
+watch(
+  currentGw,
+  (v) => {
+    if (v) startGw.value = v
+  },
+  { immediate: true },
+)
 
 const span = ref<number>(6)
 
@@ -71,25 +86,36 @@ const teamById = computed(() => {
 function crestUrl(teamId?: number) {
   if (!teamId) return ''
   const code = teamById.value.get(teamId)?.code
-  return code ? `https://resources.premierleague.com/premierleague/badges/t${code}.png` : ''
+  return code
+    ? `https://resources.premierleague.com/premierleague/badges/t${code}.png`
+    : ''
 }
 
 function gwDate(gw: number): string {
-  const ev = events.value.find(e => e.id === gw)
+  const ev = events.value.find((e) => e.id === gw)
   const iso = ev?.deadline_time
   if (!iso) return ''
   const d = new Date(iso)
-  return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' }).format(d)
+  return new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    day: 'numeric',
+  }).format(d)
 }
 
 function fdrClass(n: number) {
   switch (n) {
-    case 1: return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
-    case 2: return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]'
-    case 3: return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]'
-    case 4: return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]'
-    case 5: return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]'
-    default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    case 1:
+      return 'bg-[#DAF7D6] text-[#0B3D0B] border-[#B9E8B3]'
+    case 2:
+      return 'bg-[#B9E8B3] text-[#0B3D0B] border-[#9DD99A]'
+    case 3:
+      return 'bg-[#F5E7AA] text-[#553A00] border-[#E8D98F]'
+    case 4:
+      return 'bg-[#F7C4A3] text-[#5C2400] border-[#E7B18D]'
+    case 5:
+      return 'bg-[#F4A7A7] text-[#5A0B0B] border-[#E28E8E]'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 }
 
@@ -107,11 +133,17 @@ function setGwInIndex(gw: number, gwMap: Map<number, Cell>) {
 async function loadGw(gw: number, seq: number) {
   if (fixturesIndex.value.has(gw)) return
 
-  // 🔴 IMPORTANT FIX: call /api/fixtures?event=GW, not /api/fixtures/${gw}
+  console.log('[FDR] fetching fixtures for GW', gw)
+
   const raw = await $fetch<Fixture[]>('/api/fixtures', {
     params: { event: gw },
     headers: { 'cache-control': 'no-store' },
-  }).catch(() => [])
+  }).catch((err) => {
+    console.error('[FDR] error fetching GW', gw, err)
+    return [] as Fixture[]
+  })
+
+  console.log('[FDR] GW', gw, 'fixtures length:', raw.length)
 
   if (seq !== loadSeq) return
 
@@ -132,10 +164,12 @@ async function loadGw(gw: number, seq: number) {
 }
 
 async function loadVisible() {
-  const need = Array.from(new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]))
+  const need = Array.from(
+    new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]),
+  )
   if (!need.length) return
   const seq = ++loadSeq
-  await Promise.all(need.map(gw => loadGw(gw, seq)))
+  await Promise.all(need.map((gw) => loadGw(gw, seq)))
 }
 
 // Initial load (SSR/CSR)
@@ -161,7 +195,7 @@ watchEffect(async () => {
 // Helpers
 function cellFor(teamId: number, gw: number): Cell | null {
   const byGw = fixturesIndex.value.get(gw)
-  return byGw ? (byGw.get(teamId) ?? null) : null
+  return byGw ? byGw.get(teamId) ?? null : null
 }
 
 function cellText(c: Cell | null) {
@@ -193,7 +227,7 @@ const teamsSorted = computed(() =>
       const an = a.short_name || a.name
       const bn = b.short_name || b.name
       return String(an).localeCompare(String(bn))
-    })
+    }),
 )
 </script>
 
@@ -208,16 +242,26 @@ const teamsSorted = computed(() =>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(3)">3</span>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(4)">4</span>
         <span class="px-2 py-1 rounded-md border" :class="fdrClass(5)">5</span>
-        <span class="ml-2 text-gray-600">Easy → Hard (sorted by next 5 GWs)</span>
+        <span class="ml-2 text-gray-600">
+          Easy → Hard (sorted by next 5 GWs)
+        </span>
       </div>
       <div class="flex items-center gap-2 ml-auto">
-        <label for="start-gw" class="text-[11px] uppercase tracking-wide text-gray-600">
+        <label
+          for="start-gw"
+          class="text-[11px] uppercase tracking-wide text-gray-600"
+        >
           Start GW
         </label>
         <select id="start-gw" v-model.number="startGw" class="kiko-select">
-          <option v-for="id in gwOptions" :key="id" :value="id">GW {{ id }}</option>
+          <option v-for="id in gwOptions" :key="id" :value="id">
+            GW {{ id }}
+          </option>
         </select>
-        <label for="span" class="ml-2 text-[11px] uppercase tracking-wide text-gray-600">
+        <label
+          for="span"
+          class="ml-2 text-[11px] uppercase tracking-wide text-gray-600"
+        >
           Span
         </label>
         <select id="span" v-model.number="span" class="kiko-select">
@@ -229,11 +273,15 @@ const teamsSorted = computed(() =>
     </div>
 
     <!-- Matrix -->
-    <div class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden">
+    <div
+      class="rounded-[28px] border border-black/10 bg-white/80 shadow-sm overflow-hidden"
+    >
       <div class="overflow-x-auto">
         <table v-if="columns.length" class="w-full text-sm bg-transparent">
           <thead>
-            <tr class="bg-white/60 border-b border-black/10 text-left align-bottom">
+            <tr
+              class="bg-white/60 border-b border-black/10 text-left align-bottom"
+            >
               <th class="px-3 py-2 w-48 sticky-col sticky-col--header">Team</th>
               <th
                 v-for="gw in columns"
@@ -275,7 +323,10 @@ const teamsSorted = computed(() =>
                   v-if="cellFor(t.id, gw)"
                   class="rounded-lg border px-2 py-1 inline-flex flex-col items-center justify-center min-w-[7.5rem]"
                   :class="fdrClass(cellFor(t.id, gw)!.diff)"
-                  :aria-label="`${cellText(cellFor(t.id, gw))}, difficulty ${cellFor(t.id, gw)!.diff}`"
+                  :aria-label="`${cellText(cellFor(t.id, gw))}, difficulty ${cellFor(
+                    t.id,
+                    gw,
+                  )!.diff}`"
                   role="img"
                 >
                   <div class="text-xs font-medium leading-tight">
@@ -320,15 +371,15 @@ const teamsSorted = computed(() =>
   position: sticky;
   left: 0;
   z-index: 10;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  border-right: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 6px 0 8px -6px rgba(0,0,0,0.15);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.15);
 }
 .sticky-col--header {
   z-index: 11;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.6);
 }
 :deep(header) {
   backdrop-filter: saturate(1.1) blur(4px);

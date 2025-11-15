@@ -1,4 +1,7 @@
 // server/api/fixtures-live.get.ts
+import { defineEventHandler, getQuery, setHeader } from 'h3'
+import { useRuntimeConfig } from '#imports'
+
 type BonusEntry = { element: number; value: number }
 type Stat = { identifier: string; a: BonusEntry[]; h: BonusEntry[] }
 type Fixture = {
@@ -14,19 +17,17 @@ export default defineEventHandler<Promise<Fixture[]>>(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
   setHeader(event, 'Pragma', 'no-cache')
   setHeader(event, 'Expires', '0')
-
+  
   const cfg = useRuntimeConfig()
   const base = (cfg.public.apiBase || '').replace(/\/+$/, '')
   const { event: ev } = getQuery(event)
   const evNum = ev ? Number(ev) : null
-
+  
   let data: Fixture[]
-
+  
   if (base) {
     const url = `${base}/fixtures${ev ? `?event=${encodeURIComponent(String(ev))}` : ''}`
-    data = await $fetch<Fixture[]>(url, {
-      cache: 'no-store', // Nitro/Fetch
-    })
+    data = await $fetch<Fixture[]>(url, { cache: 'no-store' })
   } else {
     data = await $fetch<Fixture[]>(
       `https://fantasy.premierleague.com/api/fixtures/${ev ? `?event=${encodeURIComponent(String(ev))}` : ''}`,
@@ -36,6 +37,6 @@ export default defineEventHandler<Promise<Fixture[]>>(async (event) => {
       }
     )
   }
-
+  
   return evNum ? data.filter((f) => f.event === evNum) : data
 })

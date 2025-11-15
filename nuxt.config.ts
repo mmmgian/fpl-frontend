@@ -17,8 +17,8 @@ export default defineNuxtConfig({
     staticAssets: {
       headers: {
         'cache-control': 'public, max-age=31536000, immutable',
-      }
-    }
+      },
+    },
   },
 
   routeRules: {
@@ -27,40 +27,36 @@ export default defineNuxtConfig({
     '/team/**': { isr: 120 },
     '/bonus': { isr: false },
 
-    // Cache for APIs with stale-while-revalidate
+    // Bootstrap can be cached
     '/api/bootstrap-static': {
       swr: 900,
-      headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
 
-    // 🔴 Fixtures: do NOT cache at the edge
+    // Fixtures: small SWR cache is fine now
     '/api/fixtures': {
-      swr: false,
-      headers: {
-        'cache-control': 'no-store, no-cache, must-revalidate, max-age=0'
-      }
+      swr: 120,
+      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
     },
 
     '/api/fixtures/**': {
       swr: false,
-      headers: {
-        'cache-control': 'no-store, no-cache, must-revalidate, max-age=0'
-      }
+      headers: { 'cache-control': 'no-store' },
     },
 
     '/api/league/**': {
       swr: 30,
-      headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' }
+      headers: { 'cache-control': 's-maxage=30, stale-while-revalidate=300' },
     },
 
     '/api/team/**': {
       swr: 120,
-      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },
     },
 
     '/api/tenure/**': {
       swr: 21600,
-      headers: { 'cache-control': 's-maxage=21600, stale-while-revalidate=86400' }
+      headers: { 'cache-control': 's-maxage=21600, stale-while-revalidate=86400' },
     },
   },
 
@@ -71,8 +67,8 @@ export default defineNuxtConfig({
         { rel: 'dns-prefetch', href: 'https://resources.premierleague.com' },
         { rel: 'preconnect', href: 'https://fantasy.premierleague.com', crossorigin: '' },
         { rel: 'preconnect', href: 'https://resources.premierleague.com', crossorigin: '' },
-      ]
-    }
+      ],
+    },
   },
 
   tailwindcss: { cssPath: '~/assets/css/tailwind.css' },
@@ -82,5 +78,5 @@ export default defineNuxtConfig({
 
   vite: { define: { __VRV_ENABLED__: false } },
 
-  devtools: { enabled: false }
+  devtools: { enabled: false },
 })

@@ -24,18 +24,36 @@ type Fixture = {
 }
 type Cell = { oppId: number; home: boolean; diff: number }
 
-// 🔊 Debug so we know this script actually runs in browser
+// Debug: prove script runs in browser
 if (import.meta.client) {
-  console.log('[FDR] fixtures page script setup running on client')
+  console.log('[FDR] fixtures page setup running on client')
 }
 
-// Bootstrap data
+// Fetch bootstrap + all fixtures
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
   server: true,
   key: 'boot-fixtures',
 })
+
+const { data: fixturesRes, error: fixturesErr } = await useFetch<Fixture[]>('/api/fixtures', {
+  server: true,
+  key: 'fixtures-all',
+})
+
 const events = computed(() => bootRes.value?.events ?? [])
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
+const fixtures = computed(() => fixturesRes.value ?? [])
+
+// Group fixtures by GW
+const fixturesByGw = computed(() => {
+  const map = new Map<number, Fixture[]>()
+  for (const fx of fixtures.value) {
+    if (!fx.event) continue
+    if (!map.has(fx.event)) map.set(fx.event, [])
+    map.get(fx.event)!.push(fx)
+  }
+  return map
+})
 
 // Current GW (advance to next if "current" is marked finished)
 const currentGw = computed<number | null>(() => {
@@ -49,7 +67,7 @@ const currentGw = computed<number | null>(() => {
   return (ev.find((e) => !e.finished) ?? ev[0])?.id ?? null
 })
 
-// Controls (numeric)
+// Controls
 const gwOptions = computed<number[]>(() => events.value.map((e) => e.id))
 const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
 const span = ref<number>(6)
@@ -123,83 +141,22 @@ function fdrClass(n: number) {
   }
 }
 
-// ===== Fixtures index (immutable Map -> reactivity-safe) =====
-/** fixturesIndex: Map<gw, Map<teamId, Cell>> */
-const fixturesIndex = ref<Map<number, Map<number, Cell>>>(new Map())
-let loadSeq = 0
+// ---- Core helpers using fixturesByGw ----
 
-function setGwInIndex(gw: number, gwMap: Map<number, Cell>) {
-  const next = new Map(fixturesIndex.value)
-  next.set(gw, gwMap)
-  fixturesIndex.value = next
-}
-
-async function loadGw(gw: number, seq: number) {
-  if (fixturesIndex.value.has(gw)) {
-    console.log('[FDR] GW', gw, 'already cached in fixturesIndex')
-    return
-  }
-
-  console.log('[FDR] fetching fixtures for GW', gw)
-
-  const raw = await $fetch<Fixture[]>('/api/fixtures', {
-    params: { event: gw },
-    headers: { 'cache-control': 'no-store' },
-  }).catch((err) => {
-    console.error('[FDR] error fetching GW', gw, err)
-    return [] as Fixture[]
-  })
-
-  console.log('[FDR] GW', gw, 'fixtures length:', raw.length)
-
-  if (seq !== loadSeq) return
-
-  const gwMap = new Map<number, Cell>()
-  for (const fx of raw) {
-    gwMap.set(fx.team_h, {
-      oppId: fx.team_a,
-      home: true,
-      diff: fx.team_h_difficulty ?? 0,
-    })
-    gwMap.set(fx.team_a, {
-      oppId: fx.team_h,
-      home: false,
-      diff: fx.team_a_difficulty ?? 0,
-    })
-  }
-  setGwInIndex(gw, gwMap)
-}
-
-async function loadVisible() {
-  const need = Array.from(
-    new Set([...(columns.value ?? []), ...(sortWindow.value ?? [])]),
-  )
-  if (!need.length) return
-  const seq = ++loadSeq
-  console.log('[FDR] loadVisible → need GWs', need)
-  await Promise.all(need.map((gw) => loadGw(gw, seq)))
-}
-
-// Initial load (CSR will re-run this after hydration)
-if (import.meta.client) {
-  onMounted(async () => {
-    console.log('[FDR] onMounted() running')
-    await loadVisible()
-  })
-}
-
-// Drive loading automatically when inputs change
-watchEffect(async () => {
-  console.log('[FDR] watchEffect → startGw', startGw.value, 'span', span.value)
-  void columns.value.length
-  void sortWindow.value.length
-  await loadVisible()
-})
-
-// Helpers
+// Get fixture cell (opp, H/A, diff) for a team in a GW
 function cellFor(teamId: number, gw: number): Cell | null {
-  const byGw = fixturesIndex.value.get(gw)
-  return byGw ? byGw.get(teamId) ?? null : null
+  const list = fixturesByGw.value.get(gw)
+  if (!list || !list.length) return null
+  const fx = list.find((f) => f.team_h === teamId || f.team_a === teamId)
+  if (!fx) return null
+
+  const home = fx.team_h === teamId
+  const oppId = home ? fx.team_a : fx.team_h
+  const diff = home
+    ? fx.team_h_difficulty ?? 0
+    : fx.team_a_difficulty ?? 0
+
+  return { oppId, home, diff }
 }
 
 function cellText(c: Cell | null) {
@@ -348,8 +305,8 @@ const teamsSorted = computed(() =>
       </div>
     </div>
 
-    <p v-if="bootErr" class="mt-3 text-sm text-red-500">
-      Failed to load bootstrap.
+    <p v-if="bootErr || fixturesErr" class="mt-3 text-sm text-red-500">
+      Failed to load data.
     </p>
   </section>
 </template>

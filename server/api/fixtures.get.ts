@@ -27,26 +27,20 @@ export default defineEventHandler<Promise<Fixture[]>>(async (event) => {
   const { event: ev } = getQuery(event)
   const evNum = ev ? Number(ev) : null
 
-  // 🔴 Force no caching
+  // Reasonable cache headers; Nitro routeRules can still override at edge
   setResponseHeaders(event, {
-    'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
-    'pragma': 'no-cache',
-    'expires': '0',
+    'cache-control': 'public, max-age=120, s-maxage=120, stale-while-revalidate=86400',
   })
 
   let data: Fixture[]
 
   if (base) {
-    // Your FastAPI backend
     const url = `${base}/fixtures${ev ? `?event=${encodeURIComponent(String(ev))}` : ''}`
-    data = await $fetch<Fixture[]>(url, { cache: 'no-store' })
+    data = await $fetch<Fixture[]>(url)
   } else {
-    // Direct FPL fallback
     data = await $fetch<Fixture[]>(
       'https://fantasy.premierleague.com/api/fixtures/',
-      {
-        headers: { referer: 'https://fantasy.premierleague.com/' },
-      }
+      { headers: { referer: 'https://fantasy.premierleague.com/' } },
     )
   }
 

@@ -23,7 +23,18 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/': { isr: 15 },
-    '/fixtures': { ssr: true, isr: false }, // Fixtures page SSR, no ISR
+
+    // 🔥 FIX: Force fixtures page to NEVER cache
+    '/fixtures': {
+      ssr: true,
+      isr: false,
+      swr: false,
+      cache: false,
+      headers: {
+        'cache-control': 'no-store, max-age=0, must-revalidate',
+      },
+    },
+
     '/team/**': { isr: 120 },
     '/bonus': { isr: false },
 
@@ -33,7 +44,7 @@ export default defineNuxtConfig({
       headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
 
-    // Fixtures: small SWR cache is fine now
+    // Fixtures API
     '/api/fixtures': {
       swr: 120,
       headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },

@@ -24,10 +24,8 @@ type Fixture = {
 }
 type Cell = { oppId: number; home: boolean; diff: number }
 
-// Debug: prove script runs in browser
-if (import.meta.client) {
-  console.log('[FDR] fixtures page setup running on client')
-}
+// 🔊 Debug: prove script runs both server & client
+console.log('[FDR] fixtures page <script setup> running')
 
 // Fetch bootstrap + all fixtures
 const { data: bootRes, error: bootErr } = await useFetch<Bootstrap>('/api/bootstrap-static', {
@@ -48,10 +46,11 @@ const fixtures = computed(() => fixturesRes.value ?? [])
 const fixturesByGw = computed(() => {
   const map = new Map<number, Fixture[]>()
   for (const fx of fixtures.value) {
-    if (!fx.event) continue
+    if (!fx.event && fx.event !== 0) continue
     if (!map.has(fx.event)) map.set(fx.event, [])
     map.get(fx.event)!.push(fx)
   }
+  console.log('[FDR] fixturesByGw keys →', Array.from(map.keys()))
   return map
 })
 
@@ -75,6 +74,7 @@ const span      = ref<number>(6)
 watch(
   currentGw,
   (v) => {
+    console.log('[FDR] currentGw computed →', v)
     if (v) startGw.value = v
   },
   { immediate: true },
@@ -86,7 +86,8 @@ const columns = computed<number[]>(() => {
   const start = Number(startGw.value)
   const idx = all.indexOf(start)
   if (idx === -1) return []
-  return all.slice(idx, idx + Number(span.value))
+  const cols = all.slice(idx, idx + Number(span.value))
+  return cols
 })
 
 // Sort window = next 5 GWs from startGw
@@ -100,23 +101,17 @@ const sortWindow = computed<number[]>(() => {
 
 // 🔊 Debug watchers
 watch(startGw, (val) => {
-  if (import.meta.client) {
-    console.log('[FDR] startGw changed →', val)
-    console.log('[FDR] columns now →', columns.value)
-  }
+  console.log('[FDR] startGw changed →', val)
+  console.log('[FDR] columns now →', columns.value)
 })
 
 watch(span, (val) => {
-  if (import.meta.client) {
-    console.log('[FDR] span changed →', val)
-    console.log('[FDR] columns now →', columns.value)
-  }
+  console.log('[FDR] span changed →', val)
+  console.log('[FDR] columns now →', columns.value)
 })
 
 watch(columns, (cols) => {
-  if (import.meta.client) {
-    console.log('[FDR] columns recomputed →', cols)
-  }
+  console.log('[FDR] columns recomputed →', cols)
 })
 
 // Maps
@@ -210,12 +205,33 @@ const teamsSorted = computed(() =>
       return String(an).localeCompare(String(bn))
     }),
 )
+
+// 🔍 Extra debug: show first team's cells for current visible columns
+const debugTeamId = computed(() => teamsRaw.value[0]?.id ?? null)
+const debugTeamName = computed(() => {
+  const id = debugTeamId.value
+  if (!id) return '(none)'
+  const t = teamById.value.get(id)
+  return t?.short_name || t?.name || `(team ${id})`
+})
+const debugCells = computed(() => {
+  const id = debugTeamId.value
+  if (!id) return []
+  return columns.value.map((gw) => ({
+    gw,
+    cell: cellFor(id, gw),
+  }))
+})
+
+onMounted(() => {
+  console.log('[FDR] mounted, startGw:', startGw.value, 'columns:', columns.value)
+})
 </script>
 
 <template>
   <section class="px-4 py-6">
-    <!-- Tiny debug readout so you can see values changing without console -->
-    <div class="mb-2 text-[11px] text-gray-500 font-mono">
+    <!-- Debug readout so you can SEE state changes -->
+    <div class="mb-2 text-[11px] text-gray-600 font-mono">
       startGw: {{ startGw }} · span: {{ span }} · columns: [{{ columns.join(', ') }}]
     </div>
 
@@ -315,11 +331,19 @@ const teamsSorted = computed(() =>
                   )!.diff}`"
                   role="img"
                 >
+                  <div class="text-[11px] uppercase tracking-tight">
+                    GW {{ gw }}
+                  </div>
                   <div class="text-xs font-medium leading-tight">
                     {{ cellText(cellFor(t.id, gw)) }}
                   </div>
+                  <div class="text-[10px] mt-0.5 opacity-80">
+                    diff: {{ cellFor(t.id, gw)!.diff }}
+                  </div>
                 </div>
-                <div v-else class="text-gray-400 text-xs">—</div>
+                <div v-else class="text-gray-400 text-xs">
+                  —<span class="text-[9px] ml-0.5">(no fixture)</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -333,6 +357,16 @@ const teamsSorted = computed(() =>
     <p v-if="bootErr || fixturesErr" class="mt-3 text-sm text-red-500">
       Failed to load data.
     </p>
+
+    <!-- Extra debug: show one team's cells for visible GWs -->
+    <div class="mt-6 text-[11px] text-gray-700 font-mono bg-gray-50 border border-gray-200 rounded-xl p-3">
+      <div class="mb-1 font-semibold">
+        Debug: first team = {{ debugTeamName }}
+      </div>
+      <pre class="whitespace-pre-wrap">
+{{ debugCells }}
+      </pre>
+    </div>
   </section>
 </template>
 

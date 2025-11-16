@@ -24,7 +24,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { isr: 15 },
 
-    // 🔥 FIX: Force fixtures page to NEVER cache
+    // 🔥 Completely disable caching for fixtures page
     '/fixtures': {
       ssr: true,
       isr: false,
@@ -44,7 +44,8 @@ export default defineNuxtConfig({
       headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=86400' },
     },
 
-    // Fixtures API
+    // Fixtures API: you *can* leave this cached a bit,
+    // but the page reactivity (GW/Span) no longer depends on refetching.
     '/api/fixtures': {
       swr: 120,
       headers: { 'cache-control': 's-maxage=120, stale-while-revalidate=86400' },

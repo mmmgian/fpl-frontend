@@ -40,7 +40,7 @@ const { data: fixturesRes, error: fixturesErr } = await useFetch<Fixture[]>('/ap
   key: 'fixtures-all',
 })
 
-const events = computed(() => bootRes.value?.events ?? [])
+const events   = computed(() => bootRes.value?.events ?? [])
 const teamsRaw = computed(() => bootRes.value?.teams ?? [])
 const fixtures = computed(() => fixturesRes.value ?? [])
 
@@ -69,8 +69,8 @@ const currentGw = computed<number | null>(() => {
 
 // Controls
 const gwOptions = computed<number[]>(() => events.value.map((e) => e.id))
-const startGw = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
-const span = ref<number>(6)
+const startGw   = ref<number>(currentGw.value ?? (gwOptions.value[0] ?? 1))
+const span      = ref<number>(6)
 
 watch(
   currentGw,
@@ -96,6 +96,27 @@ const sortWindow = computed<number[]>(() => {
   const idx = all.indexOf(start)
   if (idx === -1) return []
   return all.slice(idx, idx + 5)
+})
+
+// 🔊 Debug watchers
+watch(startGw, (val) => {
+  if (import.meta.client) {
+    console.log('[FDR] startGw changed →', val)
+    console.log('[FDR] columns now →', columns.value)
+  }
+})
+
+watch(span, (val) => {
+  if (import.meta.client) {
+    console.log('[FDR] span changed →', val)
+    console.log('[FDR] columns now →', columns.value)
+  }
+})
+
+watch(columns, (cols) => {
+  if (import.meta.client) {
+    console.log('[FDR] columns recomputed →', cols)
+  }
 })
 
 // Maps
@@ -143,7 +164,6 @@ function fdrClass(n: number) {
 
 // ---- Core helpers using fixturesByGw ----
 
-// Get fixture cell (opp, H/A, diff) for a team in a GW
 function cellFor(teamId: number, gw: number): Cell | null {
   const list = fixturesByGw.value.get(gw)
   if (!list || !list.length) return null
@@ -194,6 +214,11 @@ const teamsSorted = computed(() =>
 
 <template>
   <section class="px-4 py-6">
+    <!-- Tiny debug readout so you can see values changing without console -->
+    <div class="mb-2 text-[11px] text-gray-500 font-mono">
+      startGw: {{ startGw }} · span: {{ span }} · columns: [{{ columns.join(', ') }}]
+    </div>
+
     <!-- Header + Controls -->
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <h1 class="text-2xl font-extrabold tracking-tight">Fixture Difficulty (FDR)</h1>

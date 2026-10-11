@@ -145,6 +145,9 @@ export interface LiveStats {
   assists?: number;
   /** Counts towards the +2 DefCon bonus: CBIT for defenders, CBIRT for midfielders and forwards. */
   defensive_contribution?: number;
+  /** Expected goals and assists this gameweek, as FPL sends them: decimal strings such as "0.38". */
+  expected_goals?: string;
+  expected_assists?: string;
 }
 
 export interface LiveElement {

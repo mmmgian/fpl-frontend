@@ -26,7 +26,7 @@ interface StandingsTableProps {
   showMovement?: boolean;
   highlightEntry?: number;
   /** Per-manager extras from the league service. Left out for frozen history tables. */
-  stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw">;
+  stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw" | "squad">;
 }
 
 export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, stats: leagueExtras }: StandingsTableProps) {
@@ -145,7 +145,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       rows={rows}
       rowKey={(r) => r.entry}
       isCurrentRow={highlightEntry ? (r) => r.entry === highlightEntry : undefined}
-      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} /> : null) : undefined}
+      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} /> : null) : undefined}
       empty={tt.empty}
     />
   );

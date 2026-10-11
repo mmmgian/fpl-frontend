@@ -4,6 +4,7 @@
  *
  * "Net" points are a gameweek's points after any transfer hit (FPL's `points` is before the hit).
  */
+import type { SquadWeek } from "./squadStats";
 import type { EntryHistory, HistoryChip, HistoryGameweek, StandingRow } from "./types";
 
 export const FORM_LENGTH = 6;
@@ -63,6 +64,8 @@ export interface LeagueStats {
   comparable: boolean;
   byEntry: Record<number, ManagerStats>;
   awards: Award[];
+  /** What each manager's XI did in `gw`, where that could be fetched (it takes a request per manager, so it may be missing). */
+  squad?: Record<number, SquadWeek>;
 }
 
 export const netPoints = (g: Pick<HistoryGameweek, "points" | "event_transfers_cost">) => g.points - g.event_transfers_cost;

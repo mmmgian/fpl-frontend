@@ -1,5 +1,5 @@
 import { MiniBars, getFormat, getT } from "@/components/ui";
-import type { ManagerStats } from "@/lib/domain";
+import type { ManagerStats, SquadWeek } from "@/lib/domain";
 import { streakLabel } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
 
@@ -20,17 +20,17 @@ export function StatsToggle({ teamName }: { teamName: string }) {
   );
 }
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children, keepCase = false }: { label: string; children: React.ReactNode; keepCase?: boolean }) {
   return (
     <div className={styles.fact}>
-      <dt>{label}</dt>
+      <dt className={keepCase ? styles.keepCase : undefined}>{label}</dt>
       <dd>{children}</dd>
     </div>
   );
 }
 
 /** One team's full breakdown: the weekly bars with every number, then the facts. */
-export function ManagerStatsDetail({ stats, teamName, comparable = true }: { stats: ManagerStats; teamName: string; comparable?: boolean }) {
+export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek }) {
   const t = getT();
   const s = t.stats;
   const f = getFormat();
@@ -53,6 +53,7 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true }: { sta
         />
         <p className={styles.legend}>{s.legend}</p>
         {streak ? <p className={styles.streak}>{streak}</p> : null}
+        {squad ? <p className={styles.legend}>{s.squadNote(t.common.gw(squad.gw))}</p> : null}
       </div>
       <dl className={styles.facts}>
         <Fact label={s.average}>{f.oneDecimal(stats.average)}</Fact>
@@ -67,6 +68,25 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true }: { sta
         <Fact label={s.teamValue}>{f.money(stats.value)}</Fact>
         <Fact label={s.bank}>{f.money(stats.bank)}</Fact>
         <Fact label={s.benchPoints}>{stats.benchPoints}</Fact>
+        {squad ? (
+          <>
+            <Fact label={s.xg} keepCase>{f.oneDecimal(squad.xg)}</Fact>
+            <Fact label={s.xa} keepCase>{f.oneDecimal(squad.xa)}</Fact>
+            {squad.defcon !== null && squad.defconPoints !== null ? (
+              <Fact label={s.defcon} keepCase>
+                {squad.defconUnsure > 0 ? (
+                  <>
+                    <span className="sr-only">{s.atLeast} </span>
+                    {squad.defcon}+
+                  </>
+                ) : (
+                  squad.defcon
+                )}{" "}
+                <small>{s.defconPts(squad.defconPoints)}</small>
+              </Fact>
+            ) : null}
+          </>
+        ) : null}
         <Fact label={s.hits}>{stats.hitPoints === 0 ? s.none : s.hitsValue(stats.hitPoints, stats.transfers)}</Fact>
         <Fact label={s.overall}>
           {f.rank(stats.overallRank)}

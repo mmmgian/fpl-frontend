@@ -11,6 +11,7 @@ export * from "./i18n";
 export * from "./gameweek";
 export * from "./insights";
 export * from "./seasonCharts";
+export * from "./squadStats";
 export * from "./leagueStats";
 export * from "./params";
 export * from "./standings";

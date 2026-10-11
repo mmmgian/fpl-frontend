@@ -74,4 +74,5 @@
 .fact { display: grid; gap: 1px; }
 .fact dt { font-size: 0.6875rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .fact dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fact dt.keepCase { text-transform: none; letter-spacing: 0; } /* xG, xA, DefCon: their capitals mean something */
 .fact small { font-weight: 500; color: var(--text-muted); }

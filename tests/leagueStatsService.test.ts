@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EntryHistory, HistoryGameweek } from "@/lib/domain/types";
 import { createLeagueService, STATS_DEADLINE_MS } from "@/lib/services/league";
-import { standing } from "./fixtures";
+import { bootstrap, picks, standing } from "./fixtures";
 import { clock, fakeFpl } from "./support";
 
 const gw = (event: number, points: number): HistoryGameweek => ({
@@ -110,5 +110,59 @@ describe("league service: the extras", () => {
     const svc = createLeagueService(fakeFpl({ standings: async () => league(rows), history: async () => history(10, 20, 30) }));
     const model = await svc.load(1);
     expect(JSON.parse(JSON.stringify(model))).toEqual(model);
+  });
+
+  describe("each manager's XI: xG, xA and DefCon", () => {
+    const histories: Record<number, EntryHistory> = { 1: history(50, 60), 2: history(40, 40), 3: history(30, 20) };
+    const finished = (events: { id: number; finished: boolean }[]) => ({ ...bootstrap, events: events.map((e) => ({ ...bootstrap.events[0], id: e.id, name: `Gameweek ${e.id}`, finished: e.finished, is_current: !e.finished })) });
+    const squadPicks = (entry: number) => ({ ...picks, picks: [{ element: 1, position: 1, multiplier: 1, is_captain: entry === 1, is_vice_captain: false }] });
+    const liveRow = { elements: [{ id: 1, stats: { total_points: 6, minutes: 90, bonus: 0, bps: 20, expected_goals: "0.40", expected_assists: "0.25", defensive_contribution: 0 } }] };
+    const load = (over = {}) =>
+      createLeagueService(
+        fakeFpl({ standings: async () => league(rows), history: async (e: number) => histories[e], bootstrap: async () => finished([{ id: 1, finished: true }, { id: 2, finished: true }, { id: 3, finished: false }]), picks: async (e: number) => squadPicks(e), live: async () => liveRow, ...over }),
+        { now: clock },
+      ).load(1);
+
+    it("attaches what each XI did in the last finished gameweek", async () => {
+      const model = await load();
+      if (model.kind !== "ok" || !model.stats) throw new Error("expected stats");
+      expect(Object.keys(model.stats.squad ?? {})).toEqual(["1", "2", "3"]);
+      expect(model.stats.squad?.[1]).toMatchObject({ gw: 2 });
+      expect(model.stats.squad?.[1].xg).toBeCloseTo(0.4, 5);
+      expect(model.stats.squad?.[1].xa).toBeCloseTo(0.25, 5);
+    });
+
+    it("asks for the settled gameweek's picks and live data, not the one in progress", async () => {
+      const asked: string[] = [];
+      await load({ picks: async (e: number, gw: number, settled: boolean) => (asked.push(`picks ${gw} ${settled}`), squadPicks(e)), live: async (gw: number, settled: boolean) => (asked.push(`live ${gw} ${settled}`), liveRow) });
+      expect(new Set(asked)).toEqual(new Set(["picks 2 true", "live 2 true"]));
+    });
+
+    it("leaves a manager out whose picks fail, and still shows the rest", async () => {
+      const model = await load({ picks: async (e: number) => { if (e === 2) throw new Error("FPL hiccup"); return squadPicks(e); } });
+      if (model.kind !== "ok" || !model.stats) throw new Error("expected stats");
+      expect(Object.keys(model.stats.squad ?? {})).toEqual(["1", "3"]);
+    });
+
+    it("shows the table without them when the gameweek's live data can't be had", async () => {
+      const model = await load({ live: async () => { throw new Error("down"); } });
+      if (model.kind !== "ok" || !model.stats) throw new Error("expected stats");
+      expect(model.stats.squad).toBeUndefined();
+      expect(Object.keys(model.stats.byEntry)).toHaveLength(3);          // everything else is unaffected
+    });
+
+    it("still counts the chances when the schedule is missing, but claims no DefCon", async () => {
+      const model = await load({ allFixtures: async () => { throw new Error("down"); } });
+      if (model.kind !== "ok" || !model.stats) throw new Error("expected stats");
+      expect(model.stats.squad?.[1].defcon).toBeNull();
+      expect(model.stats.squad?.[1].xg).toBeCloseTo(0.4, 5);
+    });
+
+    it("asks for nothing extra before any gameweek has finished", async () => {
+      let called = false;
+      const model = await load({ bootstrap: async () => finished([{ id: 1, finished: false }]), picks: async (e: number) => ((called = true), squadPicks(e)) });
+      expect(called).toBe(false);
+      if (model.kind === "ok") expect(model.stats?.squad).toBeUndefined();
+    });
   });
 });

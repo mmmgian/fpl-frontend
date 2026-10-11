@@ -475,7 +475,6 @@ export const es: Messages = {
   },
 
   loading: {
-    league: "Cargando la tabla de la liga",
     team: "Cargando el equipo",
     club: "Cargando el club",
     fixtures: "Cargando el calendario",

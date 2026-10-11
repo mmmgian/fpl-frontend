@@ -474,7 +474,6 @@ export const fr: Messages = {
   },
 
   loading: {
-    league: "Chargement du classement de la ligue",
     team: "Chargement de l'équipe",
     club: "Chargement du club",
     fixtures: "Chargement du calendrier",

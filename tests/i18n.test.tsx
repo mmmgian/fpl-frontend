@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -235,9 +235,12 @@ describe("every route sets its language", () => {
   });
   it("does the same in each loading skeleton and the 404 page, which Next renders alongside the layout rather than after it", () => {
     const files = walk(join(root, "app"), (f) => /\/(loading|not-found)\.tsx$/.test(f));
-    expect(files.length).toBeGreaterThanOrEqual(9);
+    expect(files.length).toBeGreaterThanOrEqual(8);
     const missing = files.filter((f) => !/export default async function/.test(read(f)) || !read(f).includes("await initLocale()")).map((f) => relative(root, f));
     expect(missing).toEqual([]);
+  });
+  it("has no loading.tsx at the root of the app: it stops router.refresh() from applying on the league page, so live updates and anything else that refreshes would silently do nothing there", () => {
+    expect(existsSync(join(root, "app/loading.tsx"))).toBe(false);
   });
   it("sets it in the layout too, and says which language the document is", () => {
     const layout = read(join(root, "app/layout.tsx"));
@@ -314,7 +317,7 @@ describe("the frame around the pages", () => {
   });
 
   const loading = [
-    "@/app/loading", "@/app/bonus/loading", "@/app/club/[id]/loading", "@/app/fixtures/loading", "@/app/history/loading",
+    "@/app/bonus/loading", "@/app/club/[id]/loading", "@/app/fixtures/loading", "@/app/history/loading",
     "@/app/team/[entryId]/loading", "@/app/times/loading", "@/app/times/[issue]/loading",
   ];
   it.each(loading)("%s announces itself in the reader's language", async (path) => {

@@ -494,7 +494,6 @@ export const en = {
   },
 
   loading: {
-    league: "Loading league table",
     team: "Loading team",
     club: "Loading club",
     fixtures: "Loading fixtures",

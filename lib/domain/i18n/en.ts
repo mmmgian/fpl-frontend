@@ -83,7 +83,7 @@ export const en = {
     history: "History",
     snapshot: (gw: number) => `GW${gw} standings`,
     times: "The Times",
-    timesDescription: "Every Lobster League report, recap, plan and newspaper, one page at a time.",
+    timesDescription: "Every weekly edition of The Lobster Times, one page at a time.",
     team: "Team",
     club: "Club",
   },
@@ -466,9 +466,9 @@ export const en = {
 
   times: {
     mastheadLeft: "Official gazette of the Lobster League",
-    mastheadRight: "Every report, in print",
+    mastheadRight: "Every week, in print",
     emptyTitle: "Nothing has gone to print yet",
-    emptyBody: "Reports and newspapers appear here as they are published.",
+    emptyBody: "Each week's edition appears here once it is published.",
     latest: (gw: number | null) => `Latest edition${gw ? ` · Gameweek ${gw}` : ""}`,
     read: "Read the issue",
     filterBy: "Filter by type",

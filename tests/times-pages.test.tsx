@@ -34,6 +34,15 @@ describe("/times", () => {
     expect(unknown).toBe(html(await Library({ searchParams: Promise.resolve({}) }))); // same as no filter, and nothing echoed back
     expect(unknown).not.toContain("<script>");
   });
+  it("offers no type filter when there is only one type to filter by", async () => {
+    const { Library } = await load(LIBRARY.filter((i) => i.kind === "times"));
+    const out = html(await Library({ searchParams: Promise.resolve({}) }));
+    expect(out).not.toContain("Filter by type");
+    expect(out).toContain("The archive");                          // the issues themselves are all still there
+    vi.resetModules();                                             // a fresh page, with the mixed library behind it
+    const mixed = html(await (await load()).Library({ searchParams: Promise.resolve({}) }));
+    expect(mixed).toContain("Filter by type");                     // and it comes back as soon as there is a choice
+  });
   it("an empty library", async () => {
     const { Library } = await load([]);
     await expect(html(await Library({ searchParams: Promise.resolve({}) }))).toMatchFileSnapshot(golden("times-library-empty"));

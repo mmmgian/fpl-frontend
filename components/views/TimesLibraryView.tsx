@@ -75,13 +75,16 @@ export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
         </section>
       ) : null}
 
-      <nav aria-label={t.filterBy} className={styles.filters}>
-        {filters.map((f) => (
-          <ButtonLink key={f.label} size="sm" variant={f.active ? "solid" : "outline"} href={href(f.value)} aria-current={f.active ? "true" : undefined} scroll={false}>
-            {f.value ? t.kindPlural[f.value] : t.all} <span className={styles.count}>{f.count}</span>
-          </ButtonLink>
-        ))}
-      </nav>
+      {/* A filter between one type and "all" would offer nothing; it appears once there is more than one type. */}
+      {filters.length > 2 ? (
+        <nav aria-label={t.filterBy} className={styles.filters}>
+          {filters.map((f) => (
+            <ButtonLink key={f.label} size="sm" variant={f.active ? "solid" : "outline"} href={href(f.value)} aria-current={f.active ? "true" : undefined} scroll={false}>
+              {f.value ? t.kindPlural[f.value] : t.all} <span className={styles.count}>{f.count}</span>
+            </ButtonLink>
+          ))}
+        </nav>
+      ) : null}
 
       {issues.length === 0 ? (
         <StateMessage title={t.noIssuesTitle} action={<ButtonLink href="/times">{t.showAll}</ButtonLink>}>

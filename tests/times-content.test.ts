@@ -26,11 +26,24 @@ describe("the shipped library", async () => {
   const library = await timesGateway.library();
 
   it("has the issues we expect, with unique, URL-safe ids", () => {
-    expect(library.length).toBe(20);
+    expect(library.map((i) => i.id).sort()).toEqual(["lobster-league-times-gw3", "lobster-league-times-gw4", "lobster-times-gw5"]);
     expect(new Set(library.map((i) => i.id)).size).toBe(library.length);
     expect(library.every((i) => isIssueId(i.id))).toBe(true);
     expect(library.every((i) => (ISSUE_KINDS as readonly string[]).includes(i.kind))).toBe(true);
   });
+
+  it("is only the weekly newspaper: no manager's plan or dossier, no one-off report", () => {
+    expect(library.every((i) => i.kind === "times")).toBe(true);
+  });
+
+  it.each(["gw3-gian-jaen-plan", "gw5-bart-simp-plan", "gw6-gian-jaen-dossier", "gw6-bart-simp-dossier", "gw3-khang-dang-debrief", "gw6-top2-plan", "gw4-free-hit-dossier"])(
+    "does not serve %s, which was taken out of the Times",
+    async (id) => {
+      expect(await timesGateway.issue(id)).toBeNull();
+      expect(existsSync(file(`/times/${id}`))).toBe(false);          // nor its files, which would stay reachable by address
+      expect(existsSync(join(__dirname, "..", "lib", "times", "generated", `${id}.json`))).toBe(false);
+    },
+  );
 
   it.each(library.map((i) => [i.id, i] as const))("opens %s with all of its pages and files", async (id, summary) => {
     const issue = await timesGateway.issue(id);

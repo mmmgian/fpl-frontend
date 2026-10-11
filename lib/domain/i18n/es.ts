@@ -72,7 +72,7 @@ export const es: Messages = {
     history: "Historial",
     snapshot: (gw) => `Tabla de la J${gw}`,
     times: "The Times",
-    timesDescription: "Todos los informes, resúmenes, planes y periódicos de la Lobster League, página por página.",
+    timesDescription: "Cada edición semanal de The Lobster Times, página por página.",
     team: "Equipo",
     club: "Club",
   },
@@ -447,9 +447,9 @@ export const es: Messages = {
 
   times: {
     mastheadLeft: "Gaceta oficial de la Lobster League",
-    mastheadRight: "Cada informe, en papel",
+    mastheadRight: "Cada semana, en papel",
     emptyTitle: "Todavía no ha salido nada a imprenta",
-    emptyBody: "Los informes y periódicos aparecen aquí conforme se publican.",
+    emptyBody: "La edición de cada semana aparece aquí cuando se publica.",
     latest: (gw) => `Última edición${gw ? ` · Jornada ${gw}` : ""}`,
     read: "Leer la edición",
     filterBy: "Filtrar por tipo",

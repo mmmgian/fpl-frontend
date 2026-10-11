@@ -1,0 +1,10 @@
+.movement {
+  display: inline-block;
+  min-width: 3ch;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.up { color: var(--positive); }
+.down { color: var(--negative); }
+.flat { color: var(--text-muted); }

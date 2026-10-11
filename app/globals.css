@@ -1,125 +1,137 @@
-/* app/globals.css */
+/* Design tokens + base styles. Component styles live in CSS Modules next to each component. */
 
-/* Base reset */
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-/* Typography + defaults */
-body { font-family: Helvetica, Arial, sans-serif; color: #111; background: #fff; }
-
-/* Links – no purple, clean, subtle hover */
-a,
-a:visited { color: inherit; text-decoration: none; }
-a:hover { opacity: 0.75; }
-
-/* Optional underline style you can apply selectively with class="link" */
-.link { text-decoration: underline; text-underline-offset: 2px; }
-
-/* “Kiko-ish” outline button */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid #111;
-  border-radius: 9999px;            /* pill */
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 12px;
-  line-height: 1;
-  background: transparent;
-  color: #111;
-  transition: background 150ms ease, color 150ms ease, opacity 150ms ease;
-}
-.btn:hover { background: #111; color: #fff; }
-.btn:active { opacity: 0.9; }
-
-/* ===== Polka Dot Background ======================================== */
 :root {
-  --dot-size: 1.5px;
-  --dot-gap: 40px; /* spread out */
-  --dot-color-light: rgba(0, 0, 0, 0.05);
-  --dot-color-dark: rgba(255, 255, 255, 0.07);
-  --bg-light: #ffffff;
-  --bg-dark: #0b0b0b;
+  color-scheme: light dark;
+
+  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Light palette. Text colors meet WCAG AA (>= 4.5:1) on --bg and --surface. */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f6f8;
+  --text: #111111;
+  --text-muted: #5c5c5c;
+  --border: rgba(0, 0, 0, 0.1);
+  --border-strong: #111111;
+  --accent: #b0006b;          /* magenta, 7.1:1 on white */
+  --accent-2: #00a3b8;        /* cyan, decorative only */
+  --positive: #0a7a3a;
+  --negative: #b42318;
+  --warning: #8a5a00;
+  --focus: #b0006b;
+  --dot: rgba(0, 0, 0, 0.05);
+  --hover-wash: linear-gradient(90deg, rgba(255, 0, 255, 0.06), rgba(0, 255, 255, 0.06));
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --radius: 12px;
+  --radius-pill: 9999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --content-max: 1100px;
+  --dot-gap: 40px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0b;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --text: #ededed;
+    --text-muted: #a8a8a8;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: #ededed;
+    --accent: #ff7ad1;
+    --accent-2: #4fd8e8;
+    --positive: #4ade80;
+    --negative: #ff8a80;
+    --warning: #f5c35b;
+    --focus: #ff7ad1;
+    --dot: rgba(255, 255, 255, 0.07);
+    --hover-wash: linear-gradient(90deg, rgba(255, 0, 255, 0.12), rgba(0, 255, 255, 0.1));
+    --shadow: none;
+  }
 }
 
 @media (min-width: 768px) { :root { --dot-gap: 48px; } }
 @media (min-width: 1280px) { :root { --dot-gap: 56px; } }
 
-/* Attach the pattern to body via .polka-bg */
-.polka-bg {
-  position: relative;
-  background: var(--bg-light);
+/* ---------- Reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
 }
-.polka-bg::before {
+img { max-width: 100%; }
+h1, h2, h3, p { margin: 0; }
+button { font: inherit; color: inherit; }
+
+/* Polka-dot backdrop, fixed behind content */
+body::before {
   content: "";
-  position: fixed;               /* stays static on scroll */
+  position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
-  background-image:
-    radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px)),
-    radial-gradient(circle at center, var(--dot-color-light) var(--dot-size), transparent calc(var(--dot-size) + 0.1px));
-  background-size:
-    var(--dot-gap) var(--dot-gap),
-    calc(var(--dot-gap) * 2) calc(var(--dot-gap) * 2);
-  background-position:
-    0 0,
-    var(--dot-gap) var(--dot-gap);
+  background-image: radial-gradient(circle at center, var(--dot) 1.5px, transparent 1.6px);
+  background-size: var(--dot-gap) var(--dot-gap);
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  body { color: #eee; background: #0b0b0b; }
-  .polka-bg { background: var(--bg-dark); }
-  .polka-bg::before {
-    background-image:
-      radial-gradient(circle at center, var(--dot-color-dark) var(--dot-size), transparent calc(var(--dot-size) + 0.1px)),
-      radial-gradient(circle at center, var(--dot-color-dark) var(--dot-size), transparent calc(var(--dot-size) + 0.1px));
+/* ---------- Links & focus ---------- */
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Programmatic focus target (skip link) should not show a ring around the whole page */
+main:focus { outline: none; }
+
+/* ---------- Utilities ---------- */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+@media (min-width: 768px) { .container { padding: 0 var(--space-5); } }
+
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+
+/* ---------- Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Keep your app chrome above the dots */
-.site-shell { position: relative; z-index: 1; }
-
-/* Psychedelic hovers inspired by Kiko/CDG */
-.pill {
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+/* Windows high contrast: keep focus and borders visible */
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid CanvasText; }
 }
-.pill:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0,255,255,0.18);
-  border-color: rgba(255,0,255,0.25);
-  background: linear-gradient(90deg, rgba(255,0,255,0.06), rgba(0,255,255,0.06));
-}
-
-.fixture-row,
-.leader-row {
-  transition: transform .2s ease, background .25s ease, box-shadow .25s ease;
-}
-.fixture-row:nth-child(odd),
-.leader-row:nth-child(odd) {
-  background: #fff;
-}
-.fixture-row:nth-child(even),
-.leader-row:nth-child(even) {
-  background: #fafaff;
-}
-.fixture-row:hover,
-.leader-row:hover {
-  transform: scale(1.01);
-  background: linear-gradient(90deg, #ff00ff1a, #00ffff1a);
-  box-shadow: inset 0 0 0 1px #e7e7ff;
-}
-
-.divider {
-  width: 2px;
-  background: linear-gradient(180deg, #ff00ff, #00ffff);
-  box-shadow: 0 0 12px rgba(255,0,255,0.35);
-  border-radius: 2px;
-  margin: 0 12px;
-}
-

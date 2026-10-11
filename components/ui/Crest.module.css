@@ -1,0 +1,12 @@
+.crest { flex: none; object-fit: contain; }
+.fallback {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}

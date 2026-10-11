@@ -1,0 +1,28 @@
+.state { display: grid; gap: var(--space-4); }
+.block {
+  display: block;
+  background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 60%, var(--border)) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.table {
+  display: grid;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.row {
+  display: grid;
+  gap: var(--space-4);
+  align-items: center;
+  padding: 13px var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child { border-bottom: 0; }
+
+.hint {
+  font-size: 14px;
+  color: var(--text-muted);
+}

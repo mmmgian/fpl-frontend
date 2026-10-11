@@ -1,52 +1,38 @@
-// app/layout.tsx
-import "./globals.css";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { SiteHeader, SkipLink } from "@/components/ui";
+import { SITE_NAME } from "@/lib/config";
+import "./globals.css";
+import styles from "./layout.module.css";
 
-export const metadata = {
-  title: "🦞 The Lobster League",
-  description: "Fantasy Premier League custom site",
+export const metadata: Metadata = {
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: "Live table, team sheets, bonus points and history for The Lobster League (Fantasy Premier League).",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <meta name="theme-color" content="#ffffff" />
-      </head>
-      {/* attach polka dots here */}
-      <body className="polka-bg">
-        {/* Site chrome lives above the background */}
-        <div className="site-shell">
-          <header
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 2,
-              background: "transparent",
-              backdropFilter: "saturate(180%) blur(6px)",
-              borderBottom: "1px solid rgba(0,0,0,0.06)",
-              padding: "12px 16px",
-            }}
-          >
-            <nav
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <Link href="/" className="btn">Home</Link>
-              <Link href="/history" className="btn">History</Link>
-              <Link href="/bonus" className="btn">Bonus</Link>
-              {/* Add more buttons as needed */}
-            </nav>
-          </header>
-
-          <main style={{ padding: 16 }}>{children}</main>
-        </div>
+      <body>
+        <SkipLink />
+        <SiteHeader siteName={SITE_NAME} />
+        <main id="main" tabIndex={-1} className={`container ${styles.main}`}>
+          {children}
+        </main>
+        <footer className={`container ${styles.footer}`}>
+          <p>
+            Data from the official Fantasy Premier League API. Not affiliated with the Premier League.
+          </p>
+        </footer>
       </body>
     </html>
   );

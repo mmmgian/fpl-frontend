@@ -1,7 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { isTheme, THEME_LABEL, THEMES, type Theme } from "@/lib/domain";
+// Deep import on purpose: the domain barrel would pull every language into the browser bundle.
+import { isTheme, THEMES, type Theme } from "@/lib/domain/theme";
+import { useT } from "./I18nProvider";
 import { applyTheme } from "./applyTheme";
 import styles from "./ThemeToggle.module.css";
 
@@ -39,23 +41,24 @@ const current = () => {
  */
 export function ThemeToggle() {
   const theme = useSyncExternalStore(subscribe, current, () => null);
+  const t = useT();
   return (
     <fieldset className={styles.group}>
-      <legend className="sr-only">Colour theme</legend>
-      {THEMES.map((t) => (
-        <label key={t} className={styles.option} data-option={t}>
+      <legend className="sr-only">{t.theme.group}</legend>
+      {THEMES.map((name) => (
+        <label key={name} className={styles.option} data-option={name}>
           <input
             type="radio"
             name="theme"
-            value={t}
+            value={name}
             className={styles.input}
-            checked={theme === t}
-            onChange={() => applyTheme(t, true)}
+            checked={theme === name}
+            onChange={() => applyTheme(name, true)}
           />
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-            {ICON[t]}
+            {ICON[name]}
           </svg>
-          <span className="sr-only">{THEME_LABEL[t]}</span>
+          <span className="sr-only">{t.theme[name]}</span>
         </label>
       ))}
     </fieldset>

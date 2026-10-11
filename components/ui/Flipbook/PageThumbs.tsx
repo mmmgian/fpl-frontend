@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "../I18nProvider";
 import styles from "./PageThumbs.module.css";
 
 export interface ThumbPage {
@@ -16,7 +17,7 @@ export function PageThumbs({
   pages,
   current,
   onSelect,
-  label = "Pages",
+  label,
 }: {
   id?: string;
   pages: ThumbPage[];
@@ -25,15 +26,16 @@ export function PageThumbs({
   onSelect: (page: number) => void;
   label?: string;
 }) {
+  const t = useT().flipbook;
   return (
-    <nav id={id} aria-label={label} className={styles.nav}>
+    <nav id={id} aria-label={label ?? t.pages} className={styles.nav}>
       <ol className={styles.list}>
         {pages.map((p, i) => {
           const n = i + 1;
           const here = current.includes(n);
           return (
             <li key={p.id}>
-              <button type="button" className={styles.thumb} aria-label={`Go to page ${n}`} aria-current={here ? "true" : undefined} onClick={() => onSelect(n)}>
+              <button type="button" className={styles.thumb} aria-label={t.goToPageN(n)} aria-current={here ? "true" : undefined} onClick={() => onSelect(n)}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- tiny pre-sized thumbnails */}
                 <img src={p.thumb} alt="" width={p.width} height={p.height} loading="lazy" decoding="async" />
                 <span className={styles.number} aria-hidden="true">

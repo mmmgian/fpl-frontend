@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Badge, Button, ClubLink, Crest, FdrChip, LocalTime } from "@/components/ui";
-import { scoreLine, type FeedGameweek, type FeedMatch } from "@/lib/domain";
+// Deep imports on purpose: the components/ui barrel also exports the server-side i18n, which pulls every language into the browser bundle.
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ClubLink } from "@/components/ui/ClubLink";
+import { Crest } from "@/components/ui/Crest";
+import { FdrChip } from "@/components/ui/FdrChip";
+import { useIntlLocale, useT } from "@/components/ui/I18nProvider";
+import { LocalTime } from "@/components/ui/LocalTime";
+// Deep imports on purpose: the domain barrel would pull every language into the browser bundle.
+import { scoreLine, type FeedGameweek, type FeedMatch } from "@/lib/domain/fixtureFeed";
 import type { FeedTeamRef } from "@/lib/services/models";
 import styles from "./fixtureFeed.module.css";
 
@@ -32,7 +40,8 @@ function names(ids: number[], teams: Record<number, FeedTeamRef>) {
 }
 
 function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 2 | 3 | 4 | 5; align: "home" | "away" }) {
-  const label = team?.name ?? "Unknown club";
+  const t = useT();
+  const label = team?.name ?? t.feed.unknownClub;
   const crest = <Crest code={team?.code} name={label} size={28} />;
   const text = (
     <span className={styles.sideText}>
@@ -40,7 +49,7 @@ function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 
         {team?.short ?? "?"}
       </span>
       <span className="sr-only">{label}</span>
-      <FdrChip band={band}>
+      <FdrChip band={band} label={t.fdr.difficulty(band)}>
         <span aria-hidden="true">{band}</span>
       </FdrChip>
     </span>
@@ -68,33 +77,34 @@ function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 
 }
 
 function Middle({ m }: { m: FeedMatch }) {
+  const t = useT().feed;
   const score = scoreLine(m);
   switch (m.state) {
     case "live":
       return (
         <span className={styles.middle}>
           <span className={styles.score}>{score ?? "0–0"}</span>
-          <Badge tone="live">Live</Badge>
+          <Badge tone="live">{t.live}</Badge>
         </span>
       );
     case "provisional":
       return (
         <span className={styles.middle}>
           <span className={styles.score}>{score ?? "–"}</span>
-          <Badge tone="warning" title="Full time, but bonus points aren't confirmed yet">Provisional</Badge>
+          <Badge tone="warning" title={t.provisionalTitle}>{t.provisional}</Badge>
         </span>
       );
     case "finished":
       return (
         <span className={styles.middle}>
           <span className={styles.score}>{score ?? "–"}</span>
-          <span className={styles.ft}>FT</span>
+          <span className={styles.ft}>{t.fullTime}</span>
         </span>
       );
     case "tbc":
       return (
         <span className={styles.middle}>
-          <span className={styles.time}>TBC</span>
+          <span className={styles.time}>{t.tbc}</span>
         </span>
       );
     default:
@@ -119,17 +129,20 @@ function Match({ m, teams }: { m: FeedMatch; teams: Record<number, FeedTeamRef> 
 }
 
 function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, FeedTeamRef>; today: string | null }) {
+  const t = useT().feed;
+  const intl = useIntlLocale();
+  const dayLabel = (date: string) => new Intl.DateTimeFormat(intl, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
   const id = `gw-${g.gw ?? "tbc"}`;
   return (
     <section className={styles.gameweek} aria-labelledby={`${id}-title`} id={id}>
       <header className={styles.gwHead}>
         <h2 className={styles.gwTitle} id={`${id}-title`}>
-          {g.name}
+          {g.gw === null ? t.postponedHeading : t.gameweek(g.gw)}
         </h2>
-        {g.status === "live" ? <Badge tone="live">This week</Badge> : g.status === "finished" ? <Badge tone="positive">Played</Badge> : null}
+        {g.status === "live" ? <Badge tone="live">{t.thisWeek}</Badge> : g.status === "finished" ? <Badge tone="positive">{t.played}</Badge> : null}
         {g.deadline ? (
           <span className={styles.deadline}>
-            Deadline <LocalTime iso={g.deadline} options={deadlineFmt} />
+            {t.deadline} <LocalTime iso={g.deadline} options={deadlineFmt} />
           </span>
         ) : null}
       </header>
@@ -137,12 +150,12 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
         <p className={styles.flags}>
           {g.doubles.length ? (
             <span>
-              <strong>Double gameweek</strong> <span className={styles.flagTeams}>{names(g.doubles, teams)}</span>
+              <strong>{t.double}</strong> <span className={styles.flagTeams}>{names(g.doubles, teams)}</span>
             </span>
           ) : null}
           {g.blanks.length ? (
             <span>
-              <strong>Blank</strong> <span className={styles.flagTeams}>{names(g.blanks, teams)}</span>
+              <strong>{t.blank}</strong> <span className={styles.flagTeams}>{names(g.blanks, teams)}</span>
             </span>
           ) : null}
         </p>
@@ -150,8 +163,8 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
       {g.days.map((day) => (
         <div key={day.date} className={styles.day}>
           <h3 className={styles.dayTitle}>
-            <time dateTime={day.date === "tbc" ? undefined : day.date}>{day.label}</time>
-            {today && day.date === today ? <Badge tone="accent">Today</Badge> : null}
+            <time dateTime={day.date === "tbc" ? undefined : day.date}>{day.date === "tbc" ? t.kickoffTbc : dayLabel(day.date)}</time>
+            {today && day.date === today ? <Badge tone="accent">{t.today}</Badge> : null}
           </h3>
           <ul className={styles.matches}>
             {day.matches.map((m) => (
@@ -170,6 +183,7 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
  * earlier ones. The server renders the opening gameweeks, so the page works before any script has loaded.
  */
 export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) {
+  const t = useT().feed;
   const [from, setFrom] = useState(startIndex);
   const [to, setTo] = useState(Math.min(gameweeks.length, startIndex + STEP));
   const today = useToday();
@@ -221,18 +235,18 @@ export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) 
     <div className={styles.feed}>
       <div ref={top} className={styles.tools}>
         <label className={styles.jump}>
-          <span>Jump to</span>
+          <span>{t.jumpTo}</span>
           <select ref={selectRef} value={from} onChange={(e) => jump(Number(e.target.value))} className={styles.select}>
             {gameweeks.map((g, i) => (
               <option key={g.gw ?? "tbc"} value={i}>
-                {g.gw === null ? "Postponed" : `GW${g.gw}`}
+                {g.gw === null ? t.postponed : t.gw(g.gw)}
               </option>
             ))}
           </select>
         </label>
         {from > 0 ? (
           <Button size="sm" onClick={earlier}>
-            Earlier gameweeks
+            {t.earlier}
           </Button>
         ) : null}
       </div>
@@ -243,9 +257,9 @@ export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) 
 
       <div ref={sentinel} className={styles.end}>
         {to < gameweeks.length ? (
-          <Button onClick={more}>Show more gameweeks</Button>
+          <Button onClick={more}>{t.showMore}</Button>
         ) : (
-          <p className={styles.done}>That&apos;s the lot: the whole season, to the last whistle.</p>
+          <p className={styles.done}>{t.end}</p>
         )}
       </div>
     </div>

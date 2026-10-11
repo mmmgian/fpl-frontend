@@ -1,67 +1,64 @@
 /**
- * The words for the league table's extras. One place, so the voice can be tuned without touching layout.
- * Playful, but every sentence states only what the numbers say.
+ * The words for the league table's extras, in the page's language. They live in the catalogs
+ * (lib/domain/i18n); this turns an award or a run into its sentence. Playful, but every sentence states only what the
+ * numbers say.
  */
-import { formatMoney, type Award, type AwardKey, type ManagerStats } from "@/lib/domain";
+import { getFormat, getT } from "@/components/ui";
+import type { Award, AwardKey, ManagerStats } from "@/lib/domain";
 
-const places = (n: number) => `${n} ${n === 1 ? "place" : "places"}`;
-const points = (n: number) => `${n} ${n === 1 ? "point" : "points"}`;
-const weeks = (n: number) => `${n} ${n === 1 ? "week" : "weeks"}`;
+export const awardTitle = (key: AwardKey): string => getT().awards.titles[key];
 
-export const AWARD_TITLE: Record<AwardKey, string> = {
-  weekWinner: "Week winner",
-  woodenSpoon: "Wooden spoon",
-  hotStreak: "On a roll",
-  climber: "Biggest climber",
-  rollercoaster: "Rollercoaster",
-  benchDisaster: "Bench disaster",
-  hitMachine: "Hit machine",
-  deepPockets: "Deep pockets",
-};
-
-/** How the award reads for its winner, e.g. "Bart's Team hauled 62 this week". `name` is the winner's team name. */
+/** How the award reads for its winner. `name` is the winner's team name; `gw` names the week the award is for. */
 export function awardLine(a: Award, name: string, gw?: number): string {
-  const week = gw ? `in GW${gw}` : "this week";
+  const t = getT();
+  const f = getFormat();
+  const c = t.common;
+  const when = gw ? t.awards.inGw(gw) : t.awards.thisWeek;
   switch (a.key) {
     case "weekWinner":
-      return `${name} hauled ${points(a.value)} after hits, the best score in the league ${week}.`;
+      return t.awards.weekWinner(name, c.points(a.value), when);
     case "woodenSpoon":
-      return `${name} could only scrape together ${points(a.value)} ${week}. Next week, surely.`;
+      return t.awards.woodenSpoon(name, c.points(a.value), when);
     case "hotStreak":
-      return `${name} has beaten the league average ${weeks(a.value)} running.`;
+      return t.awards.hotStreak(name, c.weeks(a.value));
     case "climber":
-      return `${name} climbed ${places(a.value)} up the table.`;
+      return t.awards.climber(name, c.places(a.value));
     case "rollercoaster":
-      return `${name}'s weekly score swings about ${a.value} points either side of their average. Hold on tight.`;
+      return t.awards.rollercoaster(name, f.decimal(a.value));
     case "benchDisaster":
-      return `${name} has left ${points(a.value)} sitting on the bench this season.`;
+      return t.awards.benchDisaster(name, c.points(a.value));
     case "hitMachine":
-      return `${name} has handed back ${points(a.value)} in transfer hits this season.`;
+      return t.awards.hitMachine(name, c.points(a.value));
     case "deepPockets":
-      return `${name}'s squad and bank add up to ${formatMoney(a.value)}, the most in the league.`;
+      return t.awards.deepPockets(name, f.money(a.value));
   }
 }
 
 /** The big number on an award card. */
 export function awardFigure(a: Award): string {
+  const t = getT();
+  const f = getFormat();
   switch (a.key) {
     case "hotStreak":
-      return `${a.value} wk`;
+      return t.awards.weeksFigure(a.value);
     case "climber":
       return `▲${a.value}`;
     case "deepPockets":
-      return formatMoney(a.value);
+      return f.money(a.value);
     case "hitMachine":
       return `−${a.value}`;
+    case "rollercoaster":
+      return f.decimal(a.value);
     default:
       return String(a.value);
   }
 }
 
-export const tiedNote = (a: Award) => (a.tiedWith > 0 ? `Shared with ${a.tiedWith} ${a.tiedWith === 1 ? "other" : "others"}` : null);
+export const tiedNote = (a: Award): string | null => (a.tiedWith > 0 ? getT().awards.shared(a.tiedWith) : null);
 
 /** A one-line verdict on a manager's current run, or null if there isn't one. */
 export function streakLabel(s: ManagerStats): string | null {
   if (!s.streak) return null;
-  return s.streak.kind === "hot" ? `Hot: ${weeks(s.streak.length)} above average` : `Cold: ${weeks(s.streak.length)} below average`;
+  const t = getT().stats;
+  return s.streak.kind === "hot" ? t.hotLine(s.streak.length) : t.coldLine(s.streak.length);
 }

@@ -1,24 +1,21 @@
 import Link from "next/link";
-import { Badge, Crest, DataTable, MiniBars, Movement, type Column } from "@/components/ui";
-import { formatMoney, rankMovement, type LeagueStats, type ManagerStats } from "@/lib/domain";
+import { Badge, Crest, DataTable, MiniBars, Movement, getFormat, getT, type Column } from "@/components/ui";
+import { rankMovement, type LeagueStats, type ManagerStats } from "@/lib/domain";
 import type { StandingRow } from "@/lib/domain/types";
 import { ManagerStatsDetail, StatsToggle } from "./ManagerStatsPanel";
 import extras from "./leagueExtras.module.css";
 import styles from "./views.module.css";
 
-const CHIP_SHORT: Record<string, string> = { wildcard: "WC", freehit: "FH", bboost: "BB", "3xc": "TC", manager: "AM" };
-const CHIP_FULL: Record<string, string> = { wildcard: "Wildcard", freehit: "Free Hit", bboost: "Bench Boost", "3xc": "Triple Captain", manager: "Assistant Manager" };
-
 /** Badges that say something about a team's week or run. At most two, so a row stays tidy. */
 function RowBadges({ s, gw }: { s: ManagerStats; gw: number }) {
+  const t = getT().table;
   const badges = [];
-  if (s.weekRank === 1 && s.weekPoints > 0) badges.push(<Badge key="week" tone="accent" srLabel={`Won gameweek ${gw}, the latest finished week`}>GW{gw} winner</Badge>);
-  if (s.streak?.kind === "hot") badges.push(<Badge key="streak" tone="positive" srLabel={`On a hot streak: ${s.streak.length} weeks above the league average`}>Hot ×{s.streak.length}</Badge>);
-  if (s.streak?.kind === "cold" && badges.length < 2) badges.push(<Badge key="streak" tone="neutral" srLabel={`In a cold spell: ${s.streak.length} weeks below the league average`}>Cold ×{s.streak.length}</Badge>);
+  if (s.weekRank === 1 && s.weekPoints > 0) badges.push(<Badge key="week" tone="accent" srLabel={t.winnerSr(gw)}>{t.winner(gw)}</Badge>);
+  if (s.streak?.kind === "hot") badges.push(<Badge key="streak" tone="positive" srLabel={t.hotSr(s.streak.length)}>{t.hot(s.streak.length)}</Badge>);
+  if (s.streak?.kind === "cold" && badges.length < 2) badges.push(<Badge key="streak" tone="neutral" srLabel={t.coldSr(s.streak.length)}>{t.cold(s.streak.length)}</Badge>);
   return badges.length ? <span className={extras.badges}>{badges.slice(0, 2)}</span> : null;
 }
 
-const formLabel = (s: ManagerStats) => `Latest ${s.form.length} gameweeks after hits: ${s.form.join(", ")}`;
 
 interface StandingsTableProps {
   rows: StandingRow[];
@@ -33,14 +30,19 @@ interface StandingsTableProps {
 }
 
 export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, stats: leagueExtras }: StandingsTableProps) {
+  const t = getT();
+  const tt = t.table;
+  const f = getFormat();
   const stats = leagueExtras?.byEntry;
+  const formLabel = (s: ManagerStats) => tt.formLabel(s.form.length, s.form.join(", "));
+  const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
   const columns: Column<StandingRow>[] = [
     {
       key: "rank",
       header: (
         <>
           <span aria-hidden="true">#</span>
-          <span className="sr-only">Rank</span>
+          <span className="sr-only">{tt.rank}</span>
         </>
       ),
       width: showMovement ? "5.5rem" : "3.5rem",
@@ -50,10 +52,10 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
             {r.rank}
             {r.rank_approximate ? (
               <>
-                <span aria-hidden="true" title="Order between managers level on points and overall rank is approximate">
+                <span aria-hidden="true" title={tt.approxTitle}>
                   ≈
                 </span>
-                <span className="sr-only"> (approximate)</span>
+                <span className="sr-only">{tt.approxSr}</span>
               </>
             ) : null}
           </span>
@@ -63,7 +65,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
     },
     {
       key: "team",
-      header: "Team",
+      header: tt.team,
       rowHeader: true,
       cell: (r) => (
         <span className={styles.teamCell}>
@@ -94,16 +96,16 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       ? ([
           {
             key: "form",
-            header: "Form",
+            header: tt.form,
             hideBelow: "md",
             width: "6rem",
             cell: (r) => (stats[r.entry] ? <MiniBars values={stats[r.entry].form} reference={stats[r.entry].average} label={formLabel(stats[r.entry])} /> : <span className={extras.muted}>–</span>),
           },
-          { key: "value", header: "Value", align: "end", hideBelow: "md", width: "5.5rem", cell: (r) => (stats[r.entry] ? <span className={extras.num}>{formatMoney(stats[r.entry].value)}</span> : "–") },
-          { key: "bench", header: "Bench", align: "end", hideBelow: "md", width: "4.5rem", cell: (r) => (stats[r.entry] ? <span className={extras.num}>{stats[r.entry].benchPoints}</span> : "–") },
+          { key: "value", header: tt.value, align: "end", hideBelow: "md", width: "5.5rem", cell: (r) => (stats[r.entry] ? <span className={extras.num}>{f.money(stats[r.entry].value)}</span> : "–") },
+          { key: "bench", header: tt.bench, align: "end", hideBelow: "md", width: "4.5rem", cell: (r) => (stats[r.entry] ? <span className={extras.num}>{stats[r.entry].benchPoints}</span> : "–") },
           {
             key: "hits",
-            header: "Hits",
+            header: tt.hits,
             align: "end",
             hideBelow: "md",
             width: "4.5rem",
@@ -111,7 +113,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
           },
           {
             key: "chips",
-            header: "Chips",
+            header: tt.chips,
             hideBelow: "md",
             width: "7rem",
             cell: (r) =>
@@ -120,8 +122,8 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
                   {stats[r.entry].chips.map((c, i) => (
                     <span key={`${c.name}-${c.event}`}>
                       {i > 0 ? ", " : ""}
-                      <span aria-hidden="true" title={`${CHIP_FULL[c.name] ?? c.name}, GW${c.event}`}>{CHIP_SHORT[c.name] ?? c.name}</span>
-                      <span className="sr-only">{CHIP_FULL[c.name] ?? c.name}, gameweek {c.event}</span>
+                      <span aria-hidden="true" title={tt.chipTitle(chipName(c.name), c.event)}>{tt.chipShort[c.name] ?? c.name}</span>
+                      <span className="sr-only">{tt.chipSr(chipName(c.name), c.event)}</span>
                     </span>
                   ))}
                 </span>
@@ -131,8 +133,8 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
           },
         ] satisfies Column<StandingRow>[])
       : []),
-    { key: "gw", header: "GW", align: "end", width: "4.5rem", cell: (r) => r.event_total },
-    { key: "total", header: "Total", align: "end", width: "5rem", cell: (r) => <strong>{r.total.toLocaleString("en-GB")}</strong> },
+    { key: "gw", header: tt.gw, align: "end", width: "4.5rem", cell: (r) => r.event_total },
+    { key: "total", header: tt.total, align: "end", width: "5rem", cell: (r) => <strong>{f.number(r.total)}</strong> },
   ];
 
   return (
@@ -144,7 +146,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       rowKey={(r) => r.entry}
       isCurrentRow={highlightEntry ? (r) => r.entry === highlightEntry : undefined}
       detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} /> : null) : undefined}
-      empty="No managers in this league yet."
+      empty={tt.empty}
     />
   );
 }

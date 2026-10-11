@@ -33,6 +33,13 @@ export function step(page: number, count: number, direction: 1 | -1, wide: boole
 export const canStep = (page: number, count: number, direction: 1 | -1, wide: boolean): boolean => step(page, count, direction, wide) !== clampPage(page, count);
 
 /** "Page 3 of 10", or "Pages 2 and 3 of 10" for a spread. */
-export function describePages(pages: number[], count: number): string {
-  return pages.length > 1 ? `Pages ${pages[0]} and ${pages[pages.length - 1]} of ${count}` : `Page ${pages[0]} of ${count}`;
+export function describePages(
+  pages: number[],
+  count: number,
+  words: { pageOf: (n: number, count: number) => string; pagesOf: (a: number, b: number, count: number) => string } = {
+    pageOf: (n, c) => `Page ${n} of ${c}`,
+    pagesOf: (a, b, c) => `Pages ${a} and ${b} of ${c}`,
+  },
+): string {
+  return pages.length > 1 ? words.pagesOf(pages[0], pages[pages.length - 1], count) : words.pageOf(pages[0], count);
 }

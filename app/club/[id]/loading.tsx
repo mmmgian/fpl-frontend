@@ -1,8 +1,12 @@
-import { LoadingState, Skeleton } from "@/components/ui";
+import { LoadingState, Skeleton, getT } from "@/components/ui";
+import { initLocale } from "@/app/locale";
 
-export default function Loading() {
+/** Rendered alongside the layout, not after it, so it sets the language itself. */
+export default async function Loading() {
+  await initLocale();
+  const t = getT().loading;
   return (
-    <LoadingState label="Loading club">
+    <LoadingState label={t.club}>
       <Skeleton width={140} />
       <Skeleton width={240} height={34} />
       <div style={{ display: "grid", gap: 12 }}>

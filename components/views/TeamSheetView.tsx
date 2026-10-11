@@ -1,5 +1,5 @@
-import { Card, CaptainBadge, ClubLink, Crest, DataTable, FdrChip, type Column } from "@/components/ui";
-import { fdrBand, POSITION_LABEL, subtotal, type SheetPlayer, type TeamSheet } from "@/lib/domain";
+import { Card, CaptainBadge, ClubLink, Crest, DataTable, FdrChip, getT, type Column } from "@/components/ui";
+import { fdrBand, subtotal, type SheetPlayer, type TeamSheet } from "@/lib/domain";
 import type { NextMatch } from "@/lib/services/models";
 import styles from "./views.module.css";
 
@@ -13,20 +13,22 @@ interface ColumnOptions {
 }
 
 function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions): Column<SheetPlayer>[] {
+  const t = getT();
+  const sh = t.sheet;
   const cols: Column<SheetPlayer>[] = [
     {
       key: "player",
-      header: "Player",
+      header: sh.player,
       rowHeader: true,
       cell: (p) => (
         <span className={styles.playerCell}>
           {benchOrder ? (
             <span className={styles.benchSlot}>
               <span aria-hidden="true">{p.slot - 11}</span>
-              <span className="sr-only">Bench {p.slot - 11}{p.slot === 12 ? ", goalkeeper" : ""}</span>
+              <span className="sr-only">{sh.benchSlot(p.slot - 11, p.slot === 12)}</span>
             </span>
           ) : null}
-          <Crest src={shirt(p.clubCode)} name={`${p.club} shirt`} size={24} />
+          <Crest src={shirt(p.clubCode)} name={sh.shirt(p.club)} size={24} />
           <span className={styles.playerName}>{p.name}</span>
           {p.isCaptain ? <CaptainBadge multiplier={p.multiplier} /> : null}
           {p.isVice ? <CaptainBadge vice /> : null}
@@ -35,7 +37,7 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
     },
     {
       key: "club",
-      header: "Club",
+      header: sh.club,
       width: "4.75rem",
       cell: (p) => (
         p.teamId === null ? (
@@ -55,7 +57,7 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
   if (Object.keys(next).length > 0) {
     cols.push({
       key: "next",
-      header: "Next",
+      header: sh.next,
       hideBelow: "sm",
       width: "7.5rem",
       cell: (p) => {
@@ -63,15 +65,15 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
         return matches?.length ? (
           <span className={styles.nextCell}>
             {matches.map((m, i) => (
-              <FdrChip key={i} band={fdrBand(m.difficulty)}>
-                {m.opponent} ({m.home ? "H" : "A"}) <span aria-hidden="true">{m.difficulty}</span>
+              <FdrChip key={i} band={fdrBand(m.difficulty)} label={t.client.fdr.difficulty(fdrBand(m.difficulty))}>
+                {m.opponent} ({m.home ? t.fixtures.homeShort : t.fixtures.awayShort}) <span aria-hidden="true">{m.difficulty}</span>
               </FdrChip>
             ))}
           </span>
         ) : (
           <span className={styles.muted}>
             <span aria-hidden="true">–</span>
-            <span className="sr-only">No fixture</span>
+            <span className="sr-only">{sh.noFixture}</span>
           </span>
         );
       },
@@ -80,14 +82,14 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
   if (showPoints) {
     cols.push({
       key: "pts",
-      header: "Pts",
+      header: sh.pts,
       align: "end",
       width: "4rem",
       cell: (p) =>
         p.points == null ? (
           <span className={styles.muted}>
             <span aria-hidden="true">–</span>
-            <span className="sr-only">No points yet</span>
+            <span className="sr-only">{sh.noPoints}</span>
           </span>
         ) : (
           <span className={p.multiplier === 0 ? styles.muted : undefined}>
@@ -126,6 +128,8 @@ interface TeamSheetViewProps {
 }
 
 export function TeamSheetView({ sheet, showPoints, next = {}, hit = 0, benchCounted = false }: TeamSheetViewProps) {
+  const t = getT();
+  const sh = t.sheet;
   const benchPoints = sheet.bench.reduce((sum, p) => sum + (p.basePoints ?? 0), 0);
   const grand = sheet.grossPoints;
 
@@ -133,47 +137,47 @@ export function TeamSheetView({ sheet, showPoints, next = {}, hit = 0, benchCoun
     <div className="stack">
       <section aria-labelledby="xi-heading" className="stack">
         <h2 id="xi-heading" className={styles.sectionTitle}>
-          Starting XI
+          {sh.startingXi}
         </h2>
         <div className={styles.positionGrid}>
           {sheet.starters.map((group) => {
             const players = showPoints ? [...group.players].sort(byPoints) : group.players;
             return (
-              <Card key={group.positionId} title={POSITION_LABEL[group.positionId].plural} headingLevel={3} flush>
+              <Card key={group.positionId} title={t.team.positions[group.positionId]} headingLevel={3} flush>
                 <DataTable
-                  caption={POSITION_LABEL[group.positionId].plural}
+                  caption={t.team.positions[group.positionId]}
                   hideCaption
                   dense
                   columns={playerColumns({ showPoints, next })}
                   rows={players}
                   rowKey={(p) => p.id}
                 />
-                {showPoints ? <Subtotal label="Subtotal" value={subtotal(group.players)} /> : null}
+                {showPoints ? <Subtotal label={sh.subtotal} value={subtotal(group.players)} /> : null}
               </Card>
             );
           })}
         </div>
       </section>
 
-      <Card title="Bench" flush>
+      <Card title={sh.bench} flush>
         <DataTable
-          caption="Bench, in substitution order"
+          caption={sh.benchCaption}
           hideCaption
           dense
           columns={playerColumns({ showPoints, next, benchOrder: true })}
           rows={sheet.bench}
           rowKey={(p) => p.id}
-          empty="No bench players."
+          empty={sh.benchEmpty}
         />
-        {showPoints ? <Subtotal label="Bench" value={benchPoints} note={benchCounted ? "(counts: Bench Boost)" : "(not counted)"} /> : null}
+        {showPoints ? <Subtotal label={sh.bench} value={benchPoints} note={benchCounted ? sh.counts : sh.notCounted} /> : null}
       </Card>
 
       {showPoints ? (
         <div className={styles.grandTotalRow}>
           <p className={styles.grandTotal}>
-            <span className={styles.grandLabel}>Grand total</span>
+            <span className={styles.grandLabel}>{sh.grandTotal}</span>
             <strong className={styles.grandValue}>{grand}</strong>
-            {hit > 0 ? <span className={styles.grandNote}>−{hit} hit = {grand - hit}</span> : null}
+            {hit > 0 ? <span className={styles.grandNote}>{sh.hitNote(hit, grand - hit)}</span> : null}
           </p>
         </div>
       ) : null}

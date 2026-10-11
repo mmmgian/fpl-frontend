@@ -1,24 +1,24 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, Card, ClubLink, Crest, FdrChip, LocalTime, PageHeader, StateMessage } from "@/components/ui";
-import { formatMoney, scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
+import { Badge, Card, ClubLink, Crest, English, FdrChip, LocalTime, PageHeader, StateMessage, getFormat, getT } from "@/components/ui";
+import { scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
 import type { ClubMatchView, ClubModel, Outside } from "@/lib/services/models";
 import styles from "./club.module.css";
 import insights from "./insights.module.css";
 
 type Ok = Extract<ClubModel, { kind: "ok" }>;
 
-const RESULT_WORD: Record<Result, string> = { W: "Won", D: "Drew", L: "Lost" };
 const when: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
 const day: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
 
 function FormGuide({ form }: { form: Result[] }) {
+  const t = getT().club;
   if (form.length === 0) return null;
   return (
-    <span className={styles.guide} role="img" aria-label={`Last ${form.length}, oldest first: ${form.map((r) => RESULT_WORD[r]).join(", ")}`}>
+    <span className={styles.guide} role="img" aria-label={t.form(form.length, form.map((r) => t.result[r]).join(", "))}>
       {form.map((r, i) => (
         <span key={i} className={`${styles.pip} ${styles[`pip${r}`]}`} aria-hidden="true">
-          {r}
+          {t.pip[r]}
         </span>
       ))}
     </span>
@@ -35,6 +35,8 @@ function Opponent({ m }: { m: ClubMatchView }) {
 }
 
 function Fixtures({ title, matches, empty }: { title: string; matches: ClubMatchView[]; empty: string }) {
+  const t = getT();
+  const c = t.club;
   return (
     <Card title={title} headingLevel={2}>
       {matches.length === 0 ? (
@@ -43,28 +45,28 @@ function Fixtures({ title, matches, empty }: { title: string; matches: ClubMatch
         <ul className={styles.list}>
           {matches.map((m) => (
             <li key={m.id} className={styles.row}>
-              <span className={styles.when}>{m.gw ? `GW${m.gw}` : "TBC"}</span>
+              <span className={styles.when}>{c.gw(m.gw, t.common.gw(m.gw ?? 0))}</span>
               <Opponent m={m} />
-              <span className={styles.venue}>{m.home ? "Home" : "Away"}</span>
+              <span className={styles.venue}>{m.home ? t.common.home : t.common.away}</span>
               <span className={m.result || m.state === "live" ? styles.end : `${styles.end} ${styles.endStack}`}>
                 {m.result ? (
                   <>
                     <span className={`${styles.pip} ${styles[`pip${m.result}`]}`} aria-hidden="true">
-                      {m.result}
+                      {c.pip[m.result]}
                     </span>
-                    <span className="sr-only">{RESULT_WORD[m.result]}, </span>
+                    <span className="sr-only">{c.result[m.result]}, </span>
                     <strong>{m.scored}–{m.conceded}</strong>
                   </>
                 ) : m.state === "live" ? (
                   <>
-                    <Badge tone="live">Live</Badge> <strong>{scoreLine({ homeScore: m.scored, awayScore: m.conceded }) ?? "0–0"}</strong>
+                    <Badge tone="live">{t.common.live}</Badge> <strong>{scoreLine({ homeScore: m.scored, awayScore: m.conceded }) ?? "0–0"}</strong>
                   </>
                 ) : (
                   <>
                     <span className={styles.kickoff}>
-                      <LocalTime iso={m.kickoff} options={when} fallback="Time to be confirmed" />
+                      <LocalTime iso={m.kickoff} options={when} fallback={t.common.timeTbc} />
                     </span>
-                    <FdrChip band={m.band}>
+                    <FdrChip band={m.band} label={t.client.fdr.difficulty(m.band)}>
                       <span aria-hidden="true">{m.band}</span>
                     </FdrChip>
                   </>
@@ -78,31 +80,28 @@ function Fixtures({ title, matches, empty }: { title: string; matches: ClubMatch
   );
 }
 
-const SEVERITY: Record<ClubNewsItem["severity"], { label: string; tone: "warning" | "live" | "neutral" }> = {
-  out: { label: "Out", tone: "live" },
-  doubt: { label: "Doubt", tone: "warning" },
-  note: { label: "News", tone: "neutral" },
-};
+const SEVERITY_TONE: Record<ClubNewsItem["severity"], "warning" | "live" | "neutral"> = { out: "live", doubt: "warning", note: "neutral" };
 
 function TeamNews({ news }: { news: ClubNewsItem[] }) {
+  const c = getT().club;
   return (
-    <Card title="Team news" headingLevel={2} className={styles.wide}>
+    <Card title={c.news} headingLevel={2} className={styles.wide}>
       {news.length === 0 ? (
-        <p className={insights.fact}>A clean bill of health: FPL has no injuries, suspensions or doubts flagged for this squad.</p>
+        <p className={insights.fact}>{c.newsEmpty}</p>
       ) : (
         <ul className={styles.list}>
           {news.map(({ player: p, severity }) => (
             <li key={p.id} className={styles.newsRow}>
-              <Badge tone={SEVERITY[severity].tone}>{SEVERITY[severity].label}</Badge>
+              <Badge tone={SEVERITY_TONE[severity]}>{c.severity[severity]}</Badge>
               <span className={styles.newsBody}>
                 <strong>{p.name}</strong>
-                <span className={styles.newsText}>{p.news || "Flagged by FPL, no details given."}</span>
+                <span className={styles.newsText}>{p.news ? <English>{p.news}</English> : c.newsNoDetail}</span>
               </span>
               <span className={styles.newsMeta}>
-                {p.chance !== null ? <span>{p.chance}% to play</span> : null}
+                {p.chance !== null ? <span>{c.chance(p.chance)}</span> : null}
                 {p.newsAdded ? (
                   <span>
-                    Added <LocalTime iso={p.newsAdded} options={day} />
+                    {c.added}<LocalTime iso={p.newsAdded} options={day} />
                   </span>
                 ) : null}
               </span>
@@ -115,6 +114,8 @@ function TeamNews({ news }: { news: ClubNewsItem[] }) {
 }
 
 function LineRow({ label, players, open = 0 }: { label: string; players: PredictedPlayer[]; open?: number }) {
+  const c = getT().club;
+  const f = getFormat();
   return (
     <li className={styles.line}>
       <span className={styles.lineLabel}>{label}</span>
@@ -122,15 +123,15 @@ function LineRow({ label, players, open = 0 }: { label: string; players: Predict
         {players.map(({ player, startRate, doubt }) => (
           <li key={player.id} className={styles.player}>
             <strong>{player.name}</strong>
-            {doubt ? <Badge tone="warning">Doubt</Badge> : null}
-            <span className={styles.rate}>{Math.round(startRate * 100)}% of starts</span>
-            <span className="sr-only">, {formatMoney(player.cost)}</span>
+            {doubt ? <Badge tone="warning">{c.doubt}</Badge> : null}
+            <span className={styles.rate}>{c.starts(Math.round(startRate * 100))}</span>
+            <span className="sr-only">, {f.money(player.cost)}</span>
           </li>
         ))}
         {Array.from({ length: open }, (_, i) => (
           <li key={`open-${i}`} className={`${styles.player} ${styles.openPlace}`}>
-            Open place
-            <span className={styles.rate}>no fit regular starter</span>
+            {c.openPlace}
+            <span className={styles.rate}>{c.noRegular}</span>
           </li>
         ))}
       </ul>
@@ -139,41 +140,36 @@ function LineRow({ label, players, open = 0 }: { label: string; players: Predict
 }
 
 function Lineup({ xi }: { xi: PredictedXI | null }) {
+  const c = getT().club;
   return (
-    <Card title="Predicted XI" headingLevel={2} className={styles.wide}>
+    <Card title={c.xi} headingLevel={2} className={styles.wide}>
       {xi ? (
         <>
           {xi.formation ? (
             <p className={styles.big}>
               {xi.formation}
-              <span className={styles.bigNote}>likely shape</span>
+              <span className={styles.bigNote}>{c.shape}</span>
             </p>
           ) : (
             <p className={styles.big}>
-              Shape unclear<span className={styles.bigNote}>too few fit regulars to say</span>
+              {c.shapeUnclear}<span className={styles.bigNote}>{c.shapeUnclearNote}</span>
             </p>
           )}
           {xi.missing > 0 ? (
             <p className={styles.gap}>
-              {xi.fit < 11
-                ? `Only ${xi.fit} fit ${xi.fit === 1 ? "player has" : "players have"} started this season, so ${xi.missing} ${xi.missing === 1 ? "place is" : "places are"} left open rather than filled with a guess.`
-                : `The fit players who have started don't cover every position, so ${xi.missing} ${xi.missing === 1 ? "place is" : "places are"} left open rather than guessed.`}
+              {xi.fit < 11 ? c.fewFit(xi.fit, xi.missing) : c.notCovered(xi.missing)}
             </p>
           ) : null}
           <ul className={styles.lines}>
-            <LineRow label="Forwards" players={xi.forwards} open={xi.open.forwards} />
-            <LineRow label="Midfield" players={xi.midfielders} open={xi.open.midfielders} />
-            <LineRow label="Defence" players={xi.defenders} open={xi.open.defenders} />
-            <LineRow label="Goalkeeper" players={[xi.goalkeeper]} />
+            <LineRow label={c.lines.forwards} players={xi.forwards} open={xi.open.forwards} />
+            <LineRow label={c.lines.midfield} players={xi.midfielders} open={xi.open.midfielders} />
+            <LineRow label={c.lines.defence} players={xi.defenders} open={xi.open.defenders} />
+            <LineRow label={c.lines.goalkeeper} players={[xi.goalkeeper]} />
           </ul>
-          <p className={styles.caveat}>
-            This is a prediction, not an official line-up. It is built from who FPL says is available and how often each player has started this season (the most-used player has started {xi.matches}
-            {xi.matches === 1 ? " match" : " matches"})
-            {xi.matches < 4 ? ", so it is early days: treat it loosely" : ""}. Managers rotate; the real team is only announced about an hour before kick-off.
-          </p>
+          <p className={styles.caveat}>{c.caveat(xi.matches, xi.matches < 4)}</p>
         </>
       ) : (
-        <p className={insights.fact}>No prediction yet: it needs a few matches played and enough fit players to name most of a side.</p>
+        <p className={insights.fact}>{c.xiEmpty}</p>
       )}
     </Card>
   );
@@ -181,21 +177,24 @@ function Lineup({ xi }: { xi: PredictedXI | null }) {
 
 function Outside<T>({ title, data, children }: { title: string; data: Outside<T>; children: (items: T) => ReactNode }) {
   if (data.status === "off") return null; // not set up: nothing to show, and nothing to apologise for
+  const c = getT().club;
   return (
     <Card title={title} headingLevel={2} className={styles.wide}>
-      {data.status === "ok" ? children(data.items) : <p className={insights.fact}>This is unavailable right now. The rest of the page is unaffected; try again in a few minutes.</p>}
+      {data.status === "ok" ? children(data.items) : <p className={insights.fact}>{c.unavailable}</p>}
     </Card>
   );
 }
 
 export function ClubView({ model }: { model: Ok }) {
+  const t = getT();
+  const c = t.club;
   const { club, next } = model;
   const upcoming = next[0];
   return (
     <>
       <PageHeader
-        back={<Link href="/fixtures">← Fixtures</Link>}
-        eyebrow="Premier League club"
+        back={<Link href="/fixtures">{t.common.fixturesBack}</Link>}
+        eyebrow={c.eyebrow}
         title={
           <span className={styles.title}>
             <Crest code={club.code} name={club.name} size={44} />
@@ -207,36 +206,36 @@ export function ClubView({ model }: { model: Ok }) {
             <FormGuide form={model.form} />
             {upcoming ? (
               <span>
-                Next: {upcoming.home ? "" : "at "}
-                {upcoming.opponent.name}, <LocalTime iso={upcoming.kickoff} options={when} fallback="time to be confirmed" />
+                {c.next(upcoming.home, upcoming.opponent.name)}
+                <LocalTime iso={upcoming.kickoff} options={when} fallback={t.common.timeTbc.toLowerCase()} />
               </span>
             ) : (
-              <span>No fixture scheduled</span>
+              <span>{c.noFixture}</span>
             )}
           </>
         }
       />
 
       <div className={styles.cards}>
-        <Fixtures title="Up next" matches={model.next} empty="Nothing scheduled: the fixture list has no more matches for this club." />
-        <Fixtures title="Recent results" matches={model.recent} empty="No results yet this season." />
+        <Fixtures title={c.upNext} matches={model.next} empty={c.upNextEmpty} />
+        <Fixtures title={c.recent} matches={model.recent} empty={c.recentEmpty} />
         <TeamNews news={model.news} />
         <Lineup xi={model.lineup} />
 
-        <Outside title="In Europe" data={model.europe}>
+        <Outside title={c.europe} data={model.europe}>
           {(matches) =>
             matches.length === 0 ? (
-              <p className={insights.fact}>No European fixtures coming up. (This source covers the Champions League; Europa League and Conference League games are not included.)</p>
+              <p className={insights.fact}>{c.europeEmpty}</p>
             ) : (
               <ul className={styles.list}>
                 {matches.map((m) => (
                   <li key={m.id} className={styles.euroRow}>
                     <span className={styles.comp}>{m.competition.replace(/^UEFA\s+/i, "")}</span>
                     <strong>
-                      {m.home} v {m.away}
+                      {m.home} {getT().common.vs} {m.away}
                     </strong>
                     <span className={styles.kickoff}>
-                      <LocalTime iso={m.utcDate} options={when} fallback="Date to be confirmed" />
+                      <LocalTime iso={m.utcDate} options={when} fallback={c.dateTbc} />
                     </span>
                   </li>
                 ))}
@@ -245,20 +244,24 @@ export function ClubView({ model }: { model: Ok }) {
           }
         </Outside>
 
-        <Outside title="Headlines" data={model.headlines}>
+        <Outside title={c.headlines} data={model.headlines}>
           {({ items, creditUrl }) =>
             items.length === 0 ? (
-              <p className={insights.fact}>Nothing new from BBC Sport for this club at the moment.</p>
+              <p className={insights.fact}>{c.headlinesEmpty}</p>
             ) : (
               <>
                 <ul className={styles.news}>
                   {items.map((h) => (
                     <li key={h.url}>
                       <a href={h.url} target="_blank" rel="noopener noreferrer" className={styles.headline}>
-                        {h.title}
-                        <span className="sr-only"> (opens in a new tab)</span>
+                        <English>{h.title}</English>
+                        <span className="sr-only"> {t.common.opensNewTab}</span>
                       </a>
-                      {h.summary ? <p className={styles.summary}>{h.summary}</p> : null}
+                      {h.summary ? (
+                        <p className={styles.summary}>
+                          <English>{h.summary}</English>
+                        </p>
+                      ) : null}
                       {h.publishedAt ? (
                         <p className={styles.published}>
                           <LocalTime iso={h.publishedAt} options={when} />
@@ -268,11 +271,11 @@ export function ClubView({ model }: { model: Ok }) {
                   ))}
                 </ul>
                 <p className={styles.credit}>
-                  From{" "}
+                  {c.creditBefore}
                   <a href={creditUrl} target="_blank" rel="noopener noreferrer">
-                    BBC Sport
+                    {c.creditLink}
                   </a>
-                  , shown as the BBC publishes it.
+                  {c.creditAfter}
                 </p>
               </>
             )
@@ -281,8 +284,8 @@ export function ClubView({ model }: { model: Ok }) {
       </div>
 
       {model.news.length === 0 && model.next.length === 0 && model.recent.length === 0 ? (
-        <StateMessage title="Nothing to show yet">
-          <p>FPL has no fixtures or news for this club yet.</p>
+        <StateMessage title={c.nothing}>
+          <p>{c.nothingBody}</p>
         </StateMessage>
       ) : null}
     </>

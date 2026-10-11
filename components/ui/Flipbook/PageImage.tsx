@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../I18nProvider";
 import { Button } from "../Button";
 import styles from "./PageImage.module.css";
 
@@ -24,7 +25,8 @@ export interface PageImageProps {
  * A page image with a reserved box, a skeleton while it loads, and a recoverable error state.
  * Without JavaScript it is simply the image; the skeleton sits behind it.
  */
-export function PageImage({ src, srcSet, sizes, alt, width, height, priority, fallbackHref, fallbackLabel = "Open the PDF instead" }: PageImageProps) {
+export function PageImage({ src, srcSet, sizes, alt, width, height, priority, fallbackHref, fallbackLabel }: PageImageProps) {
+  const t = useT().flipbook;
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const img = useRef<HTMLImageElement>(null);
@@ -66,14 +68,14 @@ export function PageImage({ src, srcSet, sizes, alt, width, height, priority, fa
         />
       ) : (
         <span className={styles.error} role="alert">
-          <span>This page couldn&apos;t be loaded.</span>
+          <span>{t.pageError}</span>
           <span className={styles.errorActions}>
             <Button size="sm" onClick={retry}>
-              Try again
+              {t.retry}
             </Button>
             {fallbackHref ? (
               <a href={fallbackHref} target="_blank" rel="noreferrer">
-                {fallbackLabel}
+                {fallbackLabel ?? t.openPdf}
               </a>
             ) : null}
           </span>

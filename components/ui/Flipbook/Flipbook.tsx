@@ -5,6 +5,7 @@ import { Button } from "../Button";
 import { useControllableState, useIsClient, useMediaQuery, useSwipe } from "./hooks";
 import { PageImage } from "./PageImage";
 import { PageThumbs } from "./PageThumbs";
+import { useT } from "../I18nProvider";
 import { canStep, clampPage, describePages, spreadOf, step } from "./spreads";
 import styles from "./Flipbook.module.css";
 
@@ -53,6 +54,8 @@ export interface FlipbookProps {
   actions?: ReactNode;
   /** Offered if a page image can't load (e.g. the PDF). */
   fallbackHref?: string;
+  /** The language the pages' text is written in, if that isn't the page's (a screen reader needs to know). */
+  textLang?: string;
   className?: string;
 }
 
@@ -64,7 +67,8 @@ const cx = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).j
 
 type TextState = { status: "loading" } | { status: "ready"; text: string } | { status: "error" };
 
-export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, layout = "auto", loadText, actions, fallbackHref, className }: FlipbookProps) {
+export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, layout = "auto", loadText, actions, fallbackHref, textLang, className }: FlipbookProps) {
+  const t = useT().flipbook;
   const count = pages.length;
   const uid = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -141,8 +145,8 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
   useEffect(() => {
     if (announced.current === current) return;
     announced.current = current;
-    setAnnouncement(describePages(wide ? spreadOf(current, count) : [current], count));
-  }, [current, count, wide]);
+    setAnnouncement(describePages(wide ? spreadOf(current, count) : [current], count, t));
+  }, [current, count, wide, t]);
 
   const swipe = useSwipe(turn);
 
@@ -230,12 +234,12 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
   const atEnd = !canStep(current, count, 1, wide);
 
   return (
-    <section ref={rootRef} className={cx(styles.root, className)} data-layout={layout} data-fullscreen={fullscreen || undefined} aria-roledescription="flipbook" aria-label={label}>
+    <section ref={rootRef} className={cx(styles.root, className)} data-layout={layout} data-fullscreen={fullscreen || undefined} aria-roledescription={t.roleDescription} aria-label={label}>
       <div
         className={styles.viewport}
         role="group"
         tabIndex={0}
-        aria-label="Pages"
+        aria-label={t.pages}
         aria-describedby={single ? undefined : `${uid}-help`}
         aria-keyshortcuts={single ? undefined : "ArrowLeft ArrowRight PageUp PageDown Home End"}
         onKeyDown={onKeyDown}
@@ -250,7 +254,7 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
                   src={p.src}
                   srcSet={p.srcSet}
                   sizes={SIZES}
-                  alt={p.label ?? `Page ${n} of ${count}`}
+                  alt={p.label ?? t.pageOf(n, count)}
                   width={p.width}
                   height={p.height}
                   priority={n === current}
@@ -264,23 +268,23 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
 
       {single ? null : (
         <span id={`${uid}-help`} className="sr-only">
-          Use the left and right arrow keys to turn the page.
+          {t.help}
         </span>
       )}
 
-      <div className={styles.controls} role="group" aria-label="Page controls">
+      <div className={styles.controls} role="group" aria-label={t.controls}>
         {single ? null : (
-          <Button className={styles.turn} aria-label={wide ? "Previous spread" : "Previous page"} aria-disabled={atStart || undefined} onClick={() => !atStart && turn(-1)}>
-            <span aria-hidden="true">←</span> <span className={styles.turnText}>Previous</span>
+          <Button className={styles.turn} aria-label={wide ? t.previousSpread : t.previousPage} aria-disabled={atStart || undefined} onClick={() => !atStart && turn(-1)}>
+            <span aria-hidden="true">←</span> <span className={styles.turnText}>{t.previous}</span>
           </Button>
         )}
         <p className={styles.status}>
-          <span className={styles.narrowOnly}>{describePages([current], count)}</span>
-          <span className={styles.wideOnly}>{describePages(shown, count)}</span>
+          <span className={styles.narrowOnly}>{describePages([current], count, t)}</span>
+          <span className={styles.wideOnly}>{describePages(shown, count, t)}</span>
         </p>
         {single ? null : (
-          <Button className={styles.turn} aria-label={wide ? "Next spread" : "Next page"} aria-disabled={atEnd || undefined} onClick={() => !atEnd && turn(1)}>
-            <span className={styles.turnText}>Next</span> <span aria-hidden="true">→</span>
+          <Button className={styles.turn} aria-label={wide ? t.nextSpread : t.nextPage} aria-disabled={atEnd || undefined} onClick={() => !atEnd && turn(1)}>
+            <span className={styles.turnText}>{t.next}</span> <span aria-hidden="true">→</span>
           </Button>
         )}
       </div>
@@ -288,26 +292,26 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
       <div className={styles.tools}>
         {single ? null : (
           <form className={styles.jump} onSubmit={submitJump} noValidate /* out-of-range numbers are clamped, not rejected with a browser tooltip */>
-            <label htmlFor={`${uid}-jump`}>Go to page</label>
+            <label htmlFor={`${uid}-jump`}>{t.goToPage}</label>
             <input id={`${uid}-jump`} type="number" inputMode="numeric" min={1} max={count} value={jump} placeholder={String(current)} onChange={(e) => setJump(e.target.value)} />
             <Button type="submit" size="sm">
-              Go
+              {t.go}
             </Button>
           </form>
         )}
         {single ? null : (
           <Button size="sm" aria-expanded={showThumbs} aria-controls={thumbsId} onClick={() => setShowThumbs((v) => !v)}>
-            {showThumbs ? "Hide thumbnails" : "Thumbnails"}
+            {showThumbs ? t.hideThumbs : t.thumbs}
           </Button>
         )}
         {canFullscreen ? (
           <Button size="sm" aria-pressed={fullscreen} onClick={toggleFullscreen}>
-            {fullscreen ? "Exit full screen" : "Full screen"}
+            {fullscreen ? t.exitFullscreen : t.fullscreen}
           </Button>
         ) : null}
         {currentPage.fullSrc ? (
           <a className={styles.link} href={currentPage.fullSrc} target="_blank" rel="noreferrer">
-            Open page {current} full size
+            {t.openFull(current)}
           </a>
         ) : null}
         {actions}
@@ -319,32 +323,36 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
           pages={pages.map((p) => ({ id: p.id, thumb: p.thumb ?? p.src, width: p.width, height: p.height }))}
           current={wide ? shown : [current]}
           onSelect={(n) => go(n)}
-          label={`${label}: page thumbnails`}
+          label={t.thumbsLabel(label)}
         />
       ) : null}
 
       {hasText ? (
         <details className={styles.text} onToggle={(e) => setTextOpen(e.currentTarget.open)}>
-          <summary>Read as text</summary>
+          <summary>{t.readAsText}</summary>
           {shown.map((n) => {
             const staticText = pages[n - 1].text;
             const loaded = staticText !== undefined ? ({ status: "ready", text: staticText } as const) : texts[n];
             return (
               <div key={n} className={styles.textPage} data-current={n === current || undefined}>
-                <h3>Page {n}</h3>
+                <h3>{t.pageHeading(n)}</h3>
                 {!loaded || loaded.status === "loading" ? (
-                  <p role="status">Loading the text…</p>
+                  <p role="status">{t.loadingText}</p>
                 ) : loaded.status === "error" ? (
                   <p role="alert">
-                    The text couldn&apos;t be loaded.{" "}
+                    {t.textError}{" "}
                     <Button size="sm" onClick={() => retryText(n)}>
-                      Try again
+                      {t.retry}
                     </Button>
                   </p>
                 ) : loaded.text.trim() ? (
-                  loaded.text.split("\n").map((line, i) => <p key={i}>{line}</p>)
+                  loaded.text.split("\n").map((line, i) => (
+                    <p key={i} lang={textLang}>
+                      {line}
+                    </p>
+                  ))
                 ) : (
-                  <p>This page has no text.</p>
+                  <p>{t.noText}</p>
                 )}
               </div>
             );

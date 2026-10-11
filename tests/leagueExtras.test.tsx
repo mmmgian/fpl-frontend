@@ -1,8 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MiniBars } from "@/components/ui";
+import { MiniBars, getT } from "@/components/ui";
 import { LeagueAwards } from "@/components/views/LeagueAwards";
-import { AWARD_TITLE, awardFigure, awardLine, streakLabel, tiedNote } from "@/components/views/leagueCopy";
+import { awardFigure, awardLine, awardTitle, streakLabel, tiedNote } from "@/components/views/leagueCopy";
 import { ManagerStatsDetail, StatsToggle } from "@/components/views/ManagerStatsPanel";
 import { StandingsTable } from "@/components/views/StandingsTable";
 import { leagueStats, type Award, type AwardKey, type LeagueStats, type ManagerStats } from "@/lib/domain";
@@ -30,7 +30,7 @@ const stats = leagueStats(rows, histories)!;
 describe("award copy", () => {
   const make = (key: AwardKey, value: number, tiedWith = 0): Award => ({ key, entry: 1, value, tiedWith });
   it("has a title for every award", () => {
-    for (const key of Object.keys(AWARD_TITLE) as AwardKey[]) expect(AWARD_TITLE[key].length).toBeGreaterThan(3);
+    for (const key of Object.keys(getT().awards.titles) as AwardKey[]) expect(awardTitle(key).length).toBeGreaterThan(3);
   });
   it("names the winner and states the number it is based on", () => {
     expect(awardLine(make("weekWinner", 62), "Alpha")).toMatch(/Alpha.*62 points/);

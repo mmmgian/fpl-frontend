@@ -1,13 +1,21 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui";
-import { KIND_LABEL, formatBytes, issueAssets, type IssueSummary } from "@/lib/domain";
+import { Badge, English, getIntlLocale, getLocale, getT } from "@/components/ui";
+import { formatBytes, issueAssets, localizeIssue, type IssueSummary } from "@/lib/domain";
 import styles from "./times.module.css";
 
-const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-export const formatPublished = (iso: string) => date.format(new Date(`${iso}T00:00:00Z`));
+/** "21 Sept 2026" in the reader's language. `intl` is the page's Intl locale tag. */
+export const formatPublished = (iso: string, intl: string) => new Intl.DateTimeFormat(intl, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+
+/** "12 pages · 3.4 MB · 21 Sept 2026" */
+export function issueFacts(issue: Pick<IssueSummary, "pageCount" | "bytes" | "published">): string {
+  const t = getT().times;
+  return `${t.pages(issue.pageCount)} · ${formatBytes(issue.bytes, getLocale(), t.bytes)} · ${formatPublished(issue.published, getIntlLocale())}`;
+}
 
 /** One issue in the library: its cover, what it is, and a single link to open it. */
-export function IssueCard({ issue, priority = false }: { issue: IssueSummary; priority?: boolean }) {
+export function IssueCard({ issue: english, priority = false }: { issue: IssueSummary; priority?: boolean }) {
+  const t = getT();
+  const issue = localizeIssue(english, getLocale());
   const { width, height } = issue.cover;
   return (
     <article className={styles.card}>
@@ -26,19 +34,19 @@ export function IssueCard({ issue, priority = false }: { issue: IssueSummary; pr
       </span>
       <div className={styles.cardBody}>
         <p className={styles.cardMeta}>
-          <Badge>{KIND_LABEL[issue.kind].singular}</Badge>
-          {issue.gameweek ? <Badge tone="accent">GW{issue.gameweek}</Badge> : null}
+          <Badge>{t.times.kindSingular[issue.kind]}</Badge>
+          {issue.gameweek ? <Badge tone="accent">{t.common.gw(issue.gameweek)}</Badge> : null}
         </p>
         <h3 className={styles.cardTitle}>
           {/* The stretched link: the title is the one link, and ::after makes the whole card its target. */}
           <Link href={`/times/${issue.id}`} className={styles.cardLink}>
-            {issue.title}
+            <English>{issue.title}</English>
           </Link>
         </h3>
         {issue.kicker ? <p className={styles.kicker}>{issue.kicker}</p> : null}
         {issue.summary ? <p className={styles.summary}>{issue.summary}</p> : null}
         <p className={styles.facts}>
-          {issue.pageCount} {issue.pageCount === 1 ? "page" : "pages"} · {formatBytes(issue.bytes)} · {formatPublished(issue.published)}
+          {issueFacts(issue)}
         </p>
       </div>
     </article>

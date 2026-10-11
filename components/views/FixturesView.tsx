@@ -1,20 +1,21 @@
-import { ClubLink, Crest, FdrChip, GameweekPager, PageHeader, StateMessage } from "@/components/ui";
-import { oneDecimal } from "@/lib/domain";
+import { ClubLink, Crest, FdrChip, GameweekPager, PageHeader, StateMessage, getFormat, getIntlLocale, getT } from "@/components/ui";
 import type { FixturesModel } from "@/lib/services/models";
 import { FixturesTabs } from "./FixturesTabs";
 import styles from "./fixtures.module.css";
 
-const dateLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-
 const href = (gw: number, window: number) => `/fixtures?gw=${gw}&n=${window}`;
 
 export function FixturesView({ model }: { model: FixturesModel }) {
+  const t = getT();
+  const f = t.fixtures;
+  const format = getFormat();
+  const dateLabel = new Intl.DateTimeFormat(getIntlLocale(), { day: "numeric", month: "short", timeZone: "UTC" });
   if (model.kind === "no-season") {
     return (
       <>
-        <PageHeader title="Fixtures" />
-        <StateMessage title="No fixtures yet">
-          <p>The fixture list appears once FPL publishes the season.</p>
+        <PageHeader title={t.meta.fixtures} />
+        <StateMessage title={f.none}>
+          <p>{f.noneBody}</p>
         </StateMessage>
       </>
     );
@@ -24,14 +25,14 @@ export function FixturesView({ model }: { model: FixturesModel }) {
   return (
     <>
       <PageHeader
-        eyebrow="Fixture difficulty"
-        title="Fixtures"
+        eyebrow={f.gridEyebrow}
+        title={t.meta.fixtures}
         meta={
           <>
-            <span>Easiest run first, over GW{columns[0].gw}–GW{columns[columns.length - 1].gw}</span>
-            <span className={styles.legend} role="img" aria-label="Difficulty scale: 1 easiest to 5 hardest">
+            <span>{f.gridIntro(columns[0].gw, columns[columns.length - 1].gw)}</span>
+            <span className={styles.legend} role="img" aria-label={t.client.fdr.scale}>
               {([1, 2, 3, 4, 5] as const).map((d) => (
-                <FdrChip key={d} band={d}>
+                <FdrChip key={d} band={d} label={t.client.fdr.difficulty(d)}>
                   <span aria-hidden="true">{d}</span>
                 </FdrChip>
               ))}
@@ -41,24 +42,24 @@ export function FixturesView({ model }: { model: FixturesModel }) {
         actions={
           <>
             <FixturesTabs windows={model.windows} current={window} start={start} />
-            <GameweekPager gw={start} min={model.min} max={model.max} href={(n) => href(n, window)} label="Start gameweek" />
+            <GameweekPager gw={start} min={model.min} max={model.max} href={(n) => href(n, window)} label={t.pager.startGameweekLabel} />
           </>
         }
       />
 
-      <div className={styles.region} role="region" aria-label="Fixture difficulty table" tabIndex={0}>
+      <div className={styles.region} role="region" aria-label={f.gridRegion} tabIndex={0}>
         <table className={styles.table}>
           <caption className="sr-only">
-            Fixture difficulty from gameweek {columns[0].gw} to {columns[columns.length - 1].gw}, easiest run first
+            {f.gridCaption(columns[0].gw, columns[columns.length - 1].gw)}
           </caption>
           <thead>
             <tr>
               <th scope="col" className={`${styles.team} ${styles.corner}`}>
-                Team
+                {t.common.team}
               </th>
               {columns.map((c) => (
                 <th key={c.gw} scope="col" className={styles.gw}>
-                  <span className={styles.gwNumber}>GW{c.gw}</span>
+                  <span className={styles.gwNumber}>{t.common.gw(c.gw)}</span>
                   {c.deadline ? <span className={styles.gwDate}>{dateLabel.format(new Date(c.deadline))}</span> : null}
                 </th>
               ))}
@@ -76,11 +77,11 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                       <Crest code={row.team.code} name={row.team.name} size={22} />
                       <span className={styles.teamText}>
                         <span className={styles.teamName}>{row.team.short}</span>
-                        <span className={styles.avg}>avg {oneDecimal(row.average)}</span>
+                        <span className={styles.avg}>{f.avg(format.oneDecimal(row.average))}</span>
                       </span>
                     </ClubLink>
                     <span className="sr-only">
-                      Rank {row.rank}, {row.team.name}
+                      {f.rankSr(row.rank, row.team.name)}
                     </span>
                   </span>
                 </th>
@@ -89,16 +90,16 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                     {matches.length === 0 ? (
                       <span className={styles.blank}>
                         <span aria-hidden="true">–</span>
-                        <span className="sr-only">No fixture</span>
+                        <span className="sr-only">{f.noFixture}</span>
                       </span>
                     ) : (
                       matches.map((m, j) => (
-                        <FdrChip key={j} band={m.band} block>
+                        <FdrChip key={j} band={m.band} block label={t.client.fdr.difficulty(m.band)}>
                           <span>
                             <ClubLink id={m.opponentId} name={m.opponentName}>
                               {m.opponent}
                             </ClubLink>{" "}
-                            <span className={styles.venue}>({m.home ? "H" : "A"})</span>
+                            <span className={styles.venue}>({m.home ? f.homeShort : f.awayShort})</span>
                           </span>
                           <span className={styles.diff} aria-hidden="true">
                             {m.difficulty}

@@ -2,10 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, startTransition } from "react";
-import { Button, ButtonLink, StateMessage } from "@/components/ui";
+// Deep imports on purpose: the components/ui barrel also exports the server-side i18n, which pulls every language into the browser bundle.
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { useT } from "@/components/ui/I18nProvider";
+import { StateMessage } from "@/components/ui/StateMessage";
 
 export default function ErrorBoundary({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter();
+  const t = useT().errors;
   const headingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,21 +28,18 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       <StateMessage
         tone="error"
         headingLevel={1}
-        title="Couldn't load this page"
+        title={t.title}
         action={
           <>
             <Button variant="solid" onClick={retry}>
-              Try again
+              {t.retry}
             </Button>
-            <ButtonLink href="/">Back to table</ButtonLink>
+            <ButtonLink href="/">{t.backToTable}</ButtonLink>
           </>
         }
       >
-        <p>
-          The Fantasy Premier League API didn&apos;t respond. This usually means FPL is updating between gameweeks or is
-          under heavy load, so try again in a minute.
-        </p>
-        {error.digest ? <p>Reference: {error.digest}</p> : null}
+        <p>{t.body}</p>
+        {error.digest ? <p>{t.reference(error.digest)}</p> : null}
       </StateMessage>
     </div>
   );

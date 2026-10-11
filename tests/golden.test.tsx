@@ -7,6 +7,8 @@ import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bootstrap, event, fixture, live, picks, standing } from "./fixtures";
+import { englishLeaks, visibleTexts } from "./i18nLeaks";
+import { testLanguage } from "./language";
 
 const NOW = new Date("2026-10-11T12:00:00Z");
 
@@ -384,5 +386,66 @@ describe("history pages", () => {
     const { generateMetadata } = await import("@/app/history/[gw]/page");
     const t = [await generateMetadata({ params: Promise.resolve({ gw: "5" }) }), await generateMetadata({ params: Promise.resolve({ gw: "x" }) })];
     await expect(JSON.stringify(t) + "\n").toMatchFileSnapshot(golden("history-metadata").replace(".html", ".json"));
+  });
+});
+
+/**
+ * The same pages in Spanish and French. Not snapshots (the wording is for people to read, not to pin): a page is
+ * rendered in each language and checked for English left behind, and for actually having changed.
+ */
+describe("translated pages", () => {
+  /** Text that is English whatever the language: names from the (mocked) FPL data, and the BBC's own headline. */
+  const ALLOW = ["The Lobster League", "The Lobster Times", "Arteta gives injury update", "The Arsenal boss speaks.", "BBC Sport", "Gaucho F.C.", "gian jaen"];
+
+  async function inLanguage(locale: "en" | "es" | "fr", run: () => Promise<ReactElement>): Promise<string> {
+    testLanguage.cookie = locale;
+    const element = await run();
+    const { I18nProvider } = await import("@/components/ui/I18nProvider"); // the same module graph the page just loaded
+    return html(<I18nProvider locale={locale}>{element}</I18nProvider>);
+  }
+
+  const feed = `<?xml version="1.0"?><rss><channel><title><![CDATA[BBC Sport]]></title>
+    <item><title><![CDATA[Arteta gives injury update]]></title><description><![CDATA[The Arsenal boss speaks.]]></description><link>https://www.bbc.com/sport/football/articles/abc</link><pubDate>Sat, 10 Oct 2026 10:00:00 GMT</pubDate></item>
+  </channel></rss>`;
+  const seasonWorld = () => world([], { events: seasonEvents, teams: fourTeams });
+  const off = (status: number): [(u: string) => boolean, () => Response] => [has("/leagues-classic/"), () => new Response("x", { status })];
+
+  const cases: [name: string, routes: () => Routes, run: () => Promise<ReactElement>][] = [
+    ["league, live", () => world(), async () => (await import("@/app/page")).default()],
+    ["league, final", () => world([], { events: [event({ id: 5, name: "Gameweek 5", is_current: true, finished: true, data_checked: true })] }), async () => (await import("@/app/page")).default()],
+    ["league, unknown", () => world([off(404)]), async () => (await import("@/app/page")).default()],
+    ["league, empty", () => world([[has("/leagues-classic/"), standings({ newEntries: [{}, {}] })]]), async () => (await import("@/app/page")).default()],
+    ["league, pre-season", () => world([], { events: [event({ id: 1, name: "Gameweek 1", is_current: false, finished: false, deadline_time: "2026-12-01T00:00:00Z" })] }), async () => (await import("@/app/page")).default()],
+    ["team, live", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
+    ["team, finished week", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams("5") })],
+    ["team, no live points", () => world([[has("/event/6/live/"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
+    ["team, no history", () => world([[ends("/entry/7/history/"), () => new Response("x", { status: 404 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
+    ["team, joined later", () => world([[ends("/entry/7/"), entry({ started_event: 8 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
+    ["fixtures, feed", seasonWorld, async () => (await import("@/app/fixtures/page")).default({ searchParams: Promise.resolve({}) })],
+    ["fixtures, grid", seasonWorld, async () => (await import("@/app/fixtures/page")).default({ searchParams: Promise.resolve({ n: "5" }) })],
+    ["bonus, live", () => world(), async () => (await import("@/app/bonus/page")).default({ searchParams: gwParams() })],
+    ["bonus, finished week", () => world(), async () => (await import("@/app/bonus/page")).default({ searchParams: gwParams("5") })],
+    ["club", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response(feed)]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
+    ["club, no headlines", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
+    ["history, list", () => world(), async () => (await import("@/app/history/page")).default()],
+    ["history, snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "5" }) })],
+    ["history, rebuilt snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "4" }) })],
+    ["history, missing snapshot", () => world([[has("/history/467763/7"), () => new Response("x", { status: 404 })]]), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "7" }) })],
+  ];
+
+  describe.each(cases)("%s", (_name, routes, run) => {
+    it.each(["es", "fr"] as const)("is in %s all the way through", async (locale) => {
+      stubFetch(routes());
+      const english = await inLanguage("en", run);
+      const translated = await inLanguage(locale, run);
+      expect(english).not.toMatch(/^THROWS/);
+      expect(translated).not.toBe(english);
+      expect(englishLeaks(english, translated, locale, { allow: ALLOW })).toEqual([]);
+      // It rendered a real page, not an empty shell: plenty of visible text, most of it different from English.
+      const was = new Set(visibleTexts(english));
+      const now = visibleTexts(translated);
+      expect(now.length).toBeGreaterThan(2);
+      expect(now.filter((t) => !was.has(t)).length).toBeGreaterThan(1);
+    });
   });
 });

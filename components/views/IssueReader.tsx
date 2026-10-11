@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { ButtonAnchor } from "@/components/ui/Button";
 import { Flipbook, type FlipbookPage } from "@/components/ui/Flipbook";
-import { formatBytes } from "@/lib/domain/format";
+import { useT } from "@/components/ui/I18nProvider";
 import { issueAssets, type Issue } from "@/lib/domain/times";
 
 /** One request per issue, shared by every page (and by retries on failure). */
@@ -27,7 +27,8 @@ function fetchIssueText(id: string): Promise<string[]> {
  * Adapts an issue to the generic Flipbook and keeps `?p=` in the address bar, so any page can be shared or
  * reloaded. `replaceState` (not push) means flipping through an issue doesn't fill the Back button's history.
  */
-export function IssueReader({ issue, initialPage }: { issue: Issue; initialPage: number }) {
+export function IssueReader({ issue, initialPage, size }: { issue: Issue; initialPage: number; /** The PDF's size, formatted on the server in the page's language. */ size: string }) {
+  const t = useT().flipbook;
   const pages = useMemo<FlipbookPage[]>(
     () =>
       issue.pages.map((p) => ({
@@ -62,9 +63,10 @@ export function IssueReader({ issue, initialPage }: { issue: Issue; initialPage:
       onPageChange={syncUrl}
       loadText={loadText}
       fallbackHref={pdf}
+      textLang="en"
       actions={
         <ButtonAnchor size="sm" href={pdf} download>
-          Download PDF ({formatBytes(issue.bytes)})
+          {t.downloadPdf(size)}
         </ButtonAnchor>
       }
     />

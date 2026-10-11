@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { getT } from "./i18n";
 import styles from "./DataTable.module.css";
 
 export interface Column<T> {
@@ -37,7 +38,7 @@ export function DataTable<T>({
   columns,
   rows,
   rowKey,
-  empty = "Nothing to show yet.",
+  empty,
   isCurrentRow,
   dense,
   detail,
@@ -70,7 +71,7 @@ export function DataTable<T>({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className={styles.empty}>
-                {empty}
+                {empty ?? getT().common.nothingYet}
               </td>
             </tr>
           ) : (

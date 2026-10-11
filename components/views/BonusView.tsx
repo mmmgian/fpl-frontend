@@ -1,16 +1,17 @@
-import { Badge, GameweekPager, LiveRefresh, PageHeader, StateMessage } from "@/components/ui";
+import { Badge, GameweekPager, LiveRefresh, PageHeader, StateMessage, gameweekName, getT } from "@/components/ui";
 import type { BonusModel } from "@/lib/services/models";
-import { FixtureBonusCard, SOURCE_NOTE } from "./FixtureBonusCard";
+import { FixtureBonusCard, sourceNote } from "./FixtureBonusCard";
 import { GwStatusBadge } from "./GwStatusBadge";
 import styles from "./bonus.module.css";
 
 export function BonusView({ model }: { model: BonusModel }) {
+  const b = getT().bonus;
   if (model.kind === "no-season") {
     return (
       <>
-        <PageHeader title="Bonus points" />
-        <StateMessage title="The season hasn't started">
-          <p>Pre-season quiet. Bonus points show up here once Gameweek 1 kicks off.</p>
+        <PageHeader title={b.title} />
+        <StateMessage title={b.notStartedTitle}>
+          <p>{b.notStartedBody}</p>
         </StateMessage>
       </>
     );
@@ -20,13 +21,13 @@ export function BonusView({ model }: { model: BonusModel }) {
   return (
     <>
       <PageHeader
-        eyebrow="Bonus points"
-        title={gw.name}
+        eyebrow={b.title}
+        title={gameweekName(gw.name)}
         meta={
           <>
             <GwStatusBadge status={gw.status} />
             <span>
-              {model.finished} of {fixtures.length} matches finished
+              {b.finishedOf(model.finished, fixtures.length)}
             </span>
           </>
         }
@@ -41,10 +42,10 @@ export function BonusView({ model }: { model: BonusModel }) {
       {fixtures.length > 0 ? (
         <div className={styles.legend}>
           <span>
-            <strong>{model.counts.live}</strong> live · <strong>{model.counts.finished}</strong> finished · <strong>{model.counts.upcoming}</strong> to come
+            <strong>{model.counts.live}</strong> {b.live} · <strong>{model.counts.finished}</strong> {b.finished} · <strong>{model.counts.upcoming}</strong> {b.toCome}
           </span>
           {(["confirmed", "provisional", "projected"] as const).map((source) => {
-            const note = SOURCE_NOTE[source]!;
+            const note = sourceNote(source)!;
             return (
               <span key={source}>
                 <Badge tone={note.tone}>{note.label}</Badge> {note.help}
@@ -55,8 +56,8 @@ export function BonusView({ model }: { model: BonusModel }) {
       ) : null}
 
       {fixtures.length === 0 ? (
-        <StateMessage title={`No fixtures in ${gw.name}`}>
-          <p>Every match in this gameweek has been postponed or rescheduled.</p>
+        <StateMessage title={b.noFixturesTitle(gameweekName(gw.name))}>
+          <p>{b.noFixturesBody}</p>
         </StateMessage>
       ) : (
         <div className={styles.grid}>

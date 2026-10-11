@@ -1,17 +1,18 @@
 import Link from "next/link";
-import { ButtonLink, StateMessage } from "@/components/ui";
-import { KIND_LABEL, issueAssets } from "@/lib/domain";
+import { ButtonLink, English, StateMessage, getIntlLocale, getLocale, getT } from "@/components/ui";
+import { issueAssets, localizeIssue } from "@/lib/domain";
 import type { TimesLibraryModel } from "@/lib/services/models";
 import { IssueCard, formatPublished } from "./IssueCard";
 import styles from "./times.module.css";
 
 /** The newspaper's nameplate. Everything on /times sits under it. */
 export function Masthead() {
+  const t = getT().times;
   return (
     <header className={styles.masthead}>
       <p className={styles.mastheadTop}>
-        <span>Official gazette of the Lobster League</span>
-        <span>Every report, in print</span>
+        <span>{t.mastheadLeft}</span>
+        <span>{t.mastheadRight}</span>
       </p>
       <h1 className={styles.nameplate}>The Lobster Times</h1>
     </header>
@@ -21,18 +22,21 @@ export function Masthead() {
 const href = (kind: string | null) => (kind ? `/times?kind=${kind}` : "/times");
 
 export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
+  const t = getT().times;
   if (model.kind === "empty") {
     return (
       <>
         <Masthead />
-        <StateMessage title="Nothing has gone to print yet">
-          <p>Reports and newspapers appear here as they are published.</p>
+        <StateMessage title={t.emptyTitle}>
+          <p>{t.emptyBody}</p>
         </StateMessage>
       </>
     );
   }
 
-  const { hero, issues, filters, active } = model;
+  const { hero: heroEnglish, issues, filters, active } = model;
+  const hero = heroEnglish && localizeIssue(heroEnglish, getLocale()); // IssueCard localizes the cards itself
+
   return (
     <>
       <Masthead />
@@ -54,38 +58,40 @@ export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
           </Link>
           <div className={styles.heroText}>
             <p className={styles.eyebrow} id="latest-heading">
-              Latest edition{hero.gameweek ? ` · Gameweek ${hero.gameweek}` : ""}
+              {t.latest(hero.gameweek)}
             </p>
-            <h2 className={styles.heroTitle}>{hero.title}</h2>
+            <h2 className={styles.heroTitle}>
+              <English>{hero.title}</English>
+            </h2>
             {hero.kicker ? <p className={styles.kicker}>{hero.kicker}</p> : null}
             {hero.summary ? <p className={styles.heroSummary}>{hero.summary}</p> : null}
             <p className={styles.facts}>
-              {hero.pageCount} pages · {formatPublished(hero.published)}
+              {t.pages(hero.pageCount)} · {formatPublished(hero.published, getIntlLocale())}
             </p>
             <ButtonLink variant="solid" href={`/times/${hero.id}`}>
-              Read the issue
+              {t.read}
             </ButtonLink>
           </div>
         </section>
       ) : null}
 
-      <nav aria-label="Filter by type" className={styles.filters}>
+      <nav aria-label={t.filterBy} className={styles.filters}>
         {filters.map((f) => (
           <ButtonLink key={f.label} size="sm" variant={f.active ? "solid" : "outline"} href={href(f.value)} aria-current={f.active ? "true" : undefined} scroll={false}>
-            {f.label} <span className={styles.count}>{f.count}</span>
+            {f.value ? t.kindPlural[f.value] : t.all} <span className={styles.count}>{f.count}</span>
           </ButtonLink>
         ))}
       </nav>
 
       {issues.length === 0 ? (
-        <StateMessage title="No issues in this section yet" action={<ButtonLink href="/times">Show everything</ButtonLink>}>
-          <p>Try another type, or see the whole library.</p>
+        <StateMessage title={t.noIssuesTitle} action={<ButtonLink href="/times">{t.showAll}</ButtonLink>}>
+          <p>{t.noIssuesBody}</p>
         </StateMessage>
       ) : (
         <section aria-labelledby="issues-heading">
           {/* Always present, so the cards' h3s have an h2 above them in every state (filtered, no newspaper, ...). */}
           <h2 id="issues-heading" className={styles.archiveTitle}>
-            {active ? KIND_LABEL[active].plural : "The archive"}
+            {active ? t.kindPlural[active] : t.archive}
           </h2>
           <ul className={styles.grid}>
             {issues.map((issue, i) => (

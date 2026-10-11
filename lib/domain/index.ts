@@ -7,6 +7,7 @@ export * from "./club";
 export * from "./fdr";
 export * from "./fixtureFeed";
 export * from "./format";
+export * from "./i18n";
 export * from "./gameweek";
 export * from "./insights";
 export * from "./seasonCharts";

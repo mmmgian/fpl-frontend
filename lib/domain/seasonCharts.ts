@@ -4,6 +4,7 @@
  * Like the other season statistics, these run through the last *finished* gameweek: a gameweek in progress has
  * partial points and would drag every chart's latest point down.
  */
+import { INTL_LOCALE, type Locale } from "./i18n/locales";
 import type { FplEvent, HistoryChip, HistoryGameweek } from "./types";
 
 export interface SeasonCharts {
@@ -43,11 +44,11 @@ export function seasonCharts(current: HistoryGameweek[], events: Pick<FplEvent, 
 }
 
 /** 7295417 -> "7.3M", 147643 -> "148k", 950 -> "950". For ranks, where the digits past the second don't help. */
-export function compactNumber(n: number): string {
+export function compactNumber(n: number, locale: Locale = "en"): string {
   const abs = Math.abs(n);
-  if (abs >= 999_500) return `${trim(n / 1_000_000)}M`;       // 999,999 is "1M", not "1000k"
+  if (abs >= 999_500) return `${trim(n / 1_000_000, locale)}M`;       // 999,999 is "1M", not "1000k"
   if (abs >= 10_000) return `${Math.round(n / 1000)}k`;
-  if (abs >= 1_000) return `${trim(n / 1000)}k`;
+  if (abs >= 1_000) return `${trim(n / 1000, locale)}k`;
   return String(Math.round(n));
 }
-const trim = (x: number) => (Math.round(x * 10) / 10).toString();
+const trim = (x: number, locale: Locale) => (Math.round(x * 10) / 10).toLocaleString(INTL_LOCALE[locale], { maximumFractionDigits: 1 });

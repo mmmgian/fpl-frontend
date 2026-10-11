@@ -1,13 +1,12 @@
-import { ButtonLink, StateMessage } from "@/components/ui";
+import { ButtonLink, StateMessage, getT } from "@/components/ui";
+import { initLocale } from "./locale";
 
-export default function NotFound() {
+export default async function NotFound() {
+  await initLocale();
+  const t = getT();
   return (
-    <StateMessage
-      headingLevel={1}
-      title="Page not found"
-      action={<ButtonLink href="/">Back to table</ButtonLink>}
-    >
-      <p>We&apos;ve drawn a blank: that page, team or club doesn&apos;t exist. Team links use the numeric FPL entry ID, e.g. /team/2379133.</p>
+    <StateMessage headingLevel={1} title={t.notFound.title} action={<ButtonLink href="/">{t.common.backToTable}</ButtonLink>}>
+      <p>{t.notFound.body}</p>
     </StateMessage>
   );
 }

@@ -1,61 +1,64 @@
 import Link from "next/link";
-import { Badge, PageHeader } from "@/components/ui";
-import { KIND_LABEL, formatBytes, type IssueSummary } from "@/lib/domain";
+import { Badge, English, PageHeader, getLocale, getT } from "@/components/ui";
+import { formatBytes, localizeIssue, type IssueSummary } from "@/lib/domain";
 import type { TimesIssueModel } from "@/lib/services/models";
-import { formatPublished } from "./IssueCard";
+import { issueFacts } from "./IssueCard";
 import { IssueReader } from "./IssueReader";
 import styles from "./times.module.css";
 
 type Ok = Extract<TimesIssueModel, { kind: "ok" }>;
 
-function Neighbour({ issue, label }: { issue: IssueSummary; label: string }) {
+function Neighbour({ issue: english, label }: { issue: IssueSummary; label: string }) {
+  const issue = localizeIssue(english, getLocale());
   return (
     <Link href={`/times/${issue.id}`} className={styles.neighbour}>
       <span className={styles.eyebrow}>{label}</span>
-      <span className={styles.neighbourTitle}>{issue.title}</span>
+      <span className={styles.neighbourTitle}>
+        <English>{issue.title}</English>
+      </span>
       {issue.kicker ? <span className={styles.kicker}>{issue.kicker}</span> : null}
     </Link>
   );
 }
 
 export function TimesReaderView({ model }: { model: Ok }) {
-  const { issue, page, newer, older } = model;
+  const t = getT().times;
+  const locale = getLocale();
+  const { page, newer, older } = model;
+  const issue = localizeIssue(model.issue, locale);
   const pageLink = (n: number) => `/times/${issue.id}?p=${n}`;
 
   return (
     <>
       <PageHeader
-        back={<Link href="/times">← The Times</Link>}
-        eyebrow={issue.gameweek ? `${KIND_LABEL[issue.kind].singular} · Gameweek ${issue.gameweek}` : KIND_LABEL[issue.kind].singular}
-        title={issue.title}
+        back={<Link href="/times">{t.back}</Link>}
+        eyebrow={t.eyebrow(t.kindSingular[issue.kind], issue.gameweek)}
+        title={<English>{issue.title}</English>}
         meta={
           <>
             {issue.kicker ? <span>{issue.kicker}</span> : null}
-            <Badge>{KIND_LABEL[issue.kind].singular}</Badge>
-            <span>
-              {issue.pageCount} {issue.pageCount === 1 ? "page" : "pages"} · {formatBytes(issue.bytes)} · {formatPublished(issue.published)}
-            </span>
+            <Badge>{t.kindSingular[issue.kind]}</Badge>
+            <span>{issueFacts(issue)}</span>
+            {locale !== "en" ? <span>{t.englishOnly}</span> : null}
           </>
         }
       />
 
-      <IssueReader issue={issue} initialPage={page} />
+      <IssueReader issue={issue} initialPage={page} size={formatBytes(issue.bytes, locale, t.bytes)} />
 
       {/* The page turner needs JavaScript; this keeps every page reachable without it. */}
       <noscript>
-        <nav aria-label="Turn the page" className={styles.noscript}>
-          {page > 1 ? <a href={pageLink(page - 1)}>← Previous page</a> : null}
-          <span>
-            Page {page} of {issue.pageCount}
-          </span>
-          {page < issue.pageCount ? <a href={pageLink(page + 1)}>Next page →</a> : null}
+        <nav aria-label={t.turn} className={styles.noscript}>
+          {page > 1 ? <a href={pageLink(page - 1)}>{t.previousPage}</a> : null}
+          <span>{t.pageOf(page, issue.pageCount)}</span>
+          {page < issue.pageCount ? <a href={pageLink(page + 1)}>{t.nextPage}</a> : null}
         </nav>
       </noscript>
 
       {newer || older ? (
-        <nav aria-label="More issues" className={styles.neighbours}>
-          {older ? <Neighbour issue={older} label="← Previous issue" /> : <span />}
-          {newer ? <Neighbour issue={newer} label="Next issue →" /> : <span />}
+        <nav aria-label={t.more} className={styles.neighbours}>
+          {older ? <Neighbour issue={older} label={t.previousIssue} /> : <span />}
+          {newer ? <Neighbour issue={newer} label={t.nextIssue} /> : <span />}
         </nav>
       ) : null}
     </>

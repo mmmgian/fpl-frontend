@@ -2,10 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef } from "react";
-import { Button, ButtonLink, StateMessage } from "@/components/ui";
+// Deep imports on purpose: the components/ui barrel also exports the server-side i18n, which pulls every language into the browser bundle.
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { useT } from "@/components/ui/I18nProvider";
+import { StateMessage } from "@/components/ui/StateMessage";
 
 export default function HistoryError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter();
+  const t = useT().errors;
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     console.error(error);
@@ -17,7 +21,7 @@ export default function HistoryError({ error, reset }: { error: Error & { digest
       <StateMessage
         tone="error"
         headingLevel={1}
-        title="History is unavailable right now"
+        title={t.historyTitle}
         action={
           <>
             <Button
@@ -29,13 +33,13 @@ export default function HistoryError({ error, reset }: { error: Error & { digest
                 })
               }
             >
-              Try again
+              {t.retry}
             </Button>
-            <ButtonLink href="/">Back to table</ButtonLink>
+            <ButtonLink href="/">{t.backToTable}</ButtonLink>
           </>
         }
       >
-        <p>The history server didn&apos;t answer. It runs on free hosting that sleeps when idle; trying again usually works once it has woken up.</p>
+        <p>{t.historyBody}</p>
       </StateMessage>
     </div>
   );

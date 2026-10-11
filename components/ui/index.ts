@@ -1,4 +1,5 @@
-export { Badge, CaptainBadge } from "./Badge";
+export { Badge } from "./Badge";
+export { CaptainBadge } from "./CaptainBadge";
 export type { BadgeTone } from "./Badge";
 export { BarChart, ChartKey, LineChart } from "./Charts";
 export type { Bar, LinePoint } from "./Charts";
@@ -6,6 +7,10 @@ export { Button, ButtonAnchor, ButtonLink, ButtonPlaceholder } from "./Button";
 export { Card } from "./Card";
 export { ClubLink } from "./ClubLink";
 export { Crest } from "./Crest";
+export { English } from "./English";
+export { I18nProvider, useIntlLocale, useLocale, useT } from "./I18nProvider";
+export { gameweekName, gameweekShort, getFormat, getIntlLocale, getLocale, getT, setRequestLocale } from "./i18n";
+export { LanguageSwitcher } from "./LanguageSwitcher";
 export { CrestFallback } from "./CrestFallback";
 export { DataTable } from "./DataTable";
 export type { Column } from "./DataTable";

@@ -25,13 +25,3 @@ export function Badge({ children, tone = "neutral", srLabel, title }: BadgeProps
     </span>
   );
 }
-
-export function CaptainBadge({ vice = false, multiplier = 2 }: { vice?: boolean; multiplier?: number }) {
-  if (vice) return <Badge srLabel="Vice-captain">VC</Badge>;
-  const triple = multiplier === 3;
-  return (
-    <Badge tone="accent" srLabel={triple ? "Triple captain" : "Captain"}>
-      {triple ? "C×3" : "C"}
-    </Badge>
-  );
-}

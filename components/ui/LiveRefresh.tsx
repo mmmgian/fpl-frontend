@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "./Button";
+import { useIntlLocale, useT } from "./I18nProvider";
 import styles from "./LiveRefresh.module.css";
 
 interface LiveRefreshProps {
@@ -22,6 +23,8 @@ interface LiveRefreshProps {
  */
 export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_000 }: LiveRefreshProps) {
   const router = useRouter();
+  const t = useT();
+  const intl = useIntlLocale();
   const [pending, startTransition] = useTransition();
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [refreshSeq, setRefreshSeq] = useState(0);
@@ -73,11 +76,11 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
   return (
     <div className={styles.wrap}>
       <span className={styles.status}>
-        {pending ? "Updating…" : enabled ? "Auto-updates every minute" : null}
-        {!pending && updatedAt ? ` · last ${updatedAt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : null}
+        {pending ? t.live.updating : enabled ? t.live.auto : null}
+        {!pending && updatedAt ? t.live.last(updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" })) : null}
       </span>
       <Button size="sm" variant="ghost" onClick={refresh} disabled={pending}>
-        Refresh
+        {t.live.refresh}
       </Button>
     </div>
   );

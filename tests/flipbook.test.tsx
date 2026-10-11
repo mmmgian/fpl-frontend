@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Flipbook, type FlipbookPage } from "@/components/ui/Flipbook";
+import { I18nProvider } from "@/components/ui/I18nProvider";
 import { expectNoAxeViolations } from "./axe";
 
 const makePages = (n: number, withText = true): FlipbookPage[] =>
@@ -484,6 +485,44 @@ describe("accessibility", () => {
     await user.click(screen.getByText("Read as text"));
     await expectNoAxeViolations(container);
     fireEvent.error(screen.getByRole("img", { name: "Page 1 of 5" }));
+    await expectNoAxeViolations(container);
+  });
+});
+
+describe("in other languages", () => {
+  const read = (locale: "es" | "fr") =>
+    render(
+      <I18nProvider locale={locale}>
+        <Flipbook pages={makePages(5)} label="Issue 5" defaultPage={1} fallbackHref="/x.pdf" actions={<a href="/x.pdf">PDF</a>} />
+      </I18nProvider>,
+    );
+
+  it.each([
+    ["es", { img: "Página 1 de 5", next: /siguiente/i, thumbs: "Miniaturas", text: "Leer como texto", full: "Abrir la página 1 a tamaño completo", turned: "Página 2 de 5", jump: "Ir a la página" }],
+    ["fr", { img: "Page 1 sur 5", next: /suivante/i, thumbs: "Miniatures", text: "Lire en texte", full: "Ouvrir la page 1 en taille réelle", turned: "Page 2 sur 5", jump: "Aller à la page" }],
+  ] as const)("speaks %s: names, buttons, links and the announcement when the page turns", async (locale, w) => {
+    const user = userEvent.setup();
+    read(locale);
+    expect(screen.getByRole("img", { name: w.img })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: w.thumbs })).toBeInTheDocument();
+    expect(screen.getByText(w.text)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: w.full })).toBeInTheDocument();
+    expect(screen.getByLabelText(w.jump)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: w.next }));
+    expect(status()).toHaveTextContent(w.turned); // what a screen reader is told
+    expect(document.body.textContent).not.toMatch(/Previous|Thumbnails|Read as text|Go to page/);
+  });
+
+  it("offers the PDF instead, in the reader's language, when a page can't load", () => {
+    read("fr");
+    fireEvent.error(screen.getByRole("img", { name: "Page 1 sur 5" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger cette page.");
+    expect(screen.getByRole("link", { name: "Ouvrir plutôt le PDF" })).toHaveAttribute("href", "/x.pdf");
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+  });
+
+  it("has no axe violations in French", async () => {
+    const { container } = read("fr");
     await expectNoAxeViolations(container);
   });
 });

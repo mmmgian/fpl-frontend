@@ -62,6 +62,8 @@ export interface EuropePort {
 /** Injectable clock, so "is this gameweek live?" is testable. */
 export interface ServiceOptions {
   now?: () => Date;
-  /** If given, managers without a badge of their own get their drawn avatar. */
+  /** If given, managers get their drawn avatar as their badge. */
   avatars?: AvatarPort;
+  /** Also replace badges managers uploaded themselves (a consistent look). Off unless asked for. */
+  replaceBadges?: boolean;
 }

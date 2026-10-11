@@ -142,3 +142,33 @@ export function parseEnv(text) {
 export function redact(text, key) {
   return key ? String(text).split(key).join("[key]") : String(text);
 }
+
+/** "2379133-gaucho-f-c.png" -> { entry: 2379133, slug: "gaucho-f-c" }. Only the leading id matters; null if there isn't one. */
+export function parseMascotFilename(name) {
+  const m = String(name).match(/^(\d{1,10})(?:[-_ ](.*?))?\.(png|webp|jpe?g)$/i);
+  return m && Number(m[1]) > 0 ? { entry: Number(m[1]), slug: m[2] ?? "", ext: m[3].toLowerCase() } : null;
+}
+
+/**
+ * Which file goes to which manager. `files` are file names, `rows` the league table. Reports, rather than guesses at,
+ * everything that doesn't line up: files for nobody in the league, two files for one manager, managers with no file.
+ */
+export function planImport(files, rows) {
+  const byEntry = new Map(rows.map((r) => [r.entry, r]));
+  const matched = [];
+  const unmatched = [];
+  const duplicates = [];
+  const seen = new Map();
+  for (const file of [...files].sort()) {
+    const parsed = parseMascotFilename(file);
+    if (!parsed) { unmatched.push({ file, reason: "the name doesn't start with a manager id" }); continue; }
+    const row = byEntry.get(parsed.entry);
+    if (!row) { unmatched.push({ file, reason: `no manager with id ${parsed.entry} in this league` }); continue; }
+    if (seen.has(parsed.entry)) { duplicates.push({ entry: parsed.entry, files: [seen.get(parsed.entry), file] }); continue; }
+    seen.set(parsed.entry, file);
+    matched.push({ file, entry: parsed.entry, teamName: row.entry_name, slug: parsed.slug });
+  }
+  const covered = new Set(matched.map((m) => m.entry));
+  const missing = rows.filter((r) => !covered.has(r.entry)).map((r) => ({ entry: r.entry, teamName: r.entry_name }));
+  return { matched, unmatched, duplicates, missing, ok: unmatched.length === 0 && duplicates.length === 0 && missing.length === 0 };
+}

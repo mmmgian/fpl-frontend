@@ -9,60 +9,16 @@
 //   npm run generate -- --only 2379133 --force     redraw one
 //
 // The key comes from GEMINI_API_KEY in the environment or in ../../.env.local (which git ignores). It is never printed.
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { OUT_DIR, ROOT, leagueRows, readManifest, sha, toWebp, writeAvatar, writeManifest } from "./io.mjs";
 import { buildPrompt, buildRequest, DEFAULT_MODEL, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact } from "./lib.mjs";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, "..", "..");
-// The two overrides exist so the script can be rehearsed against a fake server without touching the repo.
-const OUT_DIR = process.env.AVATAR_OUT_DIR || join(root, "public", "avatars");
-const MANIFEST = process.env.AVATAR_MANIFEST || join(root, "lib", "avatars", "manifest.json");
-const SIZE = 256;
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const sha = (buf) => createHash("sha256").update(buf).digest("hex");
-
-function readManifest() {
-  if (!existsSync(MANIFEST)) return { version: 1, avatars: {} };
-  const m = JSON.parse(readFileSync(MANIFEST, "utf8"));
-  return { version: 1, avatars: m.avatars ?? {} };
-}
-
-function writeManifest(m) {
-  mkdirSync(dirname(MANIFEST), { recursive: true });
-  const sorted = Object.fromEntries(Object.entries(m.avatars).sort(([a], [b]) => Number(a) - Number(b)));
-  const tmp = `${MANIFEST}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify({ version: 1, avatars: sorted }, null, 2)}\n`);
-  renameSync(tmp, MANIFEST); // never leave a half-written manifest
-}
-
-async function leagueRows(league) {
-  const rows = [];
-  for (let page = 1; page <= 20; page++) {
-    const res = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${league}/standings/?page_standings=${page}`, { headers: { "user-agent": "lobster-league-avatars" } });
-    if (!res.ok) throw new Error(`FPL answered ${res.status} for league ${league}`);
-    const body = await res.json();
-    rows.push(...(body.standings?.results ?? []));
-    if (!body.standings?.has_next) break;
-  }
-  return rows;
-}
-
-async function toWebp(bytes) {
-  const { createCanvas, loadImage } = await import("@napi-rs/canvas");
-  const img = await loadImage(bytes);
-  const side = Math.min(img.width, img.height); // crop to the centre square
-  const canvas = createCanvas(SIZE, SIZE);
-  canvas.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE);
-  return canvas.toBuffer("image/webp", 82);
-}
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const envFile = existsSync(join(root, ".env.local")) ? parseEnv(readFileSync(join(root, ".env.local"), "utf8")) : {};
+  const envFile = existsSync(join(ROOT, ".env.local")) ? parseEnv(readFileSync(join(ROOT, ".env.local"), "utf8")) : {};
   const key = process.env.GEMINI_API_KEY || envFile.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || envFile.GOOGLE_API_KEY;
   const model = opts.model || process.env.GEMINI_IMAGE_MODEL || envFile.GEMINI_IMAGE_MODEL || DEFAULT_MODEL;
   const league = opts.league ?? (Number(process.env.LEAGUE_ID || envFile.LEAGUE_ID) || 467763);
@@ -114,8 +70,7 @@ async function main() {
       }
       const webp = await toWebp(image.bytes);
       const file = `${row.entry}.webp`;
-      writeFileSync(join(OUT_DIR, `${file}.tmp`), webp);
-      renameSync(join(OUT_DIR, `${file}.tmp`), join(OUT_DIR, file)); // a crash mid-write must never leave a half-written avatar
+      writeAvatar(file, webp);
       manifest.avatars[row.entry] = { file, sha256: sha(webp), teamName: row.entry_name, model, api: opts.api, prompt, generatedAt: new Date().toISOString() };
       writeManifest(manifest);
       made++;

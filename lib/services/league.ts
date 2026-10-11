@@ -24,7 +24,7 @@ async function loadHistories(fpl: Pick<FplPort, "history">, rows: StandingRow[])
 }
 
 /** Use case: the league table with this gameweek's headline numbers, and the fun extras when the data is there. */
-export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap" | "history">, { now = () => new Date(), avatars }: ServiceOptions = {}) {
+export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap" | "history">, { now = () => new Date(), avatars, replaceBadges }: ServiceOptions = {}) {
   return {
     async load(leagueId: number): Promise<LeagueModel> {
       // Both requests start together; bootstrap is only needed once the league is known to exist.
@@ -34,7 +34,7 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
       const standings = await fpl.standings(leagueId);
       if (!standings) return { kind: "not-found", leagueId };
 
-      const rows = withAvatars(standings.standings.results, avatars);
+      const rows = withAvatars(standings.standings.results, avatars, { replaceBadges });
       const [{ events }, histories] = await Promise.all([
         bootstrapRequest,
         // Only for leagues of a size where one request per manager is reasonable; bigger ones get the plain table.

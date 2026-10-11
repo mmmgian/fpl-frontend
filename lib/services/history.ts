@@ -22,7 +22,7 @@ function rebuiltNote(raw: unknown, rows: StandingRow[]): SnapshotModel["rebuilt"
 }
 
 /** Use case: browse the league table as it stood at the end of past gameweeks. */
-export function createHistoryService(history: HistoryPort, avatars?: AvatarPort) {
+export function createHistoryService(history: HistoryPort, avatars?: AvatarPort, { replaceBadges = false }: { replaceBadges?: boolean } = {}) {
   return {
     /** Newest first. */
     async list(leagueId: number): Promise<SnapshotListItem[]> {
@@ -34,7 +34,7 @@ export function createHistoryService(history: HistoryPort, avatars?: AvatarPort)
     async snapshot(leagueId: number, gw: number): Promise<SnapshotModel | null> {
       const snap = await history.get(leagueId, gw);
       if (!snap) return null;
-      const rows = withAvatars(snap.data?.standings?.results ?? [], avatars);
+      const rows = withAvatars(snap.data?.standings?.results ?? [], avatars, { replaceBadges });
       return {
         gw,
         leagueName: snap.data?.league?.name ?? "League",

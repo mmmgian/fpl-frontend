@@ -1,1 +1,194 @@
-{ "version": 1, "avatars": {} }
+{
+  "version": 1,
+  "avatars": {
+    "1554375": {
+      "file": "1554375.webp",
+      "sha256": "69451f3da0ba2fe7a8c8452da7f4eeff433a3cc6466f20e7305407b9ebb18850",
+      "teamName": "are you aMAD",
+      "model": "imported",
+      "api": "manual",
+      "source": "1554375-are-you-amad.png",
+      "generatedAt": "2026-10-11T22:00:49.171Z"
+    },
+    "2379133": {
+      "file": "2379133.webp",
+      "sha256": "c433162750ba7bc8fbd66df3c30bdf14428dcbe91f60d98e17b5ebbc0ec89a5d",
+      "teamName": "Gaucho F.C.",
+      "model": "imported",
+      "api": "manual",
+      "source": "2379133-gaucho-f-c.png",
+      "generatedAt": "2026-10-11T22:00:49.171Z"
+    },
+    "2836224": {
+      "file": "2836224.webp",
+      "sha256": "8bbdd640cef22f74528ed2709f97a864673bd91e8678ba819d1ef161d7fc5530",
+      "teamName": "captain bruno",
+      "model": "imported",
+      "api": "manual",
+      "source": "2836224-captain-bruno.png",
+      "generatedAt": "2026-10-11T22:00:49.171Z"
+    },
+    "2994918": {
+      "file": "2994918.webp",
+      "sha256": "3c2dca1bae50679c9cc5d969c16023623a2a3e2c2ac133ad64d1c803f7b46a84",
+      "teamName": "El Cochiloco",
+      "model": "imported",
+      "api": "manual",
+      "source": "2994918-el-cochiloco.png",
+      "generatedAt": "2026-10-11T22:00:49.171Z"
+    },
+    "5266078": {
+      "file": "5266078.webp",
+      "sha256": "2f58d449264c9766ad364b1390c55df3f96f32ff01b2d91a0899e90db2fa5434",
+      "teamName": "Gunner4Lyfe",
+      "model": "imported",
+      "api": "manual",
+      "source": "5266078-gunner4lyfe.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "5320072": {
+      "file": "5320072.webp",
+      "sha256": "44e8f947ef578cdbc66fccce8651051d565c96334447e9564929d2ec32492e7e",
+      "teamName": "Bart's Team",
+      "model": "imported",
+      "api": "manual",
+      "source": "5320072-bart-s-team.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "5790834": {
+      "file": "5790834.webp",
+      "sha256": "a6585e060163b18ff530091f44b5802b53f9738bad4cb273958c669838df0a0d",
+      "teamName": "Saka la bolsita",
+      "model": "imported",
+      "api": "manual",
+      "source": "5790834-saka-la-bolsita.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "5851395": {
+      "file": "5851395.webp",
+      "sha256": "e01d9d18b682c1fd7e205ea44b382d9bab2ada18b78f5308c7debd807d6c912c",
+      "teamName": "sakadeez",
+      "model": "imported",
+      "api": "manual",
+      "source": "5851395-sakadeez.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "5926727": {
+      "file": "5926727.webp",
+      "sha256": "e6cac177f5b46c8f9fcb164e5026d075abf991926fa5ee49b6ed0c8010bf94f4",
+      "teamName": "FK Jizmaila Sarr",
+      "model": "imported",
+      "api": "manual",
+      "source": "5926727-fk-jizmaila-sarr.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "6220185": {
+      "file": "6220185.webp",
+      "sha256": "5dcc95424d926e03bea3a9de346045f8a5433453c634196e4818a28cbf4516ac",
+      "teamName": "Newpi",
+      "model": "imported",
+      "api": "manual",
+      "source": "6220185-newpi.png",
+      "generatedAt": "2026-10-11T22:00:49.172Z"
+    },
+    "6315036": {
+      "file": "6315036.webp",
+      "sha256": "fd931a7de8485622f722327542a2aa99aa36a079f5c60d6bf66b60866e89bd64",
+      "teamName": "GP FC",
+      "model": "imported",
+      "api": "manual",
+      "source": "6315036-gp-fc.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "6535294": {
+      "file": "6535294.webp",
+      "sha256": "dc9164796d42f803885200748ebdccb00defd8e0eb41654fd44c0301e25ef021",
+      "teamName": "Dang Football Club",
+      "model": "imported",
+      "api": "manual",
+      "source": "6535294-dang-football-club.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "6838812": {
+      "file": "6838812.webp",
+      "sha256": "3c020768502842ab8a3b8aceb2d4356f361869cfb4132af8d43c7c5ad6fa9105",
+      "teamName": "Akatsuki",
+      "model": "imported",
+      "api": "manual",
+      "source": "6838812-akatsuki.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "7073878": {
+      "file": "7073878.webp",
+      "sha256": "1661fd0b4c9b53b4efc1fc72f107930e559f84145a9856eec2b45f241dc24e17",
+      "teamName": "The Special Ones",
+      "model": "imported",
+      "api": "manual",
+      "source": "7073878-the-special-ones.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "7389045": {
+      "file": "7389045.webp",
+      "sha256": "362669021c918e2c9ef70c8717db412753f93558b650e37fe29fe5e3aad82859",
+      "teamName": "papoy",
+      "model": "imported",
+      "api": "manual",
+      "source": "7389045-papoy.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "7456185": {
+      "file": "7456185.webp",
+      "sha256": "8531841a32e7ca8308100c4fb1e8e16f50e7418fa3bfef044c1994c426b27827",
+      "teamName": "MAD Baller",
+      "model": "imported",
+      "api": "manual",
+      "source": "7456185-mad-baller.png",
+      "generatedAt": "2026-10-11T22:00:49.173Z"
+    },
+    "7475777": {
+      "file": "7475777.webp",
+      "sha256": "0041802c83fa6c411e1450a99f850d23e4f98cb39ae00ab1b89cf4f207647f1a",
+      "teamName": "Red Lobster FC",
+      "model": "imported",
+      "api": "manual",
+      "source": "7475777-red-lobster-fc.png",
+      "generatedAt": "2026-10-11T22:00:49.174Z"
+    },
+    "7533718": {
+      "file": "7533718.webp",
+      "sha256": "54efae0e0a6ae46415c9b184562a7bdf80ffce33f058a83e83aab7cddb4f64c0",
+      "teamName": "fc rtw",
+      "model": "imported",
+      "api": "manual",
+      "source": "7533718-fc-rtw.png",
+      "generatedAt": "2026-10-11T22:00:49.174Z"
+    },
+    "7555187": {
+      "file": "7555187.webp",
+      "sha256": "21a3aab6691cf4240fea461a1d5ff815e2dfc49aebe32423be1e43b0aab3ccca",
+      "teamName": "szobamela",
+      "model": "imported",
+      "api": "manual",
+      "source": "7555187-szobamela.png",
+      "generatedAt": "2026-10-11T22:00:49.174Z"
+    },
+    "8198675": {
+      "file": "8198675.webp",
+      "sha256": "e3256dacf01abb90fb4373aaf24df0bcda5d248eeecf37ac266e8947ea8dffdc",
+      "teamName": "Camp Nou Way",
+      "model": "imported",
+      "api": "manual",
+      "source": "8198675-camp-nou-way.png",
+      "generatedAt": "2026-10-11T22:00:49.174Z"
+    },
+    "10039558": {
+      "file": "10039558.webp",
+      "sha256": "619281651f398a668dc985cd6022ee458cc176a69f603cf498ddd2dca2824948",
+      "teamName": "BruceBall",
+      "model": "imported",
+      "api": "manual",
+      "source": "10039558-bruceball.png",
+      "generatedAt": "2026-10-11T22:00:49.163Z"
+    }
+  }
+}

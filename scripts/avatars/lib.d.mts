@@ -11,3 +11,12 @@ export interface Options { limit: number; all: boolean; force: boolean; dryRun: 
 export function parseArgs(argv: string[]): Options;
 export function parseEnv(text: string): Record<string, string>;
 export function redact(text: unknown, key: string | undefined): string;
+export function parseMascotFilename(name: string): { entry: number; slug: string; ext: string } | null;
+export interface ImportPlan {
+  matched: { file: string; entry: number; teamName: string; slug: string }[];
+  unmatched: { file: string; reason: string }[];
+  duplicates: { entry: number; files: string[] }[];
+  missing: { entry: number; teamName: string }[];
+  ok: boolean;
+}
+export function planImport(files: string[], rows: { entry: number; entry_name: string }[]): ImportPlan;

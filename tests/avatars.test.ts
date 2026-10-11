@@ -5,7 +5,7 @@ import { createHistoryService } from "@/lib/services/history";
 import { createLeagueService } from "@/lib/services/league";
 import { standing } from "./fixtures";
 import { clock, fakeFpl, fakeHistory } from "./support";
-import { API_BASE, DEFAULT_MODEL, buildPrompt, buildRequest, cleanName, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact } from "../scripts/avatars/lib.mjs";
+import { API_BASE, DEFAULT_MODEL, buildPrompt, parseMascotFilename, planImport, buildRequest, cleanName, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact } from "../scripts/avatars/lib.mjs";
 
 // ------------------------------------------------------------------------------------- the generator's helpers
 
@@ -174,6 +174,12 @@ describe("withAvatars", () => {
     const out = withAvatars(rows, avatars);
     expect(out.map((r) => r.club_badge_src)).toEqual(["/avatars/1.webp?v=bbbbbbbbbb", "https://own.example/badge.png", null]);
   });
+  it("with replaceBadges, everyone who has an avatar shows it (their own badge included); those without keep what they had", () => {
+    const out = withAvatars(rows, avatars, { replaceBadges: true });
+    expect(out.map((r) => r.club_badge_src)).toEqual(["/avatars/1.webp?v=bbbbbbbbbb", "/avatars/2.webp?v=cccccccccc", null]);
+    const keeps = withAvatars([{ entry: 9, club_badge_src: "https://own.example/b.png" }], avatars, { replaceBadges: true });
+    expect(keeps[0].club_badge_src).toBe("https://own.example/b.png");              // an own badge is only replaced when there is an avatar to replace it with
+  });
   it("does not mutate its input, and does nothing without a gateway", () => {
     const before = JSON.stringify(rows);
     withAvatars(rows, avatars);
@@ -198,9 +204,52 @@ describe("avatars in the services", () => {
     if (model.kind !== "ok") throw new Error("expected ok");
     expect(model.rows[0].club_badge_src).toBeNull();
   });
+  it("the league table can show avatars in place of managers' own badges when asked", async () => {
+    const svc = createLeagueService(fakeFpl({ standings: async () => league([standing({ entry: 1, club_badge_src: "https://own/b.png" })]), history: async () => null }), { now: clock, avatars, replaceBadges: true });
+    const model = await svc.load(1);
+    if (model.kind !== "ok") throw new Error("expected ok");
+    expect(model.rows[0].club_badge_src).toBe("/avatars/1.webp?v=dddddddddd");
+  });
   it("past tables show them too", async () => {
     const snap = { gw: 3, taken_at: "t", league_id: 1, data: { league: { id: 1, name: "L" }, standings: { has_next: false, results: [standing({ entry: 1, club_badge_src: null })] } } };
     const svc = createHistoryService(fakeHistory({ get: async () => snap as never }), avatars);
     expect((await svc.snapshot(1, 3))?.rows[0].club_badge_src).toBe("/avatars/1.webp?v=dddddddddd");
+  });
+});
+
+// ------------------------------------------------------------------------------------- importing finished images
+
+describe("parseMascotFilename", () => {
+  it("reads the manager id from the start of the name", () => {
+    expect(parseMascotFilename("2379133-gaucho-f-c.png")).toEqual({ entry: 2379133, slug: "gaucho-f-c", ext: "png" });
+    expect(parseMascotFilename("10039558-bruceball.PNG")).toMatchObject({ entry: 10039558, ext: "png" });
+    expect(parseMascotFilename("77.webp")).toEqual({ entry: 77, slug: "", ext: "webp" });
+    expect(parseMascotFilename("5_x y.jpeg")).toMatchObject({ entry: 5, slug: "x y" });
+  });
+  it("refuses anything without a leading id or a picture extension", () => {
+    for (const bad of ["gaucho.png", "-123.png", "0-zero.png", "12345678901234-too-long.png", "123-notes.txt", "123.png.zip", "", ".DS_Store", "contact-sheet.png"]) expect(parseMascotFilename(bad), bad).toBeNull();
+  });
+});
+
+describe("planImport", () => {
+  const rows = [{ entry: 1, entry_name: "Alpha" }, { entry: 2, entry_name: "Beta" }, { entry: 3, entry_name: "Gamma" }];
+  it("matches each file to its manager by id, whatever the slug says", () => {
+    const p = planImport(["3-gamma.png", "1-totally-wrong-name.png", "2-beta.png"], rows);
+    expect(p.ok).toBe(true);
+    expect(p.matched.map((m) => [m.entry, m.teamName])).toEqual([[1, "Alpha"], [2, "Beta"], [3, "Gamma"]]);
+  });
+  it("reports a file for nobody, a file with no id, a missing manager and a duplicate, instead of guessing", () => {
+    const p = planImport(["1-alpha.png", "1-alpha-again.png", "99-stranger.png", "notes.png"], rows);
+    expect(p.ok).toBe(false);
+    expect(p.matched.map((m) => m.entry)).toEqual([1]);
+    expect(p.duplicates).toHaveLength(1);
+    expect(p.duplicates[0].entry).toBe(1);
+    expect(p.duplicates[0].files).toHaveLength(2);
+    expect(p.unmatched.map((u) => u.file).sort()).toEqual(["99-stranger.png", "notes.png"]);
+    expect(p.missing.map((m) => m.entry)).toEqual([2, 3]);
+  });
+  it("an empty folder leaves everyone missing", () => {
+    expect(planImport([], rows).missing).toHaveLength(3);
+    expect(planImport([], rows).ok).toBe(false);
   });
 });

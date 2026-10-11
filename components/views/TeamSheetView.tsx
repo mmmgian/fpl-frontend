@@ -1,4 +1,4 @@
-import { Card, CaptainBadge, Crest, DataTable, FdrChip, type Column } from "@/components/ui";
+import { Card, CaptainBadge, ClubLink, Crest, DataTable, FdrChip, type Column } from "@/components/ui";
 import { fdrBand, POSITION_LABEL, subtotal, type SheetPlayer, type TeamSheet } from "@/lib/domain";
 import type { NextMatch } from "@/lib/services/models";
 import styles from "./views.module.css";
@@ -38,10 +38,17 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
       header: "Club",
       width: "4.75rem",
       cell: (p) => (
-        <span className={styles.clubCell}>
-          <Crest code={p.clubCode} name={p.club} size={18} />
-          {p.club}
-        </span>
+        p.teamId === null ? (
+          <span className={styles.clubCell}>
+            <Crest code={p.clubCode} name={p.club} size={18} />
+            {p.club}
+          </span>
+        ) : (
+          <ClubLink id={p.teamId} name={p.club} className={styles.clubCell}>
+            <Crest code={p.clubCode} name={p.club} size={18} />
+            {p.club}
+          </ClubLink>
+        )
       ),
     },
   ];

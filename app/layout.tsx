@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { CrestFallback, SiteHeader, SkipLink } from "@/components/ui";
 import { SITE_NAME } from "@/lib/config";
+import { THEME_SCRIPT } from "@/lib/domain";
 import "./globals.css";
 import styles from "./layout.module.css";
 
@@ -21,7 +22,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // data-theme is set by the script below before first paint, so React must not treat it as a mismatch.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <SkipLink />
         <SiteHeader siteName={SITE_NAME} />

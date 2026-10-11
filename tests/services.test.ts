@@ -200,14 +200,65 @@ describe("bonus service", () => {
 
 describe("history service", () => {
   it("lists newest first and renames fields for the view", async () => {
-    const svc = createHistoryService(fakeHistory({ list: async () => [{ gw: 1, taken_at: "a" }, { gw: 3, taken_at: "b" }] }));
-    expect(await svc.list(1)).toEqual([{ gw: 3, takenAt: "b" }, { gw: 1, takenAt: "a" }]);
+    const svc = createHistoryService(fakeHistory({ list: async () => [{ gw: 1, taken_at: "a" }, { gw: 3, taken_at: "b", rebuilt: true }] }));
+    expect(await svc.list(1)).toEqual([{ gw: 3, takenAt: "b", rebuilt: true }, { gw: 1, takenAt: "a", rebuilt: false }]);    // an older backend sends no flag: saved at the time
+  });
+
+  describe("a table rebuilt afterwards", () => {
+    const rows = [
+      { entry: 1, entry_name: "Alpha", player_name: "a", rank: 1, last_rank: 0, event_total: 60, total: 60, rank_approximate: true },
+      { entry: 2, entry_name: "Beta", player_name: "b", rank: 2, last_rank: 0, event_total: 60, total: 60, rank_approximate: true },
+      { entry: 3, entry_name: "Gamma", player_name: "c", rank: 3, last_rank: 0, event_total: 50, total: 50 },
+    ];
+    const snap = (reconstructed: unknown) =>
+      createHistoryService(fakeHistory({ get: async () => ({ gw: 1, taken_at: "2026-10-11T12:00:00+00:00", league_id: 1, data: { league: { id: 1, name: "L" }, standings: { has_next: false, results: rows }, reconstructed } } as never) }));
+
+    it("says so, and names who is level on points and overall rank", async () => {
+      const m = await snap({ gw: 1, built_at: "2026-10-11T12:00:00+00:00", unresolved_ties: [{ total: 60, entries: [1, 2] }] }).snapshot(1, 1);
+      expect(m?.rebuilt).toEqual({ builtAt: "2026-10-11T12:00:00+00:00", level: [{ total: 60, names: ["Alpha", "Beta"] }], movementApproximate: false });
+    });
+
+    it("a normal snapshot is not marked", async () => {
+      expect((await snap(undefined).snapshot(1, 1))?.rebuilt).toBeNull();
+    });
+
+    it.each([["a string", "x"], ["null", null], ["no date", { gw: 1 }], ["a numeric date", { built_at: 5 }]])("a malformed note (%s) means 'not rebuilt', never an error", async (_n, note) => {
+      expect((await snap(note).snapshot(1, 1))?.rebuilt).toBeNull();
+    });
+
+    it("ignores tie groups it can't make sense of, and entries that aren't in the table", async () => {
+      const m = await snap({ built_at: "t", unresolved_ties: [{ total: 60, entries: [1, 99] }, { total: "x", entries: [1, 2] }, "junk", { total: 5 }, { total: 60, entries: [2, 1] }] }).snapshot(1, 1);
+      expect(m?.rebuilt?.level).toEqual([{ total: 60, names: ["Beta", "Alpha"] }]);      // a "group" needs at least two real members
+    });
+
+    describe("movementApproximate", () => {
+      const with_ = async (results: unknown[]) =>
+        createHistoryService(fakeHistory({ get: async () => ({ gw: 2, taken_at: "t", league_id: 1, data: { league: { id: 1, name: "L" }, standings: { has_next: false, results }, reconstructed: { built_at: "t" } } } as never) }))
+          .snapshot(1, 2).then((m) => m?.rebuilt?.movementApproximate);
+
+      it("is true when the earlier rank behind a movement is a guess", async () => {
+        expect(await with_([{ ...rows[0], last_rank: 2, last_rank_approximate: true }])).toBe(true);
+      });
+      it("is true when this table's own rank is the guess", async () => {
+        expect(await with_([{ ...rows[0], last_rank: 2, rank_approximate: true }])).toBe(true);
+      });
+      it("is false for a new entry, which has no movement to qualify", async () => {
+        expect(await with_([{ ...rows[0], last_rank: 0, rank_approximate: true, last_rank_approximate: true }])).toBe(false);
+      });
+      it("is false when nothing is approximate", async () => {
+        expect(await with_([{ ...rows[2], last_rank: 2 }])).toBe(false);          // rows[2] (Gamma) is the one clean row
+      });
+    });
+
+    it("tolerates a missing tie list", async () => {
+      expect((await snap({ built_at: "t" }).snapshot(1, 1))?.rebuilt).toEqual({ builtAt: "t", level: [], movementApproximate: false });
+    });
   });
 
   it("returns null for a missing snapshot and tolerates malformed data", async () => {
     const snap = { gw: 5, taken_at: "t", league_id: 1, data: {} };
     const svc = createHistoryService(fakeHistory({ get: async (_l, gw) => (gw === 5 ? (snap as never) : null) }));
     expect(await svc.snapshot(1, 9)).toBeNull();
-    expect(await svc.snapshot(1, 5)).toEqual({ gw: 5, leagueName: "League", takenAt: "t", rows: [] });
+    expect(await svc.snapshot(1, 5)).toEqual({ gw: 5, leagueName: "League", takenAt: "t", rows: [], rebuilt: null });
   });
 });

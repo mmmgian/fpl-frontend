@@ -1,0 +1,33 @@
+.figure { margin: 0; width: 100%; min-width: 0; }
+.scroll { overflow-x: auto; }
+.svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.base { stroke: var(--border-strong); stroke-width: 1; }
+.bar { fill: var(--text-muted); opacity: 0.6; }
+.barLatest { fill: var(--accent); }
+.barUp { fill: var(--positive); }
+.barDown { fill: var(--negative); opacity: 0.85; }
+.marker { stroke: var(--text); stroke-width: 1.6; stroke-dasharray: 3 2; }
+
+.line { fill: none; stroke: var(--text-muted); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dot { fill: var(--surface-solid); stroke: var(--text-muted); stroke-width: 1.8; }
+.dotBest { fill: var(--surface-solid); stroke: var(--text); stroke-width: 2.2; }
+.dotLatest { fill: var(--accent); stroke: var(--accent); }
+
+.value, .valueBest, .axis { fill: var(--text-muted); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* A halo in the panel's colour keeps a number readable where it crosses a line or a marker. */
+.value, .valueBest { paint-order: stroke; stroke: var(--surface-solid); stroke-width: 3px; stroke-linejoin: round; }
+.valueBest { fill: var(--text); font-weight: 800; }
+.axis { font-size: 9.5px; font-weight: 500; }
+
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); margin-top: var(--space-2); font-size: 0.75rem; color: var(--text-muted); }
+.key { display: inline-flex; align-items: center; gap: 0.35rem; }
+.swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 3px; }
+.swatchUp { background: var(--positive); }
+.swatchDown { background: var(--negative); opacity: 0.85; }
+.swatchMarker { width: 1rem; height: 0; border-top: 2px dashed var(--text); border-radius: 0; }
+
+@media (forced-colors: active) {
+  .bar, .barLatest, .barUp, .barDown { fill: CanvasText; }
+  .line, .dot, .dotBest, .dotLatest, .marker, .base { stroke: CanvasText; }
+}

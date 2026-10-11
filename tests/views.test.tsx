@@ -4,6 +4,7 @@ import { FixtureBonusCard } from "@/components/views/FixtureBonusCard";
 import { StandingsTable } from "@/components/views/StandingsTable";
 import { TeamSheetView } from "@/components/views/TeamSheetView";
 import { buildTeamSheet } from "@/lib/domain";
+import { SnapshotView } from "@/components/views/SnapshotView";
 import { expectNoAxeViolations } from "./axe";
 import { bootstrap, fixture, live, picks, standing } from "./fixtures";
 import { cardFor } from "./support";
@@ -124,5 +125,61 @@ describe("FixtureBonusCard", () => {
     render(<FixtureBonusCard card={card} />);
     expect(screen.getAllByText("HOM").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Player \d+$/).length).toBeGreaterThan(0);
+  });
+});
+
+describe("SnapshotView", () => {
+  const rows = [
+    standing({ entry: 1, entry_name: "Alpha", rank: 1, last_rank: 0, total: 60, rank_approximate: true }),
+    standing({ entry: 2, entry_name: "Beta", rank: 2, last_rank: 0, total: 60, rank_approximate: true }),
+    standing({ entry: 3, entry_name: "Gamma", rank: 3, last_rank: 0, total: 50 }),
+  ];
+  const base = { gw: 1, leagueName: "Test League", takenAt: "2026-10-11T12:00:00Z", rows };
+
+  it("an ordinary snapshot says Saved and carries no rebuild note or approximation marks", async () => {
+    const { container } = render(<SnapshotView gw={1} snapshot={{ ...base, rows: rows.map((r) => ({ ...r, rank_approximate: undefined })), rebuilt: null }} />);
+    expect(screen.getByText("Saved", { selector: "span" })).toBeInTheDocument();
+    expect(screen.queryByText("Rebuilt after the gameweek")).toBeNull();
+    expect(screen.queryByText("≈")).toBeNull();
+    await expectNoAxeViolations(container);
+  });
+
+  it("a rebuilt table says so plainly, names who is level, and marks exactly those ranks", async () => {
+    const { container } = render(<SnapshotView gw={1} snapshot={{ ...base, rebuilt: { builtAt: "2026-10-12T09:00:00Z", level: [{ total: 60, names: ["Alpha", "Beta"] }], movementApproximate: false } }} />);
+    expect(screen.getByText("Rebuilt", { selector: "span" })).toBeInTheDocument();            // the header label, not "Saved"
+    expect(screen.queryByText("Saved", { selector: "span" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Rebuilt after the gameweek" })).toBeInTheDocument();
+    expect(screen.getByText(/wasn.t saved at the time/)).toBeInTheDocument();
+    expect(screen.getByText(/Alpha and Beta \(60 pts\)/)).toBeInTheDocument();
+    expect(screen.getAllByText("≈")).toHaveLength(2);                              // Alpha and Beta, not Gamma
+    expect(screen.getAllByText("(approximate)")).toHaveLength(2);                  // and announced to screen readers
+    await expectNoAxeViolations(container);
+  });
+
+  it("a rebuilt table with no unresolved ties makes no claim about approximation", () => {
+    render(<SnapshotView gw={1} snapshot={{ ...base, rows: rows.map((r) => ({ ...r, rank_approximate: false })), rebuilt: { builtAt: "2026-10-12T09:00:00Z", level: [], movementApproximate: false } }} />);
+    expect(screen.getByText("Rebuilt after the gameweek")).toBeInTheDocument();
+    expect(screen.queryByText(/approximate/)).toBeNull();
+  });
+
+  it("marks a movement arrow whose earlier rank was a guess, separately from a tied rank, and explains it", async () => {
+    const moved = [
+      standing({ entry: 1, entry_name: "Alpha", rank: 1, last_rank: 2, total: 110, last_rank_approximate: true }),
+      standing({ entry: 2, entry_name: "Beta", rank: 2, last_rank: 1, total: 100, last_rank_approximate: true }),
+      standing({ entry: 3, entry_name: "Gamma", rank: 3, last_rank: 3, total: 90, last_rank_approximate: true }),      // "no change", but resting on a guess
+    ];
+    const { container } = render(<SnapshotView gw={2} snapshot={{ ...base, gw: 2, rows: moved, rebuilt: { builtAt: "2026-10-12T09:00:00Z", level: [], movementApproximate: true } }} />);
+    expect(screen.queryByText("≈", { selector: "span" })).toBeNull();                       // no rank is approximate in this table...
+    expect(screen.getAllByText(/^≈[▲▼]/)).toHaveLength(2);                                  // ...only the two arrows are
+    expect(screen.getByText("about up 1 place")).toBeInTheDocument();
+    expect(screen.getByText("≈–")).toBeInTheDocument();                                     // a dash that rests on a guess is marked too
+    expect(screen.getByText("no change (approximate)")).toBeInTheDocument();
+    expect(screen.getByText(/one of the two ranks it compares is approximate/)).toBeInTheDocument();
+    await expectNoAxeViolations(container);
+  });
+
+  it("still handles a missing snapshot", () => {
+    render(<SnapshotView gw={9} snapshot={null} />);
+    expect(screen.getByText("No snapshot for Gameweek 9")).toBeInTheDocument();
   });
 });

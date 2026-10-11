@@ -3,9 +3,10 @@
  * Views render these and nothing else, so they need no domain logic and no data access.
  * Every model is a discriminated union on `kind`, so a view must handle every state.
  */
+import type { Issue, IssueKind, IssueSummary } from "../domain";
 import type {
-  AutoSub, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FixtureOutlook, FixtureState,
-  FreeTransfers, GwStatus, Ownership, PlayersRemaining, RotationRisk, SeasonForm, SquadFlag, StandingRow, TeamSheet, Tenure,
+  AutoSub, ClubMatch, ClubNewsItem, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
+  FreeTransfers, GwStatus, LeagueStats, Ownership, PlayersRemaining, RotationRisk, SeasonCharts, SeasonForm, SquadFlag, StandingRow, TeamSheet, Tenure,
 } from "../domain";
 
 // ---------- League table ----------
@@ -37,6 +38,8 @@ export type LeagueModel =
       newEntries: number;
       /** null for an empty league. */
       summary: LeagueSummary | null;
+      /** The fun extras (form, streaks, awards...). null when there is no history to work from. */
+      stats: LeagueStats | null;
     };
 
 // ---------- Team sheet ----------
@@ -105,6 +108,8 @@ export interface SquadInsights {
 export interface SeasonInsights {
   /** Through the last finished gameweek; null until one has finished. */
   form: SeasonForm | null;
+  /** The series behind the season's charts; null whenever `form` is. */
+  charts: SeasonCharts | null;
   /** The last gameweek of the season, so "free transfers for GW{n+1}" can be hidden at the end. */
   seasonEnd: number;
   tenure: Tenure;
@@ -139,9 +144,38 @@ export type TeamModel =
       next: Record<number, NextMatch[]>;
     };
 
+// ---------- A Premier League club ----------
+
+/** What an outside source gave us: the items, why there are none, or that it isn't set up. */
+export type Outside<T> =
+  | { status: "ok"; items: T }
+  | { status: "unavailable" }   // set up, but it failed or doesn't know this club
+  | { status: "off" };          // not set up (e.g. no API key)
+
+export interface ClubMatchView extends Omit<ClubMatch, "opponentId"> {
+  opponent: { id: number; name: string; short: string; code: number };
+}
+
+export type ClubModel =
+  | { kind: "not-found" }
+  | {
+      kind: "ok";
+      club: { id: number; name: string; short: string; code: number };
+      /** Latest results, oldest first. */
+      form: Result[];
+      next: ClubMatchView[];
+      recent: ClubMatchView[];
+      news: ClubNewsItem[];
+      lineup: PredictedXI | null;
+      europe: Outside<EuropeMatch[]>;
+      headlines: Outside<{ items: Headline[]; creditUrl: string }>;
+    };
+
 // ---------- Fixture difficulty ----------
 
 export interface FdrMatchView {
+  opponentId: number;
+  opponentName: string;
   opponent: string;
   home: boolean;
   difficulty: number;
@@ -172,9 +206,32 @@ export type FixturesModel =
       rows: FdrRowView[];
     };
 
+/** The whole season as a scrollable feed (the Fixtures page's default view). */
+export type FixtureFeedModel =
+  | { kind: "no-season" }
+  | {
+      kind: "ok";
+      /** Where the feed opens: the current or next gameweek, or the one asked for. */
+      startIndex: number;
+      gameweeks: FeedGameweek[];
+      /** Everything the matches refer to by id. A plain object so it can cross to the browser. */
+      teams: Record<number, FeedTeamRef>;
+      /** The difficulty-grid windows offered next to the feed. */
+      windows: readonly FdrWindow[];
+    };
+
+export interface FeedTeamRef {
+  id: number;
+  name: string;
+  short: string;
+  code: number;
+}
+
 // ---------- Bonus points ----------
 
 export interface ClubSide {
+  /** FPL team id, so the club can be linked to; null when the club is unknown. */
+  id: number | null;
   name: string;
   short: string;
   code: number | undefined;
@@ -228,6 +285,8 @@ export type BonusModel =
 export interface SnapshotListItem {
   gw: number;
   takenAt: string;
+  /** Rebuilt after the gameweek rather than saved at the time. */
+  rebuilt: boolean;
 }
 
 export interface SnapshotModel {
@@ -235,4 +294,41 @@ export interface SnapshotModel {
   leagueName: string;
   takenAt: string;
   rows: StandingRow[];
+  /** Non-null when the table was rebuilt afterwards instead of saved at the time. */
+  rebuilt: { builtAt: string; level: { total: number; names: string[] }[]; movementApproximate: boolean } | null;
 }
+
+// ---------- The Lobster Times ----------
+
+export interface TimesFilter {
+  /** null is "All". */
+  value: IssueKind | null;
+  label: string;
+  count: number;
+  active: boolean;
+}
+
+export type TimesLibraryModel =
+  | { kind: "empty" }
+  | {
+      kind: "ok";
+      /** The latest newspaper, featured; only on the unfiltered view. */
+      hero: IssueSummary | null;
+      /** What the grid lists: the filtered issues, newest first, without the hero. */
+      issues: IssueSummary[];
+      filters: TimesFilter[];
+      active: IssueKind | null;
+      total: number;
+    };
+
+export type TimesIssueModel =
+  | { kind: "not-found" }
+  | {
+      kind: "ok";
+      issue: Issue;
+      /** The page to open, 1-based and always valid. */
+      page: number;
+      /** Neighbouring issues by date. */
+      newer: IssueSummary | null;
+      older: IssueSummary | null;
+    };

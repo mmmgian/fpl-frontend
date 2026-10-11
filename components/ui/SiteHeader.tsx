@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 import styles from "./SiteHeader.module.css";
 
 const NAV = [
   { href: "/", label: "Table" },
   { href: "/bonus", label: "Bonus" },
   { href: "/fixtures", label: "Fixtures" },
+  { href: "/times", label: "Times" },
   { href: "/history", label: "History" },
 ];
 
@@ -24,7 +26,10 @@ export function SiteHeader({ siteName }: { siteName: string }) {
         <Link href="/" className={styles.brand}>
           <span aria-hidden="true">🦞</span> {siteName}
         </Link>
-        <nav aria-label="Main">
+        <div className={styles.theme}>
+          <ThemeToggle />
+        </div>
+        <nav aria-label="Main" className={styles.navWrap}>
           <ul className={styles.nav}>
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);

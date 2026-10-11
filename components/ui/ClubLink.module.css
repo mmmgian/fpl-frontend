@@ -1,0 +1,4 @@
+.link { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.link:hover { color: inherit; }
+.link:hover :where(span, strong) { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.link:focus-visible { border-radius: 8px; }

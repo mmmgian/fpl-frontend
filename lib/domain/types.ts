@@ -10,6 +10,8 @@ export interface FplEvent {
   is_next: boolean;
   finished: boolean;
   data_checked: boolean;
+  /** The average manager's score for the gameweek (0 until it has been played). */
+  average_entry_score?: number;
 }
 
 export interface FplTeam {
@@ -34,6 +36,14 @@ export interface FplElement {
   selected_by_percent?: string;
   /** Price in tenths of a million. */
   now_cost?: number;
+  /** When the current news item was added (ISO). */
+  news_added?: string | null;
+  /** Season totals. */
+  minutes?: number;
+  starts?: number;
+  total_points?: number;
+  /** Recent form, e.g. "4.2". */
+  form?: string;
 }
 
 /** One chip window from bootstrap: each chip can be played once inside [start_event, stop_event]. */
@@ -59,12 +69,27 @@ export interface StandingRow {
   event_total: number;
   total: number;
   club_badge_src?: string | null;
+  /** Set on rebuilt history: the rank depends on a tie whose true order FPL doesn't expose. */
+  rank_approximate?: boolean;
+  /** Set on rebuilt history: the previous rank this one is compared with was itself approximate. */
+  last_rank_approximate?: boolean;
+}
+
+/** Present on a table that was rebuilt after the gameweek, not saved at the time. */
+export interface RebuiltInfo {
+  gw: number;
+  method: string;
+  tie_break: string;
+  built_at: string;
+  /** Managers level on points AND overall rank: their order is a deterministic guess. */
+  unresolved_ties?: { total: number; entries: number[] }[];
 }
 
 export interface LeagueStandings {
   league: { id: number; name: string };
   standings: { has_next: boolean; page?: number; results: StandingRow[] };
   new_entries?: { results: unknown[] };
+  reconstructed?: RebuiltInfo;
 }
 
 export interface Entry {
@@ -165,6 +190,9 @@ export interface ScheduledFixture {
   started: boolean | null;
   finished: boolean;
   finished_provisional: boolean;
+  /** Goals so far; null before kick-off. */
+  team_h_score?: number | null;
+  team_a_score?: number | null;
 }
 
 // ---------- A manager's season (entry history) ----------
@@ -205,6 +233,8 @@ export interface EntryHistory {
 export interface SnapshotSummary {
   gw: number;
   taken_at: string;
+  /** True when the table was rebuilt afterwards. Older backends don't send it. */
+  rebuilt?: boolean;
 }
 
 export interface Snapshot extends SnapshotSummary {

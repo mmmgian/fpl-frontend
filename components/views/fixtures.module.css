@@ -59,3 +59,4 @@
   .table .team { min-width: 6.9rem; padding-left: 0.5rem; }
   .gw, .cell { min-width: 4.9rem; }
 }
+.teamLink { display: inline-flex; align-items: center; gap: 0.5rem; }

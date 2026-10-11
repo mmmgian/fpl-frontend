@@ -9,3 +9,7 @@ coverage/
 
 .DS_Store
 .vercel
+
+# half-written files from the avatar generator
+public/avatars/*.tmp
+lib/avatars/*.tmp

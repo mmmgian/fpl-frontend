@@ -39,7 +39,7 @@ describe("slim bootstrap", () => {
     const bs = await getBootstrap();
     expect(Object.keys(bs).sort()).toEqual(["chips", "elements", "events", "teams"]);
     expect(bs.chips).toEqual([{ name: "wildcard", start_event: 2, stop_event: 19 }]);
-    expect(bs.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "20.5" }); // names unused; defaults omitted
+    expect(bs.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "20.5", now_cost: 55 }); // names unused; defaults omitted
     expect(bs.teams[0]).toEqual(bootstrap.teams[0]);
     expect(bs.events[0]).toEqual(bootstrap.events[0]);
   });
@@ -56,8 +56,22 @@ describe("slim bootstrap keeps what the squad insights read", () => {
         { ...el, id: 2, status: "a", news: "", chance_of_playing_next_round: null, selected_by_percent: "0.4" } as never,
       ],
     });
-    expect(slim.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, status: "d", news: "Knock", chance_of_playing_next_round: 50, selected_by_percent: "12.3" });
+    expect(slim.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, status: "d", news: "Knock", chance_of_playing_next_round: 50, selected_by_percent: "12.3", now_cost: 55 });
     expect(slim.elements[1]).toEqual({ id: 2, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "0.4" });
+  });
+
+  it("retains what the club page reads (price, minutes, starts, points, form, when news was added) and omits it when it is a default", async () => {
+    const { slimBootstrap } = await import("@/lib/fpl");
+    const el = bootstrap.elements[0];
+    const slim = slimBootstrap({
+      ...bootstrap,
+      elements: [
+        { ...el, id: 1, now_cost: 62, minutes: 540, starts: 6, total_points: 41, form: "5.2", news_added: "2026-10-09T10:00:00Z", selected_by_percent: undefined } as never,
+        { ...el, id: 2, now_cost: 40, minutes: 0, starts: 0, total_points: 0, form: "0.0", news_added: null, selected_by_percent: undefined } as never,
+      ],
+    });
+    expect(slim.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, now_cost: 62, minutes: 540, starts: 6, total_points: 41, form: "5.2", news_added: "2026-10-09T10:00:00Z" });
+    expect(slim.elements[1]).toEqual({ id: 2, web_name: "Raya", team: 1, element_type: 1, now_cost: 40 });   // zero minutes/starts/points, form "0.0", no news date: all left out
   });
 });
 

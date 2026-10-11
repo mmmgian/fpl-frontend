@@ -1,7 +1,7 @@
 import type { Bootstrap, EntryHistory, EntryPicks, Fixture, ScheduledFixture, TeamSheet } from "../domain";
 import {
   allPlayers, autoSubs, benchInsight, captainInsight, chipContribution, chipStatus, defconProgress, fixtureOutlook, freeTransfers,
-  matchCounts, matchesByTeam, ownership, playersRemaining, rotationRisks, seasonForm, squadFlags, teamStates, tenure,
+  matchCounts, matchesByTeam, ownership, playersRemaining, rotationRisks, seasonCharts, seasonForm, squadFlags, teamStates, tenure,
 } from "../domain";
 import type { NextMatch, SeasonInsights, TeamGameweek, TeamInsights } from "./models";
 
@@ -26,6 +26,7 @@ function seasonInsights({ history, bootstrap, latest }: Pick<InsightInput, "hist
   const settledThrough = current?.finished ? latest : latest - 1;
   return {
     form: seasonForm(history.current, settledThrough),
+    charts: seasonCharts(history.current, bootstrap.events, settledThrough, history.chips),
     seasonEnd: bootstrap.events[bootstrap.events.length - 1]?.id ?? latest,
     tenure: tenure(history.past),
     freeTransfers: freeTransfers(history.current, history.chips),

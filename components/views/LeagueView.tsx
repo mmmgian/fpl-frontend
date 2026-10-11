@@ -2,6 +2,7 @@ import { LiveRefresh, PageHeader, StateMessage, StatList } from "@/components/ui
 import { formatNumber } from "@/lib/domain";
 import type { LeagueModel } from "@/lib/services/models";
 import { GwStatusBadge } from "./GwStatusBadge";
+import { LeagueAwards } from "./LeagueAwards";
 import { StandingsTable } from "./StandingsTable";
 
 export function LeagueView({ model }: { model: LeagueModel }) {
@@ -53,7 +54,8 @@ export function LeagueView({ model }: { model: LeagueModel }) {
               { label: "Managers", value: summary.managers, hint: model.truncated ? "Showing first pages only" : undefined },
             ]}
           />
-          <StandingsTable rows={rows} caption={`${model.name} standings`} hideCaption />
+          {model.stats ? <LeagueAwards awards={model.stats.awards} rows={rows} gw={model.stats.gw} /> : null}
+          <StandingsTable rows={rows} caption={`${model.name} standings`} hideCaption stats={model.stats ?? undefined} />
         </>
       )}
     </>

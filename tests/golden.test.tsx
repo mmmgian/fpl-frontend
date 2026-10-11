@@ -71,6 +71,18 @@ const schedule = Array.from({ length: 8 }, (_, i) => i + 5).flatMap((gw) =>
   }),
 );
 
+/** The same shape, but rebuilt afterwards: provenance, and two managers whose order FPL doesn't reveal. */
+const rebuilt = (() => {
+  const results = rows.map((r, i) => ({ ...r, rank: i + 1, rank_sort: i + 1, rank_approximate: i < 2 }));
+  return {
+    gw: 4, taken_at: "2026-10-12T09:00:00+00:00", league_id: 467763,
+    data: {
+      league: { id: 467763, name: "The Lobster League" }, standings: { has_next: false, page: 1, results }, new_entries: { has_next: false, page: 1, results: [] },
+      reconstructed: { gw: 4, method: "rebuilt from each manager's season history", tie_break: "total points, then overall rank", source: "FPL entry history", built_at: "2026-10-12T09:00:00+00:00", unresolved_ties: [{ total: results[0].total, entries: [results[0].entry, results[1].entry] }] },
+    },
+  };
+})();
+
 /** A manager's season: six gameweeks (one hit, one bench boost), and three earlier seasons. */
 const history = {
   current: [
@@ -106,6 +118,7 @@ function world(over: Routes = [], opts: { events?: unknown[]; teams?: unknown[] 
     [has("/event/5/live/"), live],
     [has("/fixtures/?event=6"), fixtures],
     [has("/fixtures/?event=5"), fixtures.map((f) => ({ ...f, finished: true, finished_provisional: true, started: true }))],
+    [has("/history/467763/4"), rebuilt],
     [has("/history/467763/5"), snapshot],
     [ends("/history/467763"), { league_id: 467763, snapshots: [{ gw: 5, taken_at: "2026-10-06T06:00:00Z" }, { gw: 3, taken_at: "2026-09-22T06:00:00Z" }] }],
   ];
@@ -251,9 +264,17 @@ describe("fixtures page", () => {
   const render = async (query: { gw?: string; n?: string } = {}) => (await import("@/app/fixtures/page")).default({ searchParams: Promise.resolve(query) });
   const season = () => world([], { events: seasonEvents, teams: fourTeams });
 
-  it("defaults to the next 5 gameweeks from the current one, easiest first", async () => {
+  it("opens on the whole season as a feed, from the current gameweek", async () => {
     stubFetch(season());
     await expect(await show(() => render())).toMatchFileSnapshot(golden("fixtures-default"));
+  });
+  it("opens the feed on the gameweek asked for", async () => {
+    stubFetch(season());
+    await expect(await show(() => render({ gw: "9" }))).toMatchFileSnapshot(golden("fixtures-feed-gw9"));
+  });
+  it("shows the next 5 gameweeks from the current one, easiest first", async () => {
+    stubFetch(season());
+    await expect(await show(() => render({ n: "5" }))).toMatchFileSnapshot(golden("fixtures-next-5"));
   });
   it("shows the next 3", async () => {
     stubFetch(season());
@@ -303,6 +324,29 @@ describe("bonus page", () => {
   });
 });
 
+describe("club page", () => {
+  const render = async (id = "1") => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id }) });
+  const feed = `<?xml version="1.0"?><rss><channel><title><![CDATA[BBC Sport]]></title>
+    <item><title><![CDATA[Arteta gives injury update]]></title><description><![CDATA[The Arsenal boss speaks.]]></description><link>https://www.bbc.com/sport/football/articles/abc</link><pubDate>Sat, 10 Oct 2026 10:00:00 GMT</pubDate></item>
+  </channel></rss>`;
+  const bbc = (xml: string | number): [(u: string) => boolean, unknown] => [has("/sport/football/teams/arsenal/rss.xml"), () => (typeof xml === "number" ? new Response("x", { status: xml }) : new Response(xml))];
+
+  it("shows FPL's own facts about a club and the BBC's headlines", async () => {
+    stubFetch(world([bbc(feed)]));
+    await expect(await show(() => render())).toMatchFileSnapshot(golden("club-arsenal"));
+  });
+  it("still shows the page when the headlines can't be fetched", async () => {
+    stubFetch(world([bbc(503)]));
+    await expect(await show(() => render())).toMatchFileSnapshot(golden("club-headlines-down"));
+  });
+  it("is a 404 for a club FPL doesn't have, and for an id that isn't a number", async () => {
+    stubFetch(world());
+    await expect(render("99")).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(render("abc")).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(render("0")).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+});
+
 describe("history pages", () => {
   const list = async () => (await import("@/app/history/page")).default();
   const one = async (gw: string) => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw }) });
@@ -310,6 +354,10 @@ describe("history pages", () => {
   it("lists snapshots newest first", async () => {
     stubFetch(world());
     await expect(await show(list)).toMatchFileSnapshot(golden("history-list"));
+  });
+  it("says Rebuilt, not Saved, for tables that were rebuilt afterwards", async () => {
+    stubFetch(world([[ends("/history/467763"), { league_id: 467763, snapshots: [{ gw: 4, taken_at: "2026-10-12T09:00:00Z", rebuilt: true }, { gw: 3, taken_at: "2026-09-22T06:00:00Z", rebuilt: false }] }]]));
+    await expect(await show(list)).toMatchFileSnapshot(golden("history-list-rebuilt"));
   });
   it("handles no snapshots", async () => {
     stubFetch(world([[ends("/history/467763"), { league_id: 467763, snapshots: [] }]]));
@@ -322,6 +370,10 @@ describe("history pages", () => {
   it("shows a snapshot", async () => {
     stubFetch(world());
     await expect(await show(() => one("5"))).toMatchFileSnapshot(golden("history-snapshot"));
+  });
+  it("shows a table that was rebuilt afterwards, with its provenance and approximate ranks", async () => {
+    stubFetch(world());
+    await expect(await show(() => one("4"))).toMatchFileSnapshot(golden("history-snapshot-rebuilt"));
   });
   it("explains a missing snapshot and 404s bad gameweeks", async () => {
     stubFetch(world([[has("/history/467763/7"), () => new Response("x", { status: 404 })]]));

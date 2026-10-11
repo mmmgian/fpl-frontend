@@ -1,4 +1,4 @@
-import { Badge, Card, Crest, LocalTime, type BadgeTone } from "@/components/ui";
+import { Badge, Card, ClubLink, Crest, LocalTime, type BadgeTone } from "@/components/ui";
 import type { BonusSource, FixtureState } from "@/lib/domain";
 import type { BonusLine, ClubSide, EventLine, FixtureCard } from "@/lib/services/models";
 import styles from "./bonus.module.css";
@@ -16,6 +16,28 @@ export const SOURCE_NOTE: Record<BonusSource, { label: string; tone: BadgeTone; 
   projected: { label: "Projected", tone: "warning", help: "Calculated from live BPS; will change as the match goes on." },
   none: null,
 };
+
+/** A club's crest and short name in a match heading, linked to its page when we know which club it is. */
+function ClubTitle({ club, crestFirst = false }: { club: ClubSide; crestFirst?: boolean }) {
+  const parts = crestFirst ? (
+    <>
+      <Crest code={club.code} name={club.name} size={24} />
+      <span>{club.short}</span>
+    </>
+  ) : (
+    <>
+      <span>{club.short}</span>
+      <Crest code={club.code} name={club.name} size={24} />
+    </>
+  );
+  return club.id === null ? (
+    <span className={styles.titleSide}>{parts}</span>
+  ) : (
+    <ClubLink id={club.id} name={club.name} className={styles.titleSide}>
+      {parts}
+    </ClubLink>
+  );
+}
 
 function Side({ club, lines, hidden }: { club: ClubSide; lines: BonusLine[]; hidden: number }) {
   return (
@@ -74,10 +96,7 @@ export function FixtureBonusCard({ card }: { card: FixtureCard }) {
 
   const title = (
     <span className={styles.title}>
-      <span className={styles.titleSide}>
-        <Crest code={home.code} name={home.name} size={24} />
-        <span>{home.short}</span>
-      </span>
+      <ClubTitle club={home} crestFirst />
       <span className={styles.score}>
         {score ? (
           <>
@@ -97,10 +116,7 @@ export function FixtureBonusCard({ card }: { card: FixtureCard }) {
           </>
         )}
       </span>
-      <span className={styles.titleSide}>
-        <span>{away.short}</span>
-        <Crest code={away.code} name={away.name} size={24} />
-      </span>
+      <ClubTitle club={away} />
     </span>
   );
 

@@ -37,8 +37,8 @@ function toFixtureCard(f: Fixture, teams: Map<number, FplTeam>, players: Map<num
     id: f.id,
     state: fixtureState(f),
     minutes: f.minutes,
-    home: { name: home?.name ?? "Home", short: home?.short_name ?? "HOM", code: home?.code },
-    away: { name: away?.name ?? "Away", short: away?.short_name ?? "AWY", code: away?.code },
+    home: { id: home?.id ?? null, name: home?.name ?? "Home", short: home?.short_name ?? "HOM", code: home?.code },
+    away: { id: away?.id ?? null, name: away?.name ?? "Away", short: away?.short_name ?? "AWY", code: away?.code },
     score: f.team_h_score != null && f.team_a_score != null ? { home: f.team_h_score, away: f.team_a_score } : null,
     kickoff: f.kickoff_time,
     bonus: {

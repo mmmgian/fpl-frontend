@@ -35,11 +35,12 @@
 .ghost { border-color: transparent; background: transparent; color: var(--text); }
 .ghost:hover { background: var(--wash); color: var(--text); }
 
-.button:disabled, .disabled {
+.button:disabled, .disabled, .button[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.4;
 }
-.button:disabled:hover, .disabled:hover { background: transparent; border-color: var(--border); color: var(--text); }
+.button:disabled:hover, .disabled:hover, .button[aria-disabled="true"]:hover { background: transparent; border-color: var(--border); color: var(--text); }
+.button[aria-disabled="true"]:active { transform: none; }
 
 /* Fingers, not cursors: every control gets a full-size target on touch devices and on any phone-sized screen
    (a browser's pointer report isn't reliable enough to be the only signal). */

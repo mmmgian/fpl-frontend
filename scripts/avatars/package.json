@@ -1,0 +1,13 @@
+{
+  "name": "avatar-generator",
+  "private": true,
+  "type": "module",
+  "description": "Offline tooling: draws a character avatar for each league manager who has no badge, with a Google image model, and saves it into the repo. Not part of the app's dependency tree; the live site never calls the model.",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.11"
+  },
+  "engines": { "node": ">=20.16" }
+}

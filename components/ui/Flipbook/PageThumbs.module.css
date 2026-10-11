@@ -1,0 +1,50 @@
+.nav { max-width: 100%; }
+.list {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-1) var(--space-3);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.list > li { flex: none; scroll-snap-align: start; }
+.thumb {
+  position: relative;
+  display: block;
+  width: 4.5rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--surface-solid);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+.thumb:hover { transform: translateY(-2px); }
+.thumb[aria-current="true"] { border-color: var(--accent); }
+.thumb img { display: block; width: 100%; height: auto; }
+.number {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  min-width: 1.4rem;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+@media (pointer: coarse), (max-width: 699px) { .thumb { width: 5rem; } }
+
+/* Forced colours drop background and border colours, so the current page needs a shape that survives. */
+@media (forced-colors: active) {
+  .thumb { border-color: ButtonBorder; }
+  .thumb[aria-current="true"] { border-color: Highlight; outline: 2px solid Highlight; outline-offset: 1px; }
+  .number { border: 1px solid ButtonText; background: ButtonFace; color: ButtonText; }
+}

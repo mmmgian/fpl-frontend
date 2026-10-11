@@ -71,5 +71,7 @@ export async function getAllFixtures(): Promise<ScheduledFixture[]> {
     started: f.started,
     finished: f.finished,
     finished_provisional: f.finished_provisional,
+    team_h_score: f.team_h_score ?? null,
+    team_a_score: f.team_a_score ?? null,
   }));
 }

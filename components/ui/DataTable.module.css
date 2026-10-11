@@ -73,3 +73,9 @@
 @media (max-width: 899px) {
   .hide-md { display: none; }
 }
+
+/* A row's optional detail row: out of sight until a checkbox marked data-expand in the row above is checked. */
+.detail { display: none; }
+.table tbody tr:has(input[data-expand]:checked) + .detail { display: table-row; }
+.table tbody tr:has(input[data-expand]:checked) > * { border-bottom-color: transparent; }
+.detail > td { padding: 0 var(--space-3) var(--space-4); }

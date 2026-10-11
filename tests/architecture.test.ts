@@ -47,7 +47,7 @@ type Layer = "domain" | "services" | "infra" | "config" | "container" | "views" 
 function layerOf(path: string): Layer {
   if (path.startsWith("lib/domain")) return "domain";
   if (path.startsWith("lib/services")) return "services";
-  if (path.startsWith("lib/fpl") || path === "lib/backend") return "infra";
+  if (path.startsWith("lib/fpl") || path.startsWith("lib/times") || path.startsWith("lib/avatars") || path.startsWith("lib/europe") || path.startsWith("lib/news") || path === "lib/backend") return "infra";
   if (path === "lib/config") return "config";
   if (path === "lib/container") return "container";
   if (path.startsWith("components/")) return "views";

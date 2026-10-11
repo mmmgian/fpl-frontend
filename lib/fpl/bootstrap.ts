@@ -12,8 +12,9 @@ import { fplGet } from "./http";
  */
 export function slimBootstrap(raw: Bootstrap): Bootstrap {
   return {
-    events: raw.events.map(({ id, name, deadline_time, is_current, is_next, finished, data_checked }) => ({
+    events: raw.events.map(({ id, name, deadline_time, is_current, is_next, finished, data_checked, average_entry_score }) => ({
       id, name, deadline_time, is_current, is_next, finished, data_checked,
+      ...(average_entry_score ? { average_entry_score } : {}),
     })),
     teams: raw.teams.map(({ id, code, name, short_name }) => ({ id, code, name, short_name })),
     elements: raw.elements.map((e) => ({
@@ -25,6 +26,12 @@ export function slimBootstrap(raw: Bootstrap): Bootstrap {
       ...(e.news ? { news: e.news } : {}),
       ...(e.chance_of_playing_next_round != null ? { chance_of_playing_next_round: e.chance_of_playing_next_round } : {}),
       ...(e.selected_by_percent != null ? { selected_by_percent: e.selected_by_percent } : {}),
+      ...(e.now_cost != null ? { now_cost: e.now_cost } : {}),
+      ...(e.news_added ? { news_added: e.news_added } : {}),
+      ...(e.minutes ? { minutes: e.minutes } : {}),
+      ...(e.starts ? { starts: e.starts } : {}),
+      ...(e.total_points ? { total_points: e.total_points } : {}),
+      ...(e.form && e.form !== "0.0" ? { form: e.form } : {}),
     })),
     chips: (raw.chips ?? []).map(({ name, start_event, stop_event }) => ({ name, start_event, stop_event })),
   };

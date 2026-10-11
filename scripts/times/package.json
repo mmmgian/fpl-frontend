@@ -1,0 +1,15 @@
+{
+  "name": "times-pipeline",
+  "private": true,
+  "type": "module",
+  "description": "Build-time tooling for The Lobster Times: renders PDFs to page images and extracts accessible text. Not part of the app's dependency tree.",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:force": "node build.mjs --force"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.11",
+    "pdfjs-dist": "^6.4.299"
+  },
+  "engines": { "node": ">=20.16" }
+}

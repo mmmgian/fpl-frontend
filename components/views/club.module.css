@@ -1,0 +1,62 @@
+.title { display: inline-flex; align-items: center; gap: var(--space-3); }
+/* The cards hold rows of name + date + score, so they need real width: one column on a phone, two beside each other
+   on a wide screen, with the longer cards (news, line-up, headlines) across both. */
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+@media (min-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.wide { grid-column: 1 / -1; }
+.list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.row, .newsRow, .euroRow { display: grid; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) 0; }
+.row + .row, .newsRow + .newsRow, .euroRow + .euroRow { border-top: 1px solid var(--border); }
+.row { grid-template-columns: 3rem minmax(7rem, 1fr) auto auto; }
+.when { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); }
+.opponent { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; font-weight: 700; }
+.oppName { overflow-wrap: anywhere; }
+.venue { font-size: 0.75rem; color: var(--text-muted); }
+.end { display: inline-flex; align-items: center; gap: var(--space-2); justify-content: flex-end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kickoff { font-size: 0.8125rem; color: var(--text-muted); }
+@media (max-width: 520px) {
+  .row { grid-template-columns: 2.6rem minmax(0, 1fr) auto; }
+  .venue { display: none; }
+}
+
+.guide { display: inline-flex; gap: 4px; }
+.pip { display: inline-grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 6px; font-size: 0.6875rem; font-weight: 800; }
+.pipW { background: var(--positive); color: var(--bg); }
+.pipD { background: var(--text-muted); color: var(--bg); }
+.pipL { background: var(--negative); color: var(--bg); }
+
+.newsRow { grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; }
+.newsBody { display: grid; gap: 2px; min-width: 0; }
+.newsText { font-size: 0.875rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.newsMeta { display: grid; justify-items: end; gap: 2px; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+@media (max-width: 520px) { .newsRow { grid-template-columns: auto minmax(0, 1fr); } .newsMeta { grid-column: 2; justify-items: start; grid-auto-flow: column; gap: var(--space-3); } }
+
+.big { margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+.bigNote { margin-left: var(--space-2); font-size: 0.875rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.lines { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; padding: 0; list-style: none; }
+.line { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: var(--space-2); align-items: start; }
+.lineLabel { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding-top: 4px; }
+.players { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.player { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 6px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-pill); }
+.rate { font-size: 0.75rem; color: var(--text-muted); }
+@media (max-width: 520px) { .line { grid-template-columns: 1fr; gap: 4px; } }
+.caveat { margin: var(--space-4) 0 0; padding: var(--space-3); border: 1px dashed var(--border-strong); border-radius: var(--radius); font-size: 0.8125rem; line-height: 1.5; color: var(--text-muted); }
+
+.euroRow { grid-template-columns: 8rem minmax(0, 1fr) auto; }
+.comp { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+@media (max-width: 520px) { .euroRow { grid-template-columns: 1fr; gap: 2px; } }
+
+.news { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.headline { font-weight: 700; line-height: 1.3; }
+.summary { margin: 4px 0 0; font-size: 0.875rem; color: var(--text-muted); }
+.published { margin: 4px 0 0; font-size: 0.75rem; color: var(--text-muted); }
+.credit { margin: var(--space-4) 0 0; font-size: 0.75rem; color: var(--text-muted); }
+
+/* An upcoming match carries a long date: on a phone it goes under the chip's row instead of squeezing the club's name. */
+@media (max-width: 520px) {
+  .row { grid-template-columns: 2.6rem minmax(0, 1fr) auto; row-gap: 2px; }
+  .endStack { display: contents; }
+  .endStack .kickoff { grid-column: 2 / -1; grid-row: 2; font-size: 0.75rem; }
+}
+.gap { margin: var(--space-2) 0 0; font-size: 0.875rem; font-weight: 600; }
+.openPlace { border-style: dashed; color: var(--text-muted); }

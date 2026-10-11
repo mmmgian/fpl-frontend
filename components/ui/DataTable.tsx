@@ -24,6 +24,11 @@ interface DataTableProps<T> {
   /** Highlight a row (e.g. "you"), conveyed to AT via aria-current. */
   isCurrentRow?: (row: T) => boolean;
   dense?: boolean;
+  /**
+   * An optional full-width row under each row, hidden until the row contains a checked `input[data-expand]`
+   * (see DataTable.module.css). Returning null for a row means it has no detail.
+   */
+  detail?: (row: T, index: number) => ReactNode;
 }
 
 export function DataTable<T>({
@@ -35,6 +40,7 @@ export function DataTable<T>({
   empty = "Nothing to show yet.",
   isCurrentRow,
   dense,
+  detail,
 }: DataTableProps<T>) {
   const captionId = useId();
   const cellClass = (c: Column<T>) =>
@@ -68,9 +74,10 @@ export function DataTable<T>({
               </td>
             </tr>
           ) : (
-            rows.map((row, i) => {
+            rows.flatMap((row, i) => {
               const current = isCurrentRow?.(row) ?? false;
-              return (
+              const extra = detail?.(row, i);
+              const main = (
                 <tr key={rowKey(row, i)} className={current ? styles.current : undefined} aria-current={current ? "true" : undefined}>
                   {columns.map((c) =>
                     c.rowHeader ? (
@@ -85,6 +92,14 @@ export function DataTable<T>({
                   )}
                 </tr>
               );
+              return extra
+                ? [
+                    main,
+                    <tr key={`${rowKey(row, i)}-detail`} className={styles.detail}>
+                      <td colSpan={columns.length}>{extra}</td>
+                    </tr>,
+                  ]
+                : [main];
             })
           )}
         </tbody>

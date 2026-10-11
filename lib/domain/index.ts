@@ -3,11 +3,17 @@
  * No I/O, no React, no Next.js. Everything else depends on this; this depends on nothing.
  */
 export * from "./bonus";
+export * from "./club";
 export * from "./fdr";
+export * from "./fixtureFeed";
 export * from "./format";
 export * from "./gameweek";
 export * from "./insights";
+export * from "./seasonCharts";
+export * from "./leagueStats";
 export * from "./params";
 export * from "./standings";
+export * from "./theme";
 export * from "./teamSheet";
+export * from "./times";
 export type * from "./types";

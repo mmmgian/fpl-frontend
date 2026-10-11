@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import styles from "./Skeleton.module.css";
 import { SlowHint } from "./SlowHint";
 
-export function Skeleton({ width = "100%", height = 14, radius = 6 }: { width?: number | string; height?: number; radius?: number }) {
+export function Skeleton({ width = "100%", height = 14, radius = 6 }: { width?: number | string; height?: number | string; radius?: number }) {
   return <span className={styles.block} style={{ width, height, borderRadius: radius }} aria-hidden="true" />;
 }
 

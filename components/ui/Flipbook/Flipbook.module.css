@@ -1,0 +1,91 @@
+.root { display: grid; gap: var(--space-3); min-width: 0; }
+.root:fullscreen { align-content: start; overflow: auto; padding: var(--space-4); background: var(--bg); }
+
+/* The stage: a glass panel the pages sit on. */
+.viewport {
+  display: flex;
+  justify-content: center;
+  padding: clamp(10px, 2.5vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  perspective: 1800px;
+  /* Horizontal swipes turn the page; vertical scrolling and pinch-zoom stay with the browser. */
+  touch-action: pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+}
+.viewport:focus-visible { outline-offset: 3px; }
+
+.spread { display: flex; justify-content: center; width: 100%; transform-origin: center; }
+.spread[data-direction="next"] { animation: turn-next 340ms cubic-bezier(0.22, 0.8, 0.3, 1); }
+.spread[data-direction="prev"] { animation: turn-prev 340ms cubic-bezier(0.22, 0.8, 0.3, 1); }
+@keyframes turn-next { from { opacity: 0; transform: translateX(34px) rotateY(-9deg); } to { opacity: 1; transform: none; } }
+@keyframes turn-prev { from { opacity: 0; transform: translateX(-34px) rotateY(9deg); } to { opacity: 1; transform: none; } }
+
+/* A page. Narrow: only the current one shows. Wide: the whole spread. */
+.slot { display: none; margin: 0; width: min(100%, 560px); min-width: 0; }
+.slot[data-current] { display: block; }
+
+.root[data-layout="double"] .slot { display: block; width: min(50%, 540px); }
+@media (min-width: 960px) {
+  .root[data-layout="auto"] .slot { display: block; width: min(50%, 540px); }
+}
+/* The spine between two facing pages. */
+.root[data-layout="double"] .slot + .slot { position: relative; }
+@media (min-width: 960px) {
+  .root[data-layout="auto"] .slot + .slot { position: relative; }
+  .root[data-layout="auto"] .slot + .slot::before { content: ""; position: absolute; inset: 0 auto 0 0; z-index: 1; width: 22px; pointer-events: none; background: linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent); }
+}
+.root[data-layout="double"] .slot + .slot::before { content: ""; position: absolute; inset: 0 auto 0 0; z-index: 1; width: 22px; pointer-events: none; background: linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent); }
+
+/* Toolbar. */
+.controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
+.controls > :only-child { grid-column: 1 / -1; }
+.status { margin: 0; text-align: center; font-size: 0.9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.narrowOnly { display: inline; }
+.wideOnly { display: none; }
+.root[data-layout="double"] .narrowOnly { display: none; }
+.root[data-layout="double"] .wideOnly { display: inline; }
+@media (min-width: 960px) {
+  .root[data-layout="auto"] .narrowOnly { display: none; }
+  .root[data-layout="auto"] .wideOnly { display: inline; }
+}
+.turn { min-width: 2.75rem; }
+/* On small phones the arrows alone are enough; the full words come back when there's room. */
+.turnText { display: none; }
+@media (min-width: 480px) { .turnText { display: inline; } }
+
+.tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2) var(--space-3); }
+.jump { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0.875rem; }
+.jump input {
+  width: 4.5rem;
+  min-height: 2.25rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+}
+@media (pointer: coarse), (max-width: 699px) { .jump input { min-height: 2.75rem; } }
+.link { display: inline-flex; align-items: center; min-height: 2.25rem; font-size: 0.875rem; }
+@media (pointer: coarse), (max-width: 699px) { .link { min-height: 2.75rem; } }
+
+/* Text alternative. */
+.text { padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.text summary { min-height: 2.25rem; display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.875rem; }
+@media (pointer: coarse), (max-width: 699px) { .text summary { min-height: 2.75rem; } }
+.textPage { display: none; margin-top: var(--space-3); font-size: 0.875rem; }
+.textPage[data-current] { display: block; }
+@media (min-width: 960px) { .root[data-layout="auto"] .textPage { display: block; } }
+.root[data-layout="double"] .textPage { display: block; }
+.textPage h3 { font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.textPage p { margin-top: 0.25rem; overflow-wrap: anywhere; }
+
+.empty { padding: var(--space-5); text-align: center; color: var(--text-muted); }
+
+@media (forced-colors: active) {
+  .viewport, .text { border: 1px solid CanvasText; }
+}

@@ -10,7 +10,7 @@ export function BonusView({ model }: { model: BonusModel }) {
       <>
         <PageHeader title="Bonus points" />
         <StateMessage title="The season hasn't started">
-          <p>Bonus points appear here once Gameweek 1 kicks off.</p>
+          <p>Pre-season quiet. Bonus points show up here once Gameweek 1 kicks off.</p>
         </StateMessage>
       </>
     );

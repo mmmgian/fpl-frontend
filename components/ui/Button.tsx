@@ -21,6 +21,13 @@ export function ButtonLink({ variant = "outline", size = "md", className, ...res
   return <Link className={cx(variant, size, className)} {...rest} />;
 }
 
+type ButtonAnchorProps = ComponentProps<"a"> & { variant?: Variant; size?: Size };
+
+/** A plain link styled as a button, for files and external URLs (Next's Link is for routes). */
+export function ButtonAnchor({ variant = "outline", size = "md", className, ...rest }: ButtonAnchorProps) {
+  return <a className={cx(variant, size, className)} {...rest} />;
+}
+
 /** Non-interactive placeholder with button geometry (e.g. a disabled pager link). */
 export function ButtonPlaceholder({ children, size = "md" }: { children: ReactNode; size?: Size }) {
   return (

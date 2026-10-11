@@ -12,7 +12,7 @@ export const event = (over: Partial<FplEvent> = {}): FplEvent => ({
 });
 
 export const bootstrap: Bootstrap = {
-  events: [event({ id: 5, name: "Gameweek 5", is_current: false, finished: true, data_checked: true }), event()],
+  events: [event({ id: 5, name: "Gameweek 5", is_current: false, finished: true, data_checked: true, average_entry_score: 49 }), event()],
   teams: [
     { id: 1, code: 3, name: "Arsenal", short_name: "ARS" },
     { id: 2, code: 43, name: "Man City", short_name: "MCI" },

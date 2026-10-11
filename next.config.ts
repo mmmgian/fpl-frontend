@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The Times: its PDFs, page images and text are static files, which a meta robots tag can't cover.
+        // This keeps well-behaved crawlers away from them. It makes the material unlisted, not private:
+        // anyone with a link (or the /times page) can open it.
+        source: "/times/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      {
+        // Drawn avatars never change under the same URL (the manifest adds a content hash), so keep them for a year.
+        source: "/avatars/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

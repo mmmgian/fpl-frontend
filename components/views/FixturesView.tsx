@@ -1,6 +1,7 @@
-import { ButtonLink, Crest, FdrChip, GameweekPager, PageHeader, StateMessage } from "@/components/ui";
+import { ClubLink, Crest, FdrChip, GameweekPager, PageHeader, StateMessage } from "@/components/ui";
 import { oneDecimal } from "@/lib/domain";
 import type { FixturesModel } from "@/lib/services/models";
+import { FixturesTabs } from "./FixturesTabs";
 import styles from "./fixtures.module.css";
 
 const dateLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -39,13 +40,7 @@ export function FixturesView({ model }: { model: FixturesModel }) {
         }
         actions={
           <>
-            <nav className={styles.windows} aria-label="Gameweeks to show">
-              {model.windows.map((w) => (
-                <ButtonLink key={w} size="sm" variant={w === window ? "solid" : "outline"} href={href(start, w)} aria-current={w === window ? "true" : undefined} scroll={false}>
-                  Next {w}
-                </ButtonLink>
-              ))}
-            </nav>
+            <FixturesTabs windows={model.windows} current={window} start={start} />
             <GameweekPager gw={start} min={model.min} max={model.max} href={(n) => href(n, window)} label="Start gameweek" />
           </>
         }
@@ -77,11 +72,13 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                     <span className={styles.rank} aria-hidden="true">
                       {row.rank}
                     </span>
-                    <Crest code={row.team.code} name={row.team.name} size={22} />
-                    <span className={styles.teamText}>
-                      <span className={styles.teamName}>{row.team.short}</span>
-                      <span className={styles.avg}>avg {oneDecimal(row.average)}</span>
-                    </span>
+                    <ClubLink id={row.team.id} name={row.team.name} className={styles.teamLink}>
+                      <Crest code={row.team.code} name={row.team.name} size={22} />
+                      <span className={styles.teamText}>
+                        <span className={styles.teamName}>{row.team.short}</span>
+                        <span className={styles.avg}>avg {oneDecimal(row.average)}</span>
+                      </span>
+                    </ClubLink>
                     <span className="sr-only">
                       Rank {row.rank}, {row.team.name}
                     </span>
@@ -98,7 +95,10 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                       matches.map((m, j) => (
                         <FdrChip key={j} band={m.band} block>
                           <span>
-                            {m.opponent} <span className={styles.venue}>({m.home ? "H" : "A"})</span>
+                            <ClubLink id={m.opponentId} name={m.opponentName}>
+                              {m.opponent}
+                            </ClubLink>{" "}
+                            <span className={styles.venue}>({m.home ? "H" : "A"})</span>
                           </span>
                           <span className={styles.diff} aria-hidden="true">
                             {m.difficulty}

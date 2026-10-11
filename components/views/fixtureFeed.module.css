@@ -1,0 +1,99 @@
+/* A comfortable reading width: rows are short, so a full-width card would leave them floating in the middle. */
+.feed { display: grid; gap: var(--space-5); min-width: 0; max-width: 46rem; }
+
+/* ---- tools ---- */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); scroll-margin-top: 8rem; }
+.jump { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0.875rem; color: var(--text-muted); }
+.select {
+  min-height: 2.75rem;
+  padding: 0 2rem 0 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---- one gameweek ---- */
+.gameweek {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: clip;
+  scroll-margin-top: 8rem;
+  /* The browser can skip laying out off-screen gameweeks: 38 of them are a lot of rows. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+.gwHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-head);
+  border-bottom: 1px solid var(--border);
+}
+.gwTitle { font-size: 1.125rem; font-weight: 800; letter-spacing: -0.01em; }
+.deadline { margin-left: auto; font-size: 0.8125rem; color: var(--text-muted); }
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+.flagTeams { color: var(--text-muted); }
+
+/* ---- a match day ---- */
+.day + .day { border-top: 1px solid var(--border); }
+.dayTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.matches { margin: 0; padding: 0 0 var(--space-2); list-style: none; }
+
+/* home | time or score | away, with the middle column the same width on every row so scores line up */
+.match {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.55rem var(--space-3);
+}
+.match + .match { border-top: 1px solid var(--border); }
+.side { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.home { justify-content: flex-end; text-align: right; }
+.away { justify-content: flex-start; text-align: left; }
+.sideText { display: grid; justify-items: inherit; gap: 2px; min-width: 0; }
+.home .sideText { justify-items: end; }
+.away .sideText { justify-items: start; }
+.short { font-weight: 700; letter-spacing: 0.02em; }
+
+.middle { display: grid; justify-items: center; gap: 2px; text-align: center; white-space: nowrap; }
+.time { font-weight: 600; font-variant-numeric: tabular-nums; }
+.score { font-size: 1.125rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ft { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); }
+
+/* ---- end of the list ---- */
+.end { display: grid; justify-items: center; padding: var(--space-4) 0 var(--space-5); }
+.done { margin: 0; color: var(--text-muted); font-size: 0.875rem; text-align: center; }
+
+@media (max-width: 420px) {
+  .match { grid-template-columns: minmax(0, 1fr) 5.6rem minmax(0, 1fr); padding-inline: var(--space-2); }
+  .score { font-size: 1rem; }
+}

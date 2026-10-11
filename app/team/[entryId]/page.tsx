@@ -7,7 +7,7 @@ import { GwStatusBadge } from "@/components/views/GwStatusBadge";
 import { TeamSheetView } from "@/components/views/TeamSheetView";
 import { getBootstrap, getEntry, getEntryPicks, getEventLive, isNotFound } from "@/lib/fpl/client";
 import { buildTeamSheet, CHIP_LABEL, currentEvent, formatMoney, formatRank, gwStatus, parseGw } from "@/lib/fpl/derive";
-import type { Entry } from "@/lib/fpl/types";
+import type { Entry, FplEvent } from "@/lib/fpl/types";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +37,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const backLink = <Link href="/">← League table</Link>;
 
+/** Picks (null = FPL has none for that GW) and live points (null = unavailable; still show the team). */
+function loadGameweek(id: number, gw: number, settled: boolean) {
+  return Promise.all([
+    getEntryPicks(id, gw, settled).catch((e) => {
+      if (isNotFound(e)) return null;
+      throw e;
+    }),
+    getEventLive(gw, settled).catch(() => null),
+  ]);
+}
+
+const isSettled = (event: FplEvent) => gwStatus(event) === "final";
+
 export default async function TeamPage({ params, searchParams }: Props) {
   const id = parseEntryId((await params).entryId);
   if (!id) notFound();
+  const gwParam = (await searchParams).gw;
 
-  const [entry, bootstrap] = await Promise.all([loadEntry(id), getBootstrap()]);
+  const bootstrapP = getBootstrap();
+  // Speculate: the gameweek only depends on the entry when ?gw= is before the team's first GW, so start
+  // picks + live as soon as bootstrap is in rather than waiting for the entry as well (saves a round trip).
+  const speculative = bootstrapP.then((bs) => {
+    const latest = currentEvent(bs.events);
+    if (!latest) return null;
+    const gw = parseGw(gwParam, 1, latest.id) ?? latest.id;
+    const event = bs.events.find((e) => e.id === gw)!;
+    return { gw, data: loadGameweek(id, gw, isSettled(event)) };
+  });
+  speculative.then((s) => s?.data.catch(() => {}), () => {}); // consumed below, or deliberately dropped
+
+  const [entry, bootstrap] = await Promise.all([loadEntry(id), bootstrapP]);
   if (!entry) notFound();
 
   const manager = `${entry.player_first_name} ${entry.player_last_name}`.trim();
@@ -71,18 +97,12 @@ export default async function TeamPage({ params, searchParams }: Props) {
     );
   }
 
-  const gw = parseGw((await searchParams).gw, entry.started_event, latest.id) ?? latest.id;
+  const gw = parseGw(gwParam, entry.started_event, latest.id) ?? latest.id;
   const event = bootstrap.events.find((e) => e.id === gw)!;
   const status = gwStatus(event);
-  const settled = status === "final";
 
-  const [picks, live] = await Promise.all([
-    getEntryPicks(id, gw, settled).catch((e) => {
-      if (isNotFound(e)) return null;
-      throw e;
-    }),
-    getEventLive(gw, settled).catch(() => null), // points are a nice-to-have; still show the team
-  ]);
+  const guess = await speculative;
+  const [picks, live] = await (guess && guess.gw === gw ? guess.data : loadGameweek(id, gw, isSettled(event)));
 
   const pager = (
     <GameweekPager gw={gw} min={entry.started_event} max={latest.id} href={(n) => `/team/${id}?gw=${n}`} />

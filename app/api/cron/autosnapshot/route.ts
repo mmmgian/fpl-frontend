@@ -2,7 +2,9 @@
  * Vercel Cron -> backend snapshot. Vercel sends `Authorization: Bearer $CRON_SECRET` when CRON_SECRET is set.
  * The backend decides whether the gameweek is over, so calling this daily is safe and idempotent.
  */
+import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { historyTag } from "@/lib/backend";
 import { backendUrl, leagueId } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ export async function GET(req: NextRequest) {
       signal: AbortSignal.timeout(55_000),
     });
     const body: unknown = await res.json().catch(() => null);
+    // A new snapshot was stored: drop the cached history so the next visitor sees it.
+    if (res.ok && (body as { snapshotted?: unknown } | null)?.snapshotted === true) revalidateTag(historyTag(leagueId()));
     return NextResponse.json({ ok: res.ok, upstreamStatus: res.status, body }, { status: res.ok ? 200 : 502 });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

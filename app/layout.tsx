@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { SiteHeader, SkipLink } from "@/components/ui";
+import { CrestFallback, SiteHeader, SkipLink } from "@/components/ui";
 import { SITE_NAME } from "@/lib/config";
 import "./globals.css";
 import styles from "./layout.module.css";
@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             Data from the official Fantasy Premier League API. Not affiliated with the Premier League.
           </p>
         </footer>
+        <CrestFallback />
       </body>
     </html>
   );

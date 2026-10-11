@@ -12,3 +12,9 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
 }));
+
+// Next's data cache needs the Next runtime (unstable_cache throws outside it); pass through in tests.
+vi.mock("next/cache", () => ({
+  unstable_cache: <A extends unknown[], R>(fn: (...args: A) => Promise<R>) => fn,
+  revalidateTag: vi.fn(),
+}));

@@ -1,12 +1,28 @@
-.crest { flex: none; object-fit: contain; }
-.fallback {
+.crest {
   flex: none;
+  position: relative;
   display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* Initials only when there is no image or it failed to load (see CrestFallback). */
+.initials {
+  display: none;
+  width: 100%;
+  height: 100%;
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--surface-2);
   font-weight: 700;
   color: var(--text-muted);
-  line-height: 1;
 }
+.crest[data-crest="failed"] .initials { display: inline-grid; }
+.crest[data-crest="failed"] .image { display: none; }

@@ -9,6 +9,9 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaguePage() {
   const id = leagueId();
+  // Start both requests together; bootstrap is only needed once standings succeed.
+  const bootstrapP = getBootstrap();
+  bootstrapP.catch(() => {}); // handled below; avoid an unhandled rejection on the "not found" path
   let standings;
   try {
     standings = await getLeagueStandings(id);
@@ -22,7 +25,7 @@ export default async function LeaguePage() {
       </StateMessage>
     );
   }
-  const bootstrap = await getBootstrap();
+  const bootstrap = await bootstrapP;
   const event = currentEvent(bootstrap.events);
   const status = event ? gwStatus(event) : null;
   const rows = standings.standings.results;

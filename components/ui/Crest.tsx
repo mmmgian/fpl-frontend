@@ -1,7 +1,3 @@
-"use client";
-
-import Image from "next/image";
-import { useState } from "react";
 import styles from "./Crest.module.css";
 
 interface CrestProps {
@@ -24,32 +20,27 @@ function initials(name: string) {
     .join("");
 }
 
+/**
+ * Server component: a plain lazy <img>, no client JS per crest. If the image fails, the single
+ * <CrestFallback /> listener (mounted once in the layout) flags the wrapper and CSS shows the initials.
+ */
 export function Crest({ code, src, name, size = 24, decorative = true }: CrestProps) {
-  const [failed, setFailed] = useState(false);
   const url = src || (code ? `https://resources.premierleague.com/premierleague/badges/70/t${code}.png` : null);
 
-  if (!url || failed) {
-    return (
-      <span
-        className={styles.fallback}
-        style={{ width: size, height: size, fontSize: Math.max(9, size * 0.38) }}
-        role={decorative ? undefined : "img"}
-        aria-label={decorative ? undefined : name}
-        aria-hidden={decorative ? true : undefined}
-      >
-        {initials(name)}
-      </span>
-    );
-  }
   return (
-    <Image
+    <span
       className={styles.crest}
-      src={url}
-      alt={decorative ? "" : name}
-      width={size}
-      height={size}
-      unoptimized
-      onError={() => setFailed(true)}
-    />
+      style={{ width: size, height: size, fontSize: Math.max(9, size * 0.38) }}
+      data-crest={url ? "" : "failed"}
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : name}
+      aria-hidden={decorative ? true : undefined}
+    >
+      <span className={styles.initials}>{initials(name)}</span>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tiny external badges; next/image would add a client component per crest
+        <img className={styles.image} src={url} alt="" width={size} height={size} loading="lazy" decoding="async" />
+      ) : null}
+    </span>
   );
 }

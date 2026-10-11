@@ -1,7 +1,7 @@
-"use client";
-
-import { useEffect, useState, type ReactNode } from "react";
+/** Server components; only the optional <SlowHint /> timer runs on the client. */
+import type { ReactNode } from "react";
 import styles from "./Skeleton.module.css";
+import { SlowHint } from "./SlowHint";
 
 export function Skeleton({ width = "100%", height = 14, radius = 6 }: { width?: number | string; height?: number; radius?: number }) {
   return <span className={styles.block} style={{ width, height, borderRadius: radius }} aria-hidden="true" />;
@@ -19,16 +19,6 @@ export function TableSkeleton({ rows = 8, columns = 4 }: { rows?: number; column
       ))}
     </div>
   );
-}
-
-/** Appears only if loading takes a while, e.g. while a sleeping server wakes up. */
-export function SlowHint({ afterMs = 4000, children }: { afterMs?: number; children: ReactNode }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const id = setTimeout(() => setShow(true), afterMs);
-    return () => clearTimeout(id);
-  }, [afterMs]);
-  return show ? <p className={styles.hint}>{children}</p> : null;
 }
 
 /** Accessible loading region: one polite announcement plus visual skeleton content. */

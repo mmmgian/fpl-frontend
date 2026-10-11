@@ -1,0 +1,34 @@
+.sectionTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  align-items: start;
+  gap: var(--space-3);
+}
+.wide { grid-column: 1 / -1; }
+@media (min-width: 900px) { .wide { grid-column: span 2; } }
+
+.big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.5rem; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.bigNote { font-size: 0.8125rem; font-weight: 500; letter-spacing: 0; color: var(--text-muted); }
+.fact { margin-top: var(--space-2); font-size: 0.875rem; color: var(--text); overflow-wrap: anywhere; }
+.muted { color: var(--text-muted); }
+
+.list { display: grid; gap: 0.4rem; margin: var(--space-2) 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.news { display: block; margin-top: 0.1rem; font-size: 0.8125rem; color: var(--text-muted); }
+
+.bars { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.barLabel { display: flex; justify-content: space-between; gap: var(--space-2); margin-bottom: 0.2rem; font-weight: 600; }
+.track { display: block; height: 0.5rem; overflow: hidden; border-radius: var(--radius-pill); background: var(--wash); }
+.fill { display: block; height: 100%; border-radius: inherit; background: var(--accent); opacity: 0.55; }
+.fillDone { opacity: 1; background: var(--positive); }
+.reached { color: var(--positive); font-weight: 700; }
+
+.chips { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.chipName { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 700; }
+.slots { display: flex; flex-wrap: wrap; gap: 0.35rem; }

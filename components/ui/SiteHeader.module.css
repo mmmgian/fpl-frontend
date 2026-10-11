@@ -3,9 +3,9 @@
   top: 0;
   z-index: 10;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: saturate(180%) blur(8px);
-  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 .inner {
   display: flex;
@@ -17,13 +17,17 @@
   padding-bottom: var(--space-2);
 }
 .brand {
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   text-decoration: none;
   white-space: nowrap;
 }
 .nav {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -32,21 +36,25 @@
 .link {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--border-strong);
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 500;
   text-decoration: none;
-  transition: background 150ms ease, color 150ms ease;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
 }
-.link:hover { background: var(--text); color: var(--bg); }
-.link[aria-current="page"] { background: var(--text); color: var(--bg); }
+.link:hover { background: var(--wash); border-color: var(--border-strong); color: var(--text); }
+.link:active { transform: scale(0.97); }
+.link[aria-current="page"] { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
 
-@media (max-width: 479px) {
+/* Phones: brand on its own line, the four links share the row evenly. */
+@media (max-width: 599px) {
   .inner { justify-content: center; }
-  .link { padding: 0 var(--space-3); }
+  .nav { width: 100%; }
+  .nav li { flex: 1 1 0; min-width: 0; }
+  .link { width: 100%; justify-content: center; padding: 0 0.5rem; }
 }

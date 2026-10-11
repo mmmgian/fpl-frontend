@@ -1,39 +1,48 @@
+/*
+ * Soft pills, as in the original design: hairline border, sentence case, a light wash on hover.
+ * Sized in rem so they follow the user's text size; 44px minimum touch target.
+ */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  min-height: 44px;               /* touch target */
-  padding: 0 var(--space-4);
-  border: 1px solid var(--border-strong);
+  gap: 0.4rem;
+  flex: none;
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.1;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 100ms ease;
 }
-.sm { min-height: 36px; padding: 0 var(--space-3); font-size: 11px; }
+.button:active:not(:disabled):not(.disabled) { transform: scale(0.97); }
+.sm { min-height: 2.25rem; padding: 0 0.85rem; font-size: 0.8125rem; }
 
 .outline { background: transparent; color: var(--text); }
-.outline:hover { background: var(--text); color: var(--bg); }
+.outline:hover { background: var(--wash); border-color: var(--border-strong); color: var(--text); }
 
-.solid { background: var(--text); color: var(--bg); }
+.solid { background: var(--text); border-color: var(--text); color: var(--bg); }
 .solid:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
 .ghost { border-color: transparent; background: transparent; color: var(--text); }
-.ghost:hover { border-color: var(--border); color: var(--accent); }
+.ghost:hover { background: var(--wash); color: var(--text); }
 
 .button:disabled, .disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
-.button:disabled:hover, .disabled:hover { background: transparent; color: var(--text); }
+.button:disabled:hover, .disabled:hover { background: transparent; border-color: var(--border); color: var(--text); }
 
-@media (pointer: coarse) {
-  .sm { min-height: 44px; }
+/* Fingers, not cursors: every control gets a full-size target on touch devices and on any phone-sized screen
+   (a browser's pointer report isn't reliable enough to be the only signal). */
+@media (pointer: coarse), (max-width: 699px) {
+  .sm { min-height: 2.75rem; }
 }

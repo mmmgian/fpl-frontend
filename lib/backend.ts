@@ -1,16 +1,7 @@
-/** Client for our FastAPI backend (league history snapshots). Render's free tier can take ~40s to wake. */
+/** Adapter for our FastAPI backend (league history snapshots). Render's free tier can take ~40s to wake. */
+import type { Snapshot, SnapshotSummary } from "./domain/types";
+import type { HistoryPort } from "./services/ports";
 import { backendUrl } from "./config";
-import type { LeagueStandings } from "./fpl/types";
-
-export interface SnapshotSummary {
-  gw: number;
-  taken_at: string;
-}
-
-export interface Snapshot extends SnapshotSummary {
-  league_id: number;
-  data: LeagueStandings;
-}
 
 export class BackendError extends Error {
   constructor(
@@ -66,3 +57,5 @@ export async function getSnapshot(leagueId: number, gw: number): Promise<Snapsho
     throw e;
   }
 }
+
+export const historyGateway: HistoryPort = { list: listSnapshots, get: getSnapshot };

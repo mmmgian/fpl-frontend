@@ -29,17 +29,35 @@ describe("slim bootstrap", () => {
     const raw = {
       events: [{ ...bootstrap.events[0], chip_plays: [1, 2], most_captained: 9 }],
       teams: [{ ...bootstrap.teams[0], strength: 5, pulse_id: 1 }],
-      elements: [{ ...bootstrap.elements[0], now_cost: 55, news: "x", ep_next: "4.1" }],
+      elements: [{ ...bootstrap.elements[0], now_cost: 55, status: "a", news: "", ep_next: "4.1" }],
+      chips: [{ id: 1, name: "wildcard", number: 1, start_event: 2, stop_event: 19, chip_policy: {} }],
       element_stats: [{}],
       phases: [{}],
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(raw)));
-    const { getBootstrap } = await import("@/lib/fpl/client");
+    const { getBootstrap } = await import("@/lib/fpl");
     const bs = await getBootstrap();
-    expect(Object.keys(bs).sort()).toEqual(["elements", "events", "teams"]);
-    expect(bs.elements[0]).toEqual(bootstrap.elements[0]);
+    expect(Object.keys(bs).sort()).toEqual(["chips", "elements", "events", "teams"]);
+    expect(bs.chips).toEqual([{ name: "wildcard", start_event: 2, stop_event: 19 }]);
+    expect(bs.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "20.5" }); // names unused; defaults omitted
     expect(bs.teams[0]).toEqual(bootstrap.teams[0]);
     expect(bs.events[0]).toEqual(bootstrap.events[0]);
+  });
+});
+
+describe("slim bootstrap keeps what the squad insights read", () => {
+  it("retains flags, news, chance and ownership; omits defaults", async () => {
+    const { slimBootstrap } = await import("@/lib/fpl");
+    const el = bootstrap.elements[0];
+    const slim = slimBootstrap({
+      ...bootstrap,
+      elements: [
+        { ...el, id: 1, status: "d", news: "Knock", chance_of_playing_next_round: 50, selected_by_percent: "12.3", now_cost: 55 } as never,
+        { ...el, id: 2, status: "a", news: "", chance_of_playing_next_round: null, selected_by_percent: "0.4" } as never,
+      ],
+    });
+    expect(slim.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, status: "d", news: "Knock", chance_of_playing_next_round: 50, selected_by_percent: "12.3" });
+    expect(slim.elements[1]).toEqual({ id: 2, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "0.4" });
   });
 });
 
@@ -58,6 +76,7 @@ function routedFetch(routes: Record<string, unknown>, hold: string[] = []) {
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
+const historyBody = { current: [], past: [], chips: [] };
 
 describe("parallel data loading", () => {
   it("home requests standings and bootstrap at the same time", async () => {
@@ -76,8 +95,8 @@ describe("parallel data loading", () => {
   it("team page fetches picks and live points without waiting for the entry", async () => {
     const entry = { id: 7, name: "Gaucho F.C.", player_first_name: "gian", player_last_name: "jaen", started_event: 1, current_event: 6 };
     const f = routedFetch(
-      { "/bootstrap-static/": bootstrap, "/entry/7/event/6/picks/": picks, "/event/6/live/": live, "/entry/7/": entry },
-      ["/entry/7/"], // hold the entry (and picks, which share the prefix)
+      { "/bootstrap-static/": bootstrap, "/entry/7/event/6/picks/": picks, "/event/6/live/": live, "/entry/7/history/": historyBody, "/entry/7/": entry },
+      ["/entry/7/"], // hold the entry (and picks and history, which share the prefix)
     );
     vi.stubGlobal("fetch", f.fn);
     const { default: TeamPage } = await import("@/app/team/[entryId]/page");
@@ -94,12 +113,40 @@ describe("parallel data loading", () => {
 
   it("team page refetches when ?gw= is before the team's first gameweek", async () => {
     const entry = { id: 7, name: "Late", player_first_name: "a", player_last_name: "b", started_event: 6, current_event: 6 };
-    const f = routedFetch({ "/bootstrap-static/": bootstrap, "/entry/7/event/6/picks/": picks, "/event/": live, "/entry/7/": entry });
+    const f = routedFetch({ "/bootstrap-static/": bootstrap, "/entry/7/event/6/picks/": picks, "/event/": live, "/entry/7/history/": historyBody, "/entry/7/": entry });
     vi.stubGlobal("fetch", f.fn);
     const { default: TeamPage } = await import("@/app/team/[entryId]/page");
     await TeamPage({ params: Promise.resolve({ entryId: "7" }), searchParams: Promise.resolve({ gw: "5" }) });
     // Guessed GW5 first (wasted but harmless), then the real GW6 once the entry said it started in GW6.
     expect(f.seen.filter((u) => u.includes("/picks/")).map((u) => u.match(/event\/(\d+)/)![1])).toEqual(["5", "6"]);
+  });
+});
+
+describe("optional data never takes the team page down", () => {
+  const entry = { id: 7, name: "Gaucho F.C.", player_first_name: "gian", player_last_name: "jaen", started_event: 1, current_event: 6 };
+  const render = async () => {
+    const { default: TeamPage } = await import("@/app/team/[entryId]/page");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    return renderToStaticMarkup(await TeamPage({ params: Promise.resolve({ entryId: "7" }), searchParams: Promise.resolve({}) }));
+  };
+  const world = (extra: Record<string, unknown>) =>
+    routedFetch({ "/bootstrap-static/": bootstrap, "/entry/7/event/6/picks/": picks, "/event/6/live/": live, "/entry/7/history/": historyBody, ...extra, "/entry/7/": entry });
+
+  it.each([
+    ["history with the wrong shape", { "/entry/7/history/": { unexpected: true } }],
+    ["history that is null", { "/entry/7/history/": null }],
+    ["a schedule that is not a list", { "/api/fixtures/": { nope: 1 } }],
+  ])("still renders with %s", async (_name, extra) => {
+    vi.stubGlobal("fetch", world(extra).fn);
+    const html = await render();
+    expect(html).toContain("Gaucho F.C.");
+    expect(html).toContain("Starting XI");
+  });
+
+  it("normalises a partial history to empty lists", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ current: [{ event: 1 }] })));
+    const { getEntryHistory } = await import("@/lib/fpl");
+    expect(await getEntryHistory(7)).toEqual({ current: [{ event: 1 }], past: [], chips: [] });
   });
 });
 

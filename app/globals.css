@@ -8,23 +8,37 @@
 
   /* Light palette. Text colors meet WCAG AA (>= 4.5:1) on --bg and --surface. */
   --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f6f6f8;
+  /* Glass: translucent so the dot grid shows through, like frosted glass over the page. */
+  --surface: rgba(255, 255, 255, 0.8);
+  --surface-head: rgba(255, 255, 255, 0.6);
+  --surface-solid: #ffffff;
+  --surface-2: rgba(0, 0, 0, 0.045);
   --text: #111111;
   --text-muted: #5c5c5c;
   --border: rgba(0, 0, 0, 0.1);
-  --border-strong: #111111;
+  --border-strong: rgba(0, 0, 0, 0.28);
+  --wash: rgba(0, 0, 0, 0.05);
   --accent: #b0006b;          /* magenta, 7.1:1 on white */
   --accent-2: #00a3b8;        /* cyan, decorative only */
-  --positive: #0a7a3a;
-  --negative: #b42318;
+  --positive: #00805a;        /* Kelly green, 4.9:1 on white */
+  --negative: #800020;        /* burgundy */
   --warning: #8a5a00;
   --focus: #b0006b;
-  --dot: rgba(0, 0, 0, 0.05);
-  --hover-wash: linear-gradient(90deg, rgba(255, 0, 255, 0.06), rgba(0, 255, 255, 0.06));
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --dot: #000000;
+  --dot-size: 1.5px;
+  --hover-wash: rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-blur: saturate(1.1) blur(4px);
 
-  --radius: 12px;
+  /* Fixture difficulty (FDR) 1 easy .. 5 hard: background, text, border. Text is >= 7:1 on its background. */
+  --fdr-1-bg: #daf7d6; --fdr-1-fg: #0b3d0b; --fdr-1-bd: #b9e8b3;
+  --fdr-2-bg: #b9e8b3; --fdr-2-fg: #0b3d0b; --fdr-2-bd: #9dd99a;
+  --fdr-3-bg: #f5e7aa; --fdr-3-fg: #553a00; --fdr-3-bd: #e8d98f;
+  --fdr-4-bg: #f7c4a3; --fdr-4-fg: #5c2400; --fdr-4-bd: #e7b18d;
+  --fdr-5-bg: #f4a7a7; --fdr-5-fg: #5a0b0b; --fdr-5-bd: #e28e8e;
+
+  --radius: 16px;
+  --radius-lg: 28px;
   --radius-pill: 9999px;
   --space-1: 4px;
   --space-2: 8px;
@@ -33,32 +47,38 @@
   --space-5: 24px;
   --space-6: 32px;
   --content-max: 1100px;
-  --dot-gap: 40px;
+  --dot-gap: 60px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0b0b0b;
-    --surface: #141414;
-    --surface-2: #1c1c1c;
+    --surface: rgba(24, 24, 24, 0.74);
+    --surface-head: rgba(24, 24, 24, 0.55);
+    --surface-solid: #181818;
+    --surface-2: rgba(255, 255, 255, 0.06);
     --text: #ededed;
     --text-muted: #a8a8a8;
-    --border: rgba(255, 255, 255, 0.12);
-    --border-strong: #ededed;
+    --border: rgba(255, 255, 255, 0.14);
+    --border-strong: rgba(255, 255, 255, 0.34);
+    --wash: rgba(255, 255, 255, 0.07);
     --accent: #ff7ad1;
     --accent-2: #4fd8e8;
     --positive: #4ade80;
-    --negative: #ff8a80;
+    --negative: #ff8a9b;
     --warning: #f5c35b;
     --focus: #ff7ad1;
-    --dot: rgba(255, 255, 255, 0.07);
-    --hover-wash: linear-gradient(90deg, rgba(255, 0, 255, 0.12), rgba(0, 255, 255, 0.1));
-    --shadow: none;
+    --dot: rgba(255, 255, 255, 0.6);
+    --hover-wash: rgba(255, 255, 255, 0.07);
+    --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    --fdr-1-bg: #14532d; --fdr-1-fg: #dcfce7; --fdr-1-bd: #1f7a43;
+    --fdr-2-bg: #1f6b3a; --fdr-2-fg: #e3fbe9; --fdr-2-bd: #2f8a52;
+    --fdr-3-bg: #6b5a14; --fdr-3-fg: #fdf3c4; --fdr-3-bd: #8a7420;
+    --fdr-4-bg: #8a4a1f; --fdr-4-fg: #ffe6d3; --fdr-4-bd: #a85e2b;
+    --fdr-5-bg: #8a2525; --fdr-5-fg: #ffe0e0; --fdr-5-bd: #ab3a3a;
   }
 }
-
-@media (min-width: 768px) { :root { --dot-gap: 48px; } }
-@media (min-width: 1280px) { :root { --dot-gap: 56px; } }
 
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -79,15 +99,21 @@ img { max-width: 100%; }
 h1, h2, h3, p { margin: 0; }
 button { font: inherit; color: inherit; }
 
-/* Polka-dot backdrop, fixed behind content */
+/*
+ * Polka-dot backdrop. Solid dots on a fixed layer, so they stay still while the page scrolls past
+ * (a fixed pseudo-element rather than background-attachment: fixed, which iOS Safari ignores).
+ * Panels are translucent, so the dots show through them like frosted glass.
+ */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(circle at center, var(--dot) 1.5px, transparent 1.6px);
+  background-image: radial-gradient(circle at center, var(--dot) var(--dot-size), transparent calc(var(--dot-size) + 0.5px));
   background-size: var(--dot-gap) var(--dot-gap);
+  background-position: 0.5px 0.5px;
+  transform: translateZ(0); /* own compositor layer: no repaint or flicker while scrolling */
 }
 
 /* ---------- Links & focus ---------- */
@@ -128,6 +154,15 @@ main:focus { outline: none; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Honour "reduce transparency" and "more contrast": solid panels, no dots showing through the text. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --surface: var(--surface-solid);
+    --surface-head: var(--surface-solid);
+    --glass-blur: none;
   }
 }
 

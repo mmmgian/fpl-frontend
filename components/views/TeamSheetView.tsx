@@ -1,8 +1,18 @@
-import { Card, CaptainBadge, Crest, DataTable, type Column } from "@/components/ui";
-import { POSITION_LABEL, type SheetPlayer, type TeamSheet } from "@/lib/fpl/derive";
+import { Card, CaptainBadge, Crest, DataTable, FdrChip, type Column } from "@/components/ui";
+import { fdrBand, POSITION_LABEL, subtotal, type SheetPlayer, type TeamSheet } from "@/lib/domain";
+import type { NextMatch } from "@/lib/services/models";
 import styles from "./views.module.css";
 
-function playerColumns(showPoints: boolean, benchOrder = false): Column<SheetPlayer>[] {
+const shirt = (clubCode: number | null) =>
+  clubCode ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${clubCode}-66.png` : null;
+
+interface ColumnOptions {
+  showPoints: boolean;
+  next: Record<number, NextMatch[]>;
+  benchOrder?: boolean;
+}
+
+function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions): Column<SheetPlayer>[] {
   const cols: Column<SheetPlayer>[] = [
     {
       key: "player",
@@ -16,6 +26,7 @@ function playerColumns(showPoints: boolean, benchOrder = false): Column<SheetPla
               <span className="sr-only">Bench {p.slot - 11}{p.slot === 12 ? ", goalkeeper" : ""}</span>
             </span>
           ) : null}
+          <Crest src={shirt(p.clubCode)} name={`${p.club} shirt`} size={24} />
           <span className={styles.playerName}>{p.name}</span>
           {p.isCaptain ? <CaptainBadge multiplier={p.multiplier} /> : null}
           {p.isVice ? <CaptainBadge vice /> : null}
@@ -25,7 +36,7 @@ function playerColumns(showPoints: boolean, benchOrder = false): Column<SheetPla
     {
       key: "club",
       header: "Club",
-      width: "5.5rem",
+      width: "4.75rem",
       cell: (p) => (
         <span className={styles.clubCell}>
           <Crest code={p.clubCode} name={p.club} size={18} />
@@ -34,6 +45,31 @@ function playerColumns(showPoints: boolean, benchOrder = false): Column<SheetPla
       ),
     },
   ];
+  if (Object.keys(next).length > 0) {
+    cols.push({
+      key: "next",
+      header: "Next",
+      hideBelow: "sm",
+      width: "7.5rem",
+      cell: (p) => {
+        const matches = next[p.id];
+        return matches?.length ? (
+          <span className={styles.nextCell}>
+            {matches.map((m, i) => (
+              <FdrChip key={i} band={fdrBand(m.difficulty)}>
+                {m.opponent} ({m.home ? "H" : "A"}) <span aria-hidden="true">{m.difficulty}</span>
+              </FdrChip>
+            ))}
+          </span>
+        ) : (
+          <span className={styles.muted}>
+            <span aria-hidden="true">–</span>
+            <span className="sr-only">No fixture</span>
+          </span>
+        );
+      },
+    });
+  }
   if (showPoints) {
     cols.push({
       key: "pts",
@@ -57,7 +93,35 @@ function playerColumns(showPoints: boolean, benchOrder = false): Column<SheetPla
   return cols;
 }
 
-export function TeamSheetView({ sheet, showPoints }: { sheet: TeamSheet; showPoints: boolean }) {
+/** Highest scorers first, as in the original; slot order when there are no points to sort by. */
+const byPoints = (a: SheetPlayer, b: SheetPlayer) => (b.points ?? 0) - (a.points ?? 0) || a.slot - b.slot;
+
+function Subtotal({ label, value, note }: { label: string; value: number; note?: string }) {
+  return (
+    <div className={styles.subtotal}>
+      <span>
+        {label}
+        {note ? <span className={styles.subtotalNote}> {note}</span> : null}
+      </span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+interface TeamSheetViewProps {
+  sheet: TeamSheet;
+  showPoints: boolean;
+  next?: Record<number, NextMatch[]>;
+  /** Transfer hit in points, shown beside the grand total. */
+  hit?: number;
+  /** Bench Boost: bench points count towards the score. */
+  benchCounted?: boolean;
+}
+
+export function TeamSheetView({ sheet, showPoints, next = {}, hit = 0, benchCounted = false }: TeamSheetViewProps) {
+  const benchPoints = sheet.bench.reduce((sum, p) => sum + (p.basePoints ?? 0), 0);
+  const grand = sheet.grossPoints;
+
   return (
     <div className="stack">
       <section aria-labelledby="xi-heading" className="stack">
@@ -65,31 +129,47 @@ export function TeamSheetView({ sheet, showPoints }: { sheet: TeamSheet; showPoi
           Starting XI
         </h2>
         <div className={styles.positionGrid}>
-          {sheet.starters.map((group) => (
-            <Card key={group.positionId} title={POSITION_LABEL[group.positionId].plural} headingLevel={3} flush>
-              <DataTable
-                caption={POSITION_LABEL[group.positionId].plural}
-                hideCaption
-                dense
-                columns={playerColumns(showPoints)}
-                rows={group.players}
-                rowKey={(p) => p.id}
-              />
-            </Card>
-          ))}
+          {sheet.starters.map((group) => {
+            const players = showPoints ? [...group.players].sort(byPoints) : group.players;
+            return (
+              <Card key={group.positionId} title={POSITION_LABEL[group.positionId].plural} headingLevel={3} flush>
+                <DataTable
+                  caption={POSITION_LABEL[group.positionId].plural}
+                  hideCaption
+                  dense
+                  columns={playerColumns({ showPoints, next })}
+                  rows={players}
+                  rowKey={(p) => p.id}
+                />
+                {showPoints ? <Subtotal label="Subtotal" value={subtotal(group.players)} /> : null}
+              </Card>
+            );
+          })}
         </div>
       </section>
+
       <Card title="Bench" flush>
         <DataTable
           caption="Bench, in substitution order"
           hideCaption
           dense
-          columns={playerColumns(showPoints, true)}
+          columns={playerColumns({ showPoints, next, benchOrder: true })}
           rows={sheet.bench}
           rowKey={(p) => p.id}
           empty="No bench players."
         />
+        {showPoints ? <Subtotal label="Bench" value={benchPoints} note={benchCounted ? "(counts: Bench Boost)" : "(not counted)"} /> : null}
       </Card>
+
+      {showPoints ? (
+        <div className={styles.grandTotalRow}>
+          <p className={styles.grandTotal}>
+            <span className={styles.grandLabel}>Grand total</span>
+            <strong className={styles.grandValue}>{grand}</strong>
+            {hit > 0 ? <span className={styles.grandNote}>−{hit} hit = {grand - hit}</span> : null}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

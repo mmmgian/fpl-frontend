@@ -1,9 +1,12 @@
 .region {
+  /* Containing block for the absolutely positioned .sr-only text inside cells: without it that text escapes
+     the scroll panel and widens the whole page. */
+  position: relative;
   max-width: 100%;
   overflow-x: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   -webkit-overflow-scrolling: touch;
 }
@@ -35,9 +38,10 @@
 .dense th, .dense td { padding: 7px var(--space-2); }
 
 .table thead th {
-  font-size: 11px;
+  background: var(--surface-head);
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
   white-space: nowrap;

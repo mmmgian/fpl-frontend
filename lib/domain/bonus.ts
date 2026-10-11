@@ -1,0 +1,113 @@
+/** Bonus points (BPS -> bonus) and fixture state. Pure: no I/O, no framework. */
+import type { Fixture } from "./types";
+
+export type FixtureState = "upcoming" | "live" | "provisional" | "final";
+
+export function fixtureState(f: Fixture): FixtureState {
+  if (f.finished) return "final";
+  if (f.finished_provisional) return "provisional";
+  if (f.started) return "live";
+  return "upcoming";
+}
+
+/** Kick-off order; fixtures without a time (postponed) go last, ties broken by id. */
+export const compareByKickoff = (a: Fixture, b: Fixture) =>
+  (a.kickoff_time ? Date.parse(a.kickoff_time) : Infinity) - (b.kickoff_time ? Date.parse(b.kickoff_time) : Infinity) || a.id - b.id;
+
+export const isFinished = (f: Fixture) => f.finished || f.finished_provisional;
+
+export type BonusSource = "confirmed" | "provisional" | "projected" | "none";
+
+export interface BonusRow {
+  element: number;
+  side: "h" | "a";
+  bonus: number;
+  bps: number | null;
+}
+
+/**
+ * FPL bonus from BPS, using competition ranking across both teams:
+ * rank = 1 + number of players with strictly higher BPS; rank 1 -> 3, 2 -> 2, 3 -> 1.
+ * This reproduces the official tie rules (e.g. two tied first both get 3, next gets 1).
+ */
+export function bonusFromBps<T extends { bps: number }>(players: T[]): (T & { bonus: number })[] {
+  return players
+    .map((p) => {
+      const rank = 1 + players.filter((q) => q.bps > p.bps).length;
+      return { ...p, bonus: rank <= 3 ? 4 - rank : 0 };
+    })
+    .filter((p) => p.bonus > 0)
+    .sort((a, b) => b.bonus - a.bonus || b.bps - a.bps);
+}
+
+function stat(f: Fixture, id: string) {
+  const s = f.stats?.find((x) => x.identifier === id);
+  return s ? [...s.h.map((v) => ({ ...v, side: "h" as const })), ...s.a.map((v) => ({ ...v, side: "a" as const }))] : [];
+}
+
+export function matchBonus(f: Fixture): { source: BonusSource; rows: BonusRow[] } {
+  const bps = stat(f, "bps");
+  const bpsOf = new Map(bps.map((b) => [b.element, b.value]));
+  const official = stat(f, "bonus");
+
+  if (official.length > 0) {
+    const rows = official
+      .map((b) => ({ element: b.element, side: b.side, bonus: b.value, bps: bpsOf.get(b.element) ?? null }))
+      .sort((a, b) => b.bonus - a.bonus || (b.bps ?? 0) - (a.bps ?? 0));
+    return { source: f.finished ? "confirmed" : "provisional", rows };
+  }
+  if (f.started && bps.length > 0) {
+    const rows = bonusFromBps(bps.map((b) => ({ element: b.element, side: b.side, bps: b.value })));
+    return { source: "projected", rows };
+  }
+  return { source: "none", rows: [] };
+}
+
+export interface BpsEntry {
+  element: number;
+  side: "h" | "a";
+  bps: number;
+}
+
+/** Everyone's BPS in the match, highest first (ties keep the feed's order). */
+export function bpsRanking(f: Fixture): BpsEntry[] {
+  return stat(f, "bps")
+    .map((b) => ({ element: b.element, side: b.side, bps: b.value }))
+    .sort((a, b) => b.bps - a.bps);
+}
+
+/**
+ * The players to show for one side: everyone who earned bonus, topped up with the next-best BPS so there
+ * are at least `minimum` rows. (Ties can award bonus to four players of one side.)
+ */
+export function sideLeaders(f: Fixture, side: "h" | "a", minimum = 3, bonus: BonusRow[] = matchBonus(f).rows): (BpsEntry & { bonus: number })[] {
+  const bonusOf = new Map(bonus.map((r) => [r.element, r.bonus]));
+  const ranked = bpsRanking(f)
+    .filter((e) => e.side === side)
+    .map((e) => ({ ...e, bonus: bonusOf.get(e.element) ?? 0 }));
+  const awarded = ranked.filter((e) => e.bonus > 0);
+  return [...awarded, ...ranked.filter((e) => e.bonus === 0).slice(0, Math.max(0, minimum - awarded.length))];
+}
+
+export interface MatchEvent {
+  element: number;
+  side: "h" | "a";
+  count: number;
+}
+
+export interface MatchEvents {
+  goals: MatchEvent[];
+  assists: MatchEvent[];
+  ownGoals: MatchEvent[];
+  redCards: MatchEvent[];
+}
+
+const events = (f: Fixture, id: string): MatchEvent[] =>
+  stat(f, id)
+    .filter((e) => e.value > 0)
+    .map((e) => ({ element: e.element, side: e.side, count: e.value }));
+
+/** Goals, assists, own goals and red cards, from the fixture's stat feed. */
+export function matchEvents(f: Fixture): MatchEvents {
+  return { goals: events(f, "goals_scored"), assists: events(f, "assists"), ownGoals: events(f, "own_goals"), redCards: events(f, "red_cards") };
+}

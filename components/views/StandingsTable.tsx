@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Crest, DataTable, Movement, type Column } from "@/components/ui";
-import { rankMovement } from "@/lib/fpl/derive";
-import type { StandingRow } from "@/lib/fpl/types";
+import { rankMovement } from "@/lib/domain";
+import type { StandingRow } from "@/lib/domain/types";
 import styles from "./views.module.css";
 
 interface StandingsTableProps {

@@ -14,7 +14,7 @@ describe("FPL client", () => {
   it("sends browser headers and maps 404 to FplError", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("nope", { status: 404 }));
     vi.stubGlobal("fetch", fetchMock);
-    const { getEntry, isNotFound } = await import("@/lib/fpl/client");
+    const { getEntry, isNotFound } = await import("@/lib/fpl");
     const err = await getEntry(1).catch((e) => e);
     expect(isNotFound(err)).toBe(true);
     const [url, init] = fetchMock.mock.calls[0];
@@ -24,7 +24,7 @@ describe("FPL client", () => {
 
   it("maps network failures to a 504 FplError", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
-    const { getEntry, FplError } = await import("@/lib/fpl/client");
+    const { getEntry, FplError } = await import("@/lib/fpl");
     const err = await getEntry(1).catch((e) => e);
     expect(err).toBeInstanceOf(FplError);
     expect(err.status).toBe(504);
@@ -36,7 +36,7 @@ describe("FPL client", () => {
       .mockResolvedValueOnce(new Response("busy", { status: 503 }))
       .mockResolvedValue(json({ events: [], teams: [], elements: [] }));
     vi.stubGlobal("fetch", fetchMock);
-    const { getBootstrap } = await import("@/lib/fpl/client");
+    const { getBootstrap } = await import("@/lib/fpl");
     await expect(getBootstrap()).rejects.toMatchObject({ status: 503 });
     await getBootstrap();
     await getBootstrap();
@@ -48,7 +48,7 @@ describe("FPL client", () => {
       json({ league: { id: 1, name: "L" }, standings: { has_next: hasNext, results: [{ entry: n }] } });
     const fetchMock = vi.fn().mockResolvedValueOnce(page(1, true)).mockResolvedValueOnce(page(2, false));
     vi.stubGlobal("fetch", fetchMock);
-    const { getLeagueStandings } = await import("@/lib/fpl/client");
+    const { getLeagueStandings } = await import("@/lib/fpl");
     const s = await getLeagueStandings(1);
     expect(s.standings.results.map((r) => r.entry)).toEqual([1, 2]);
     expect(fetchMock.mock.calls[1][0]).toContain("page_standings=2");

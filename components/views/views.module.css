@@ -25,10 +25,14 @@
 /* ----- Team sheet ----- */
 .positionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  /* Wide enough that the name keeps a line to itself next to club, next opponent and points. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  align-items: start;
   gap: var(--space-4);
 }
-.playerCell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.playerCell { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.playerCell > * { flex: none; }
+.playerCell > .playerName { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .playerName { font-weight: 600; }
 .benchSlot {
   display: inline-grid;
@@ -40,44 +44,8 @@
   font-size: 11px;
   color: var(--text-muted);
 }
-.clubCell { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
-
-/* ----- Bonus ----- */
-.fixtureGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: var(--space-4);
-}
-.fixtureCard { display: grid; gap: var(--space-3); align-content: start; }
-.fixtureHeader { display: grid; gap: var(--space-2); }
-.fixtureHeading { font-size: 15px; }
-.fixtureTitle { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.fixtureSide { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 700; letter-spacing: 0.04em; }
-.score {
-  padding: 2px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  font-size: 15px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.fixtureMeta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--text-muted); min-height: 22px; }
-
-.bonusList { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.bonusRow {
-  display: grid;
-  grid-template-columns: 2.5rem 1fr auto auto;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 6px var(--space-2);
-  border-radius: 8px;
-}
-.bonusRow:nth-child(odd) { background: var(--surface-2); }
-.bonusPts { font-weight: 800; color: var(--accent); }
-.bonusName { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.bonusClub { font-size: 12px; color: var(--text-muted); }
-.bps { font-size: 12px; color: var(--text-muted); min-width: 6ch; text-align: right; }
-.sourceNote { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 12px; color: var(--text-muted); }
+.nextCell { display: inline-flex; flex-wrap: wrap; gap: 0.2rem; }
+.clubCell { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; white-space: nowrap; }
 
 /* ----- History ----- */
 .snapshotList {
@@ -101,3 +69,37 @@
 .snapshotLink:hover { border-color: var(--accent); background: var(--hover-wash); color: inherit; }
 .snapshotGw { font-size: 22px; font-weight: 700; }
 .snapshotDate { font-size: 12px; color: var(--text-muted); }
+
+/* ----- Subtotals and grand total (as in the original manager page) ----- */
+.subtotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-2) var(--space-3) var(--space-3);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.subtotal strong { font-size: 0.9375rem; font-weight: 800; }
+.subtotalNote { font-weight: 400; color: var(--text-muted); }
+
+.grandTotalRow { display: flex; justify-content: center; }
+.grandTotal {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+}
+.grandLabel { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.9; }
+.grandValue { font-size: 1.125rem; font-weight: 800; }
+.grandNote { font-size: 0.75rem; opacity: 0.85; }

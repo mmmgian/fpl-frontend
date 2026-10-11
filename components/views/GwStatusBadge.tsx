@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui";
-import type { GwStatus } from "@/lib/fpl/derive";
+import type { GwStatus } from "@/lib/domain";
 
 const MAP: Record<GwStatus, { label: string; tone: "live" | "warning" | "neutral" | "positive" }> = {
   upcoming: { label: "Upcoming", tone: "neutral" },

@@ -9,7 +9,7 @@ import {
   matchBonus,
   parseGw,
   rankMovement,
-} from "@/lib/fpl/derive";
+} from "@/lib/domain";
 import { bootstrap, event, fixture, live, picks } from "./fixtures";
 
 describe("currentEvent", () => {
@@ -135,3 +135,84 @@ describe("buildTeamSheet", () => {
 });
 
 it("formats money in tenths", () => expect(formatMoney(997)).toBe("£99.7m"));
+
+import {
+  compareByKickoff,
+  formatNumber,
+  oneDecimal,
+  gameweekPoints,
+  isFinished,
+  parseEntryId,
+  parseSnapshotGw,
+  selectGameweek,
+  summarizeStandings,
+} from "@/lib/domain";
+import { standing } from "./fixtures";
+
+describe("selectGameweek", () => {
+  const now = new Date("2026-10-11T12:00:00Z");
+  it("defaults to the current gameweek and reports its status", () => {
+    const s = selectGameweek(bootstrap.events, undefined, 1, now)!;
+    expect(s).toMatchObject({ gw: 6, status: "live" });
+    expect(s.latest.id).toBe(6);
+  });
+  it("honours a valid request, including from an array", () => {
+    expect(selectGameweek(bootstrap.events, "5", 1, now)).toMatchObject({ gw: 5, status: "final" });
+    expect(selectGameweek(bootstrap.events, ["5", "6"], 1, now)?.gw).toBe(5);
+  });
+  it("ignores requests outside [min, latest] or malformed", () => {
+    for (const raw of ["0", "7", "abc", "5.5", "-1", ""]) expect(selectGameweek(bootstrap.events, raw, 1, now)?.gw).toBe(6);
+    expect(selectGameweek(bootstrap.events, "3", 5, now)?.gw).toBe(6); // below the team's first gameweek
+  });
+  it("is null before the season starts", () => {
+    expect(selectGameweek([event({ is_current: false })], undefined)).toBeNull();
+  });
+});
+
+describe("summarizeStandings", () => {
+  it("is null for an empty league", () => expect(summarizeStandings([])).toBeNull());
+  it("takes the leader from the first row and the best score from the highest, first wins ties", () => {
+    const rows = [standing({ entry_name: "A", total: 400, event_total: 50 }), standing({ entry_name: "B", total: 390, event_total: 61 }), standing({ entry_name: "C", total: 380, event_total: 61 })];
+    expect(summarizeStandings(rows)).toEqual({ leader: { entryName: "A", total: 400 }, best: { entryName: "B", total: 61 }, managers: 3 });
+  });
+});
+
+describe("fixture ordering", () => {
+  it("sorts by kick-off with unknown times last and ties by id", () => {
+    const f = (id: number, kickoff_time: string | null) => fixture({ id, kickoff_time });
+    const sorted = [f(5, null), f(3, "2026-10-12T10:00:00Z"), f(2, "2026-10-10T10:00:00Z"), f(1, "2026-10-10T10:00:00Z")].sort(compareByKickoff);
+    expect(sorted.map((x) => x.id)).toEqual([1, 2, 3, 5]);
+  });
+  it("counts provisional finishes as finished", () => {
+    expect(isFinished(fixture({ finished: false, finished_provisional: true }))).toBe(true);
+    expect(isFinished(fixture({ finished: false, finished_provisional: false }))).toBe(false);
+  });
+});
+
+describe("path parameters", () => {
+  it.each([["7", 7], ["2379133", 2379133], ["0", null], ["-1", null], ["abc", null], ["1.5", null], ["12345678901", null], ["", null]])(
+    "parseEntryId(%j) = %j",
+    (raw, expected) => expect(parseEntryId(raw)).toBe(expected),
+  );
+  it.each([["1", 1], ["38", 38], ["0", null], ["39", null], ["007", null], ["x", null]])("parseSnapshotGw(%j) = %j", (raw, expected) =>
+    expect(parseSnapshotGw(raw)).toBe(expected),
+  );
+});
+
+describe("gameweekPoints", () => {
+  const sheet = buildTeamSheet(picks, bootstrap, live);
+  it("is net of the transfer hit with or without live data (FPL's own `points` is gross)", () => {
+    expect(gameweekPoints(sheet, picks.entry_history, true)).toBe(sheet.grossPoints - 4);
+    expect(gameweekPoints(sheet, picks.entry_history, false)).toBe(20 - 4);
+  });
+});
+
+describe("oneDecimal", () => {
+  it.each([[32.55, "32.6"], [3.0833, "3.1"], [2, "2.0"], [0.05, "0.1"], [56.5, "56.5"], [3.349, "3.3"]])("%j -> %s", (n, expected) =>
+    expect(oneDecimal(n)).toBe(expected),
+  );
+});
+
+describe("formatNumber", () => {
+  it("groups thousands the British way", () => expect(formatNumber(1234567)).toBe("1,234,567"));
+});

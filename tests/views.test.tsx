@@ -3,12 +3,10 @@ import { describe, expect, it } from "vitest";
 import { FixtureBonusCard } from "@/components/views/FixtureBonusCard";
 import { StandingsTable } from "@/components/views/StandingsTable";
 import { TeamSheetView } from "@/components/views/TeamSheetView";
-import { buildTeamSheet } from "@/lib/fpl/derive";
+import { buildTeamSheet } from "@/lib/domain";
 import { expectNoAxeViolations } from "./axe";
 import { bootstrap, fixture, live, picks, standing } from "./fixtures";
-
-const teams = new Map(bootstrap.teams.map((t) => [t.id, t]));
-const players = new Map(bootstrap.elements.map((p) => [p.id, p]));
+import { cardFor } from "./support";
 
 describe("StandingsTable", () => {
   const rows = [
@@ -68,50 +66,63 @@ describe("TeamSheetView", () => {
 });
 
 describe("FixtureBonusCard", () => {
-  it("live match: shows minute, projected bonus and BPS", async () => {
-    const { container } = render(<FixtureBonusCard fixture={fixture()} teams={teams} players={players} />);
+  it("live match: shows minute, projected bonus and BPS for each side", async () => {
+    const { container } = render(<FixtureBonusCard card={await cardFor(fixture())} />);
     expect(screen.getByText("Live 63′")).toBeInTheDocument();
-    expect(screen.getByText("Arsenal 2, Man City 1")).toHaveClass("sr-only");
-    const list = screen.getByRole("list", { name: "Bonus points, Arsenal v Man City" });
-    const items = within(list).getAllByRole("listitem");
-    expect(items.map((li) => li.textContent)).toEqual([
-      "+33 bonus points:SakaARS35 BPS",
-      "+33 bonus points:HaalandMCI35 BPS",
-      "+11 bonus point:SalibaARS28 BPS",
-    ]);
     expect(screen.getByText("Projected")).toBeInTheDocument();
+    expect(screen.getByText("Arsenal 2, Man City 1")).toHaveClass("sr-only");
+    const items = (club: string) => within(screen.getByRole("list", { name: `Bonus points, ${club}` })).getAllByRole("listitem").map((li) => li.textContent);
+    expect(items("Arsenal")).toEqual(["+33 bonus points:Saka3535 BPS", "+11 bonus point:Saliba2828 BPS"]);
+    // a player just outside the bonus still shows, with a dash instead of points
+    expect(items("Man City")).toEqual(["+33 bonus points:Haaland3535 BPS", "–No bonus:Gvardiol2020 BPS"]);
     await expectNoAxeViolations(container);
+  });
+
+  it("lists goals, assists and red cards when there are any", async () => {
+    const f = fixture({
+      stats: [
+        { identifier: "goals_scored", h: [{ element: 3, value: 2 }], a: [{ element: 4, value: 1 }] },
+        { identifier: "assists", h: [{ element: 2, value: 1 }], a: [] },
+        { identifier: "red_cards", h: [], a: [{ element: 6, value: 1 }] },
+        { identifier: "bps", h: [{ element: 3, value: 35 }], a: [{ element: 4, value: 30 }] },
+      ],
+    });
+    render(<FixtureBonusCard card={await cardFor(f)} />);
+    expect(screen.getByText("Goals").nextElementSibling).toHaveTextContent("Saka ×2, Haaland");
+    expect(screen.getByText("Assists").nextElementSibling).toHaveTextContent("Saliba");
+    expect(screen.getByText("Red cards").nextElementSibling).toHaveTextContent("Gvardiol");
   });
 
   it("upcoming match: shows kick-off, no bonus list", async () => {
     const f = fixture({ started: false, minutes: 0, team_h_score: null, team_a_score: null, stats: [] });
-    const { container } = render(<FixtureBonusCard fixture={f} teams={teams} players={players} />);
+    const { container } = render(<FixtureBonusCard card={await cardFor(f)} />);
     expect(screen.getByText(/Kick-off/)).toBeInTheDocument();
     expect(screen.getByText("Arsenal versus Man City")).toBeInTheDocument();
     expect(screen.queryByRole("list")).toBeNull();
     await expectNoAxeViolations(container);
   });
 
-  it("postponed match without kick-off time shows TBC", () => {
+  it("postponed match without kick-off time shows TBC", async () => {
     const f = fixture({ started: false, kickoff_time: null, team_h_score: null, team_a_score: null, stats: [] });
-    render(<FixtureBonusCard fixture={f} teams={teams} players={players} />);
+    render(<FixtureBonusCard card={await cardFor(f)} />);
     expect(screen.getByText("TBC")).toBeInTheDocument();
   });
 
-  it("finished match: confirmed bonus", () => {
+  it("finished match: confirmed bonus", async () => {
     const f = fixture({
       finished: true,
       finished_provisional: true,
       stats: [{ identifier: "bonus", h: [{ element: 3, value: 3 }], a: [] }],
     });
-    render(<FixtureBonusCard fixture={f} teams={teams} players={players} />);
+    render(<FixtureBonusCard card={await cardFor(f)} />);
     expect(screen.getByText("FT")).toBeInTheDocument();
     expect(screen.getByText("Confirmed")).toBeInTheDocument();
   });
 
-  it("unknown teams/players degrade gracefully", () => {
-    render(<FixtureBonusCard fixture={fixture({ team_h: 99, team_a: 98 })} teams={new Map()} players={new Map()} />);
-    expect(screen.getByText("HOM")).toBeInTheDocument();
+  it("unknown teams/players degrade gracefully", async () => {
+    const card = await cardFor(fixture({ team_h: 99, team_a: 98 }), { ...bootstrap, teams: [], elements: [] });
+    render(<FixtureBonusCard card={card} />);
+    expect(screen.getAllByText("HOM").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Player \d+$/).length).toBeGreaterThan(0);
   });
 });

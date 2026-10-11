@@ -1,4 +1,4 @@
-import type { Bootstrap, EntryPicks, EventLive, Fixture, FplEvent, StandingRow } from "@/lib/fpl/types";
+import type { Bootstrap, EntryPicks, EventLive, Fixture, FplEvent, StandingRow } from "@/lib/domain/types";
 
 export const event = (over: Partial<FplEvent> = {}): FplEvent => ({
   id: 6,
@@ -18,12 +18,22 @@ export const bootstrap: Bootstrap = {
     { id: 2, code: 43, name: "Man City", short_name: "MCI" },
   ],
   elements: [
-    { id: 1, web_name: "Raya", first_name: "David", second_name: "Raya", team: 1, element_type: 1 },
-    { id: 2, web_name: "Saliba", first_name: "William", second_name: "Saliba", team: 1, element_type: 2 },
-    { id: 3, web_name: "Saka", first_name: "Bukayo", second_name: "Saka", team: 1, element_type: 3 },
-    { id: 4, web_name: "Haaland", first_name: "Erling", second_name: "Haaland", team: 2, element_type: 4 },
-    { id: 5, web_name: "Ortega", first_name: "Stefan", second_name: "Ortega", team: 2, element_type: 1 },
-    { id: 6, web_name: "Gvardiol", first_name: "Josko", second_name: "Gvardiol", team: 2, element_type: 2 },
+    { id: 1, web_name: "Raya", first_name: "David", second_name: "Raya", team: 1, element_type: 1, selected_by_percent: "20.5" },
+    { id: 2, web_name: "Saliba", first_name: "William", second_name: "Saliba", team: 1, element_type: 2, selected_by_percent: "9.2" },
+    { id: 3, web_name: "Saka", first_name: "Bukayo", second_name: "Saka", team: 1, element_type: 3, selected_by_percent: "38.4" },
+    { id: 4, web_name: "Haaland", first_name: "Erling", second_name: "Haaland", team: 2, element_type: 4, selected_by_percent: "62.1" },
+    { id: 5, web_name: "Ortega", first_name: "Stefan", second_name: "Ortega", team: 2, element_type: 1, status: "i", news: "Knee injury - expected back in November", chance_of_playing_next_round: 0, selected_by_percent: "3.0" },
+    { id: 6, web_name: "Gvardiol", first_name: "Josko", second_name: "Gvardiol", team: 2, element_type: 2, selected_by_percent: "4.3" },
+  ],
+  chips: [
+    { name: "wildcard", start_event: 2, stop_event: 19 },
+    { name: "wildcard", start_event: 20, stop_event: 38 },
+    { name: "freehit", start_event: 2, stop_event: 19 },
+    { name: "freehit", start_event: 20, stop_event: 38 },
+    { name: "bboost", start_event: 1, stop_event: 19 },
+    { name: "bboost", start_event: 20, stop_event: 38 },
+    { name: "3xc", start_event: 1, stop_event: 19 },
+    { name: "3xc", start_event: 20, stop_event: 38 },
   ],
 };
 

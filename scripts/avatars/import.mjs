@@ -13,7 +13,7 @@ import { leagueRows, readManifest, sha, toWebp, writeAvatar, writeManifest } fro
 import { planImport } from "./lib.mjs";
 
 function args(argv) {
-  const o = { from: null, write: false, force: false, allowPartial: false, sheet: join(tmpdir(), "mascot-contact-sheet.png"), trim: 0, league: Number(process.env.LEAGUE_ID) || 467763 };
+  const o = { from: null, write: false, force: false, allowPartial: false, sheet: join(tmpdir(), "mascot-contact-sheet.png"), trim: 0, keepBackground: false, league: Number(process.env.LEAGUE_ID) || 467763 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--from") o.from = argv[++i];
@@ -22,6 +22,7 @@ function args(argv) {
     else if (a === "--allow-partial") o.allowPartial = true;
     else if (a === "--sheet") o.sheet = argv[++i];
     else if (a === "--trim") o.trim = Number(argv[++i]);
+    else if (a === "--keep-background") o.keepBackground = true;
     else if (a === "--league") o.league = Number(argv[++i]);
     else throw new Error(`Unknown option ${a}`);
   }
@@ -34,7 +35,7 @@ function args(argv) {
 /** One image of everything: each mascot large, then at the three sizes the site shows it (64, 44 and 28 px), on light and dark. */
 async function contactSheet(items, path) {
   const { createCanvas, loadImage } = await import("@napi-rs/canvas");
-  const cols = 7, cellW = 250, cellH = 340, pad = 12;
+  const cols = 7, cellW = 250, cellH = 230, pad = 12;
   const rows = Math.ceil(items.length / cols);
   const canvas = createCanvas(cols * cellW + pad, rows * cellH + pad);
   const g = canvas.getContext("2d");
@@ -43,17 +44,20 @@ async function contactSheet(items, path) {
   for (const [i, it] of items.entries()) {
     const x = pad + (i % cols) * cellW, y = pad + Math.floor(i / cols) * cellH;
     const img = await loadImage(it.webp);
-    g.drawImage(img, x, y, 226, 226);
+    g.fillStyle = "#ffffff"; g.fillRect(x, y, 112, 112);
+    g.fillStyle = "#181818"; g.fillRect(x + 114, y, 112, 112);
+    g.drawImage(img, x, y, 112, 112);
+    g.drawImage(img, x + 114, y, 112, 112);
     g.fillStyle = "#111"; g.font = "bold 15px sans-serif";
-    g.fillText(it.teamName.slice(0, 26), x + 2, y + 244);
-    g.fillStyle = "#777"; g.font = "12px sans-serif"; g.fillText(String(it.entry), x + 2, y + 262);
+    g.fillText(it.teamName.slice(0, 26), x + 2, y + 128);
+    g.fillStyle = "#777"; g.font = "12px sans-serif"; g.fillText(String(it.entry), x + 2, y + 146);
     // previews in the site's circle, on a light and a dark panel
     for (const [bg, k] of [["#ffffff", 0], ["#181818", 1]]) {
-      g.fillStyle = bg; g.fillRect(x + k * 113, y + 274, 111, 58);
+      g.fillStyle = bg; g.fillRect(x + k * 113, y + 158, 111, 58);
       let cx = x + k * 113 + 6;
       for (const d of [44, 28, 20]) {
-        g.save(); g.beginPath(); g.arc(cx + d / 2, y + 303, d / 2, 0, Math.PI * 2); g.clip();
-        g.drawImage(img, cx, y + 303 - d / 2, d, d); g.restore();
+        g.save(); g.beginPath(); g.arc(cx + d / 2, y + 187, d / 2, 0, Math.PI * 2); g.clip();
+        g.drawImage(img, cx, y + 187 - d / 2, d, d); g.restore();
         cx += d + 6;
       }
     }
@@ -78,7 +82,7 @@ async function main() {
   const items = [];
   for (const m of plan.matched) {
     const bytes = readFileSync(join(o.from, m.file));
-    items.push({ ...m, webp: await toWebp(bytes, { trim: o.trim }) });
+    items.push({ ...m, webp: await toWebp(bytes, { trim: o.trim, keepBackground: o.keepBackground }) });
   }
   await contactSheet(items, o.sheet);
   console.log(`contact sheet: ${o.sheet}`);

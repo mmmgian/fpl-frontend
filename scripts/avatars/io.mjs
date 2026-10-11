@@ -46,13 +46,28 @@ export async function leagueRows(league) {
   return rows;
 }
 
-/** Centre-crop to a square (optionally trimming `trim` of each edge first) and encode as a small WebP. */
-export async function toWebp(bytes, { trim = 0 } = {}) {
+/**
+ * Centre-crop to a square (optionally trimming `trim` of each edge first) and encode as a small WebP. The plain paper
+ * background is made transparent (see removeBackground) unless `keepBackground` is set, so the character sits on
+ * whatever the page is, light or dark.
+ */
+export async function toWebp(bytes, { trim = 0, keepBackground = false } = {}) {
   const { createCanvas, loadImage } = await import("@napi-rs/canvas");
+  const { removeBackground } = await import("./lib.mjs");
   const img = await loadImage(bytes);
-  const full = Math.min(img.width, img.height);
-  const side = Math.round(full * (1 - 2 * trim));
+  let source = img;
+  if (!keepBackground) {
+    const full = createCanvas(img.width, img.height);
+    const g = full.getContext("2d");
+    g.drawImage(img, 0, 0);
+    const data = g.getImageData(0, 0, img.width, img.height);
+    if (removeBackground(data.data, img.width, img.height)) {
+      g.putImageData(data, 0, 0);
+      source = full;
+    }
+  }
+  const side = Math.round(Math.min(img.width, img.height) * (1 - 2 * trim));
   const canvas = createCanvas(SIZE, SIZE);
-  canvas.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE);
+  canvas.getContext("2d").drawImage(source, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE);
   return canvas.toBuffer("image/webp", 82);
 }

@@ -20,3 +20,5 @@ export interface ImportPlan {
   ok: boolean;
 }
 export function planImport(files: string[], rows: { entry: number; entry_name: string }[]): ImportPlan;
+export const BG_TOLERANCE: number;
+export function removeBackground(rgba: Uint8ClampedArray | Uint8Array, w: number, h: number, o?: { tolerance?: number }): { removed: number; bg: number[] } | null;

@@ -172,3 +172,116 @@ export function planImport(files, rows) {
   const missing = rows.filter((r) => !covered.has(r.entry)).map((r) => ({ entry: r.entry, teamName: r.entry_name }));
   return { matched, unmatched, duplicates, missing, ok: unmatched.length === 0 && duplicates.length === 0 && missing.length === 0 };
 }
+
+// ------------------------------------------------------------------------------------------ background removal
+
+/** How far a pixel may differ from the background colour (largest single-channel difference) and still be background. */
+export const BG_TOLERANCE = 34;
+/** Edge pixels this far from the background colour (or more) are fully opaque; nearer ones are partly see-through. */
+const EDGE_OPAQUE_AT = 200;
+/** How many pixels in from the background an anti-aliased edge can reach. */
+const EDGE_BAND = 2;
+/** The least share of the border that must be the paper colour for this to be a plain background. */
+const MIN_PAPER_SHARE = 0.3;
+
+const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
+
+/**
+ * Makes the plain background around a drawing transparent, in place. `rgba` is RGBA bytes, `w` x `h`.
+ *
+ * Only background that is CONNECTED to the picture's border goes. The white of an eye or a football inside the
+ * drawing is enclosed by the felt-tip outline, so a flood from the border never reaches it. (4-connected, so a hairline
+ * diagonal gap in the outline doesn't let it in.) The paper colour is read from the border, not guessed, so it
+ * works for any pale paper tone.
+ *
+ * The anti-aliased pixels where the outline meets the background would otherwise keep a pale halo that shows on a dark
+ * page, so the first couple of pixels in from the removed area are given partial transparency in proportion to how far
+ * they are from the paper colour, and their colour is un-mixed from it.
+ *
+ * Returns { removed, bg } (how many pixels went, and the colour taken for the background), or null if too little of the
+ * border is one plain colour (a photo, a gradient): then nothing is touched.
+ */
+export function removeBackground(rgba, w, h, { tolerance = BG_TOLERANCE } = {}) {
+  const border = [];
+  for (let x = 0; x < w; x++) border.push(x, (h - 1) * w + x);
+  for (let y = 1; y < h - 1; y++) border.push(y * w, y * w + w - 1);
+  // The paper colour: the most common colour round the border (a hat or shirt can run off the edge, so it is not
+  // necessarily most of the border), then the median of the pixels close to it.
+  const bucket = (p) => `${rgba[p * 4] >> 3},${rgba[p * 4 + 1] >> 3},${rgba[p * 4 + 2] >> 3}`;
+  const counts = new Map();
+  for (const p of border) counts.set(bucket(p), (counts.get(bucket(p)) ?? 0) + 1);
+  const common = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const paper = border.filter((p) => bucket(p) === common);
+  const bg = [0, 1, 2].map((c) => median(paper.map((p) => rgba[p * 4 + c])));
+  const dist = (p) => Math.max(Math.abs(rgba[p * 4] - bg[0]), Math.abs(rgba[p * 4 + 1] - bg[1]), Math.abs(rgba[p * 4 + 2] - bg[2]));
+
+  // A border with little of one plain colour is a photo or a gradient, not paper: leave the picture alone.
+  if (border.filter((p) => dist(p) <= tolerance).length < border.length * MIN_PAPER_SHARE) return null;
+
+  // Where the flood starts: the paper-coloured run of the border that reaches each corner, in both directions. Not
+  // every paper-coloured border pixel: a white shirt can run off the bottom edge, and it is the same colour, but it
+  // is walled off from the paper by the outline, and the paper always wraps round the corners.
+  const ring = [];
+  for (let x = 0; x < w; x++) ring.push(x);
+  for (let y = 1; y < h; y++) ring.push(y * w + w - 1);
+  for (let x = w - 2; x >= 0; x--) ring.push((h - 1) * w + x);
+  for (let y = h - 2; y >= 1; y--) ring.push(y * w);
+  const seeds = new Set();
+  for (const corner of [0, w - 1, w + h - 2, 2 * w + h - 3]) {
+    for (const dir of [1, -1]) {
+      for (let k = 0; k < ring.length; k++) {
+        const p = ring[(((corner + dir * k) % ring.length) + ring.length) % ring.length];
+        if (dist(p) > tolerance) break;
+        seeds.add(p);
+      }
+    }
+  }
+  const gone = new Uint8Array(w * h);
+  const stack = [...seeds];
+  for (const p of stack) gone[p] = 1;
+  while (stack.length) {
+    const p = stack.pop();
+    const x = p % w;
+    for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p >= w ? p - w : -1, p < w * (h - 1) ? p + w : -1]) {
+      if (q >= 0 && !gone[q] && dist(q) <= tolerance) {
+        gone[q] = 1;
+        stack.push(q);
+      }
+    }
+  }
+
+  // Soften the edge: pixels within EDGE_BAND of the removed area.
+  const near = new Uint8Array(w * h);
+  let frontier = [];
+  for (let p = 0; p < w * h; p++) if (gone[p]) frontier.push(p);
+  for (let ring = 0; ring < EDGE_BAND; ring++) {
+    const next = [];
+    for (const p of frontier) {
+      const x = p % w;
+      for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p >= w ? p - w : -1, p < w * (h - 1) ? p + w : -1]) {
+        if (q >= 0 && !gone[q] && !near[q]) {
+          near[q] = 1;
+          next.push(q);
+        }
+      }
+    }
+    frontier = next;
+  }
+
+  let removed = 0;
+  for (let p = 0; p < w * h; p++) {
+    const i = p * 4;
+    if (gone[p]) {
+      rgba[i] = rgba[i + 1] = rgba[i + 2] = rgba[i + 3] = 0;
+      removed++;
+    } else if (near[p]) {
+      const alpha = Math.min(1, dist(p) / EDGE_OPAQUE_AT);
+      if (alpha < 1) {
+        // C = a*F + (1-a)*B  =>  F = (C - (1-a)*B) / a
+        for (let c = 0; c < 3; c++) rgba[i + c] = Math.max(0, Math.min(255, Math.round((rgba[i + c] - (1 - alpha) * bg[c]) / Math.max(alpha, 0.05))));
+        rgba[i + 3] = Math.round(alpha * 255);
+      }
+    }
+  }
+  return { removed, bg };
+}

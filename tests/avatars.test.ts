@@ -5,7 +5,7 @@ import { createHistoryService } from "@/lib/services/history";
 import { createLeagueService } from "@/lib/services/league";
 import { standing } from "./fixtures";
 import { clock, fakeFpl, fakeHistory } from "./support";
-import { API_BASE, DEFAULT_MODEL, buildPrompt, parseMascotFilename, planImport, buildRequest, cleanName, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact } from "../scripts/avatars/lib.mjs";
+import { API_BASE, DEFAULT_MODEL, buildPrompt, parseMascotFilename, planImport, buildRequest, cleanName, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact, removeBackground } from "../scripts/avatars/lib.mjs";
 
 // ------------------------------------------------------------------------------------- the generator's helpers
 
@@ -251,5 +251,86 @@ describe("planImport", () => {
   it("an empty folder leaves everyone missing", () => {
     expect(planImport([], rows).missing).toHaveLength(3);
     expect(planImport([], rows).ok).toBe(false);
+  });
+});
+
+
+// ------------------------------------------------------------------------------------------ background removal
+
+describe("removeBackground", () => {
+  const PAPER = [252, 251, 241];
+  const BLACK = [10, 10, 10];
+  const WHITE = [255, 255, 255];
+  const PURPLE = [120, 40, 160];
+  /** A w x h picture, painted by `paint(x, y)` (return an [r,g,b], or nothing for paper). */
+  function picture(w: number, h: number, paint: (x: number, y: number) => number[] | void) {
+    const rgba = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) rgba.set([...(paint(x, y) ?? PAPER), 255], (y * w + x) * 4);
+    const at = (x: number, y: number) => [...rgba.slice((y * w + x) * 4, (y * w + x) * 4 + 4)];
+    return { rgba, at };
+  }
+  const ring = (cx: number, cy: number, r: number, thick = 2) => (x: number, y: number) => {
+    const d = Math.hypot(x - cx, y - cy);
+    return d <= r && d > r - thick;
+  };
+
+  it("clears the paper round a drawing but keeps what the outline encloses, even if it is white", () => {
+    // a ring (the outline) with a white disc inside it (an eye)
+    const outline = ring(20, 20, 12);
+    const { rgba, at } = picture(40, 40, (x, y) => (outline(x, y) ? BLACK : Math.hypot(x - 20, y - 20) < 12 ? WHITE : undefined));
+    const result = removeBackground(rgba, 40, 40);
+    expect(result?.removed).toBeGreaterThan(0);
+    expect(at(1, 1)[3]).toBe(0);                  // the corner: paper, gone
+    expect(at(20, 20)).toEqual([...WHITE, 255]); // the white inside the outline: untouched
+    expect(at(20, 9)[3]).toBe(255);              // the outline itself
+  });
+
+  it("does not eat white clothing that runs off the edge of the picture (same colour as the paper, walled off by the outline)", () => {
+    // paper everywhere, a black outline across the bottom third, and a paper-coloured shirt below it touching the bottom edge
+    const { rgba, at } = picture(40, 40, (x, y) => (y >= 26 && y < 28 ? BLACK : undefined));
+    // the shirt is the rows below the line; but make the corner paper separate from it by a black column too
+    for (let y = 28; y < 40; y++) for (const x of [0, 39]) rgba.set([...BLACK, 255], (y * 40 + x) * 4);
+    removeBackground(rgba, 40, 40);
+    expect(at(1, 1)[3]).toBe(0);                 // paper above the line: gone
+    expect(at(20, 35)).toEqual([...PAPER, 255]); // the shirt below it, touching the bottom edge: kept
+  });
+
+  it("does not leak through a hairline diagonal gap in the outline", () => {
+    // a diamond whose outline is one pixel wide on the diagonals: only 8-connected paper could squeeze between its corners
+    const { rgba, at } = picture(40, 40, (x, y) => {
+      const d = Math.abs(x - 20) + Math.abs(y - 20);
+      return d === 10 ? BLACK : d < 10 ? PURPLE : undefined;
+    });
+    removeBackground(rgba, 40, 40);
+    expect(at(1, 1)[3]).toBe(0);
+    expect(at(20, 20)).toEqual([...PURPLE, 255]);
+    expect(at(17, 17)).toEqual([...PURPLE, 255]);
+  });
+
+  it("softens the anti-aliased edge so no pale halo shows on a dark page", () => {
+    // paper | half-way grey (an anti-aliased pixel) | black outline | paper again
+    const { rgba, at } = picture(20, 10, (x) => (x === 9 ? [130, 130, 125] : x === 10 || x === 11 ? BLACK : undefined));
+    removeBackground(rgba, 20, 10);
+    const edge = at(9, 5);
+    expect(edge[3]).toBeGreaterThan(0);
+    expect(edge[3]).toBeLessThan(255);           // partly see-through
+    expect(Math.max(edge[0], edge[1], edge[2])).toBeLessThan(70); // and dark, not the grey-cream it was blended with
+    expect(at(10, 5)).toEqual([...BLACK, 255]);  // a solid outline pixel is left alone
+  });
+
+  it("reads the paper colour from the picture, whatever the tone", () => {
+    const blue = [200, 220, 250];
+    const { rgba, at } = picture(20, 20, (x, y) => (ring(10, 10, 6)(x, y) ? BLACK : blue));
+    expect(removeBackground(rgba, 20, 20)?.bg).toEqual(blue);
+    expect(at(0, 0)[3]).toBe(0);
+  });
+
+  it("leaves a picture alone when its border is not a plain colour (a photo, a gradient)", () => {
+    const { rgba, at } = picture(30, 30, (x, y) => [(x * 8) % 256, (y * 8) % 256, ((x + y) * 5) % 256]);
+    const before = [...rgba];
+    expect(removeBackground(rgba, 30, 30)).toBeNull();
+    expect([...rgba]).toEqual(before);
+    expect(at(0, 0)[3]).toBe(255);
   });
 });

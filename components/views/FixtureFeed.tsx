@@ -69,7 +69,7 @@ function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 
     );
   const cls = `${styles.side} ${align === "home" ? styles.home : styles.away}`;
   return team ? (
-    <ClubLink id={team.id} name={team.name} className={cls}>
+    <ClubLink name={team.name} className={cls}>
       {inner}
     </ClubLink>
   ) : (

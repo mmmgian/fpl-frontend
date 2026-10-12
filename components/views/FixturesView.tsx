@@ -73,7 +73,7 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                     <span className={styles.rank} aria-hidden="true">
                       {row.rank}
                     </span>
-                    <ClubLink id={row.team.id} name={row.team.name} className={styles.teamLink}>
+                    <ClubLink name={row.team.name} className={styles.teamLink}>
                       <Crest code={row.team.code} name={row.team.name} size={22} />
                       <span className={styles.teamText}>
                         <span className={styles.teamName}>{row.team.short}</span>
@@ -96,7 +96,7 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                       matches.map((m, j) => (
                         <FdrChip key={j} band={m.band} block label={t.client.fdr.difficulty(m.band)}>
                           <span>
-                            <ClubLink id={m.opponentId} name={m.opponentName}>
+                            <ClubLink name={m.opponentName}>
                               {m.opponent}
                             </ClubLink>{" "}
                             <span className={styles.venue}>({m.home ? f.homeShort : f.awayShort})</span>

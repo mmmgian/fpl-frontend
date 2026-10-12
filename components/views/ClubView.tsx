@@ -27,7 +27,7 @@ function FormGuide({ form }: { form: Result[] }) {
 
 function Opponent({ m }: { m: ClubMatchView }) {
   return (
-    <ClubLink id={m.opponent.id} name={m.opponent.name} className={styles.opponent}>
+    <ClubLink name={m.opponent.name} className={styles.opponent}>
       <Crest code={m.opponent.code} name={m.opponent.name} size={26} />
       <span className={styles.oppName}>{m.opponent.name}</span>
     </ClubLink>

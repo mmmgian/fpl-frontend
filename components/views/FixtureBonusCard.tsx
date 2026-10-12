@@ -34,7 +34,7 @@ function ClubTitle({ club, crestFirst = false }: { club: ClubSide; crestFirst?: 
   return club.id === null ? (
     <span className={styles.titleSide}>{parts}</span>
   ) : (
-    <ClubLink id={club.id} name={club.name} className={styles.titleSide}>
+    <ClubLink name={club.name} className={styles.titleSide}>
       {parts}
     </ClubLink>
   );

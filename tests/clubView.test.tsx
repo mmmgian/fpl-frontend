@@ -32,7 +32,7 @@ const base = (over: Partial<Ok> = {}): Ok => ({
 
 describe("ClubLink", () => {
   it("goes to the club's page and says where in its tooltip", () => {
-    render(<ClubLink id={7} name="Spurs">Tottenham</ClubLink>);
+    render(<ClubLink name="Spurs">Tottenham</ClubLink>);
     const a = screen.getByRole("link", { name: "Tottenham" });
     expect(a).toHaveAttribute("href", "/club/spurs");
     expect(a).toHaveAttribute("title", expect.stringContaining("Spurs"));

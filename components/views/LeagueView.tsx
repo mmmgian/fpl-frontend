@@ -58,7 +58,7 @@ export function LeagueView({ model }: { model: LeagueModel }) {
             ]}
           />
           {model.stats ? <LeagueAwards awards={model.stats.awards} rows={rows} gw={model.stats.gw} /> : null}
-          <StandingsTable rows={rows} caption={t.caption(model.name)} hideCaption stats={model.stats ?? undefined} />
+          <StandingsTable rows={rows} caption={t.caption(model.name)} hideCaption zones stats={model.stats ?? undefined} />
         </>
       )}
     </>

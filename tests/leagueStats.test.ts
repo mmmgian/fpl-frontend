@@ -81,10 +81,21 @@ describe("leagueStats: per-manager figures", () => {
       const flat = map({ 1: hist([g(1, 50), g(2, 50), g(3, 50)]), 2: hist([g(1, 50), g(2, 50), g(3, 50)]), 3: hist([g(1, 50), g(2, 50), g(3, 50)]) });
       for (const e of [1, 2, 3]) expect(leagueStats(ROWS, flat)!.byEntry[e].streak).toBeNull();
     });
-    it("is null for a single gameweek or a run that has just been broken", () => {
+    it("is a run of one for a single gameweek, or a run that has just been broken", () => {
       const h = map({ 1: hist([g(1, 90), g(2, 90), g(3, 10)]), 2: hist([g(1, 10), g(2, 10), g(3, 90)]) });
       const r = leagueStats(table(row(1, 1, 1), row(2, 2, 1)), h)!;
-      expect(r.byEntry[1].streak).toBeNull();                      // a long hot run, but the latest week was cold: that's a run of one
+      expect(r.byEntry[1].streak).toEqual({ kind: "cold", length: 1 });   // a long hot run, but the latest week was cold: a cold run of one
+      expect(r.byEntry[2].streak).toEqual({ kind: "hot", length: 1 });
+    });
+    it("gives every manager a hot or cold mark unless they are exactly level with the league", () => {
+      const r = leagueStats(ROWS, H)!;
+      for (const e of [1, 2, 3]) expect(r.byEntry[e].streak, `manager ${e}`).not.toBeNull();
+    });
+    it("keeps 'on a roll' for a real run: one good week is not a streak", () => {
+      const h = map({ 1: hist([g(1, 10), g(2, 90)]), 2: hist([g(1, 90), g(2, 10)]) });
+      const r = leagueStats(table(row(1, 1, 1), row(2, 2, 1)), h)!;
+      expect(r.byEntry[1].streak).toEqual({ kind: "hot", length: 1 });
+      expect(r.awards.find((a) => a.key === "hotStreak")).toBeUndefined();
     });
   });
 });
@@ -107,7 +118,7 @@ describe("leagueStats: coverage and edge cases", () => {
     const late = map({ 1: H.get(1)!, 2: H.get(2)!, 3: hist([g(4, 55)]) });
     const s = leagueStats(ROWS, late)!;
     expect(s.byEntry[3].form).toEqual([55]);
-    expect(s.byEntry[3].streak).toBeNull();
+    expect(s.byEntry[3].streak).toEqual({ kind: "cold", length: 1 });   // 55 against a league average of 70 that week
     expect(s.byEntry[3].weekPoints).toBe(55);
   });
 

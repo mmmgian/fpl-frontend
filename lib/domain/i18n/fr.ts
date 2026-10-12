@@ -122,6 +122,8 @@ export const fr: Messages = {
   },
 
   table: {
+    zonesLabel: "Zones",
+    zones: { good: "4 premiers", warn: "5e–6e", bad: "4 derniers" } as Record<"good" | "warn" | "bad", string>,
     rank: "Rang",
     team: "Équipe",
     gw: "J",
@@ -140,9 +142,9 @@ export const fr: Messages = {
     winner: (gw) => `Vainqueur J${gw}`,
     winnerSr: (gw) => `A remporté la journée ${gw}, la dernière terminée`,
     hot: (n) => `En série ×${n}`,
-    hotSr: (n) => `En série : ${n} semaines au-dessus de la moyenne de la ligue`,
+    hotSr: (n) => n === 1 ? "Au-dessus de la moyenne de la ligue à la dernière journée" : `En série : ${n} semaines au-dessus de la moyenne de la ligue`,
     cold: (n) => `Dans le dur ×${n}`,
-    coldSr: (n) => `En petite forme : ${n} semaines sous la moyenne de la ligue`,
+    coldSr: (n) => n === 1 ? "Sous la moyenne de la ligue à la dernière journée" : `En petite forme : ${n} semaines sous la moyenne de la ligue`,
     chipShort: { wildcard: "WC", freehit: "FH", bboost: "BB", "3xc": "CT", manager: "EA" },
     chipSr: (name, gw) => `${name}, journée ${gw}`,
     chipTitle: (name, gw) => `${name}, J${gw}`,
@@ -176,8 +178,8 @@ export const fr: Messages = {
     overall: "Rang général",
     chipsPlayed: "Chips joués",
     noChips: "Aucun pour l'instant",
-    hotLine: (n) => `En série : ${n} semaines au-dessus de la moyenne`,
-    coldLine: (n) => `Dans le dur : ${n} semaines sous la moyenne`,
+    hotLine: (n) => n === 1 ? "En série : au-dessus de la moyenne cette semaine" : `En série : ${n} semaines au-dessus de la moyenne`,
+    coldLine: (n) => n === 1 ? "Dans le dur : sous la moyenne cette semaine" : `Dans le dur : ${n} semaines sous la moyenne`,
   },
 
   awards: {

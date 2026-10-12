@@ -30,14 +30,14 @@
 }
 
 /* ----- the manager page: key figures as a ruled table, label cell above value cell ----- */
-:global([data-ui="sheet"]) .list { gap: 0; margin: 1px; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+:global([data-ui="sheet"]) .list { gap: 0; margin: 1px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 :global([data-ui="sheet"]) .item {
   display: grid;
   grid-template-rows: auto 1fr;
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: var(--surface-solid);
+  background: var(--surface);
   box-shadow: 0 0 0 1px var(--border-strong);
 }
 :global([data-ui="sheet"]) .label {
@@ -52,6 +52,7 @@
 }
 :global([data-ui="sheet"]) .value { margin: 0; padding: 5px 8px 6px; font-size: 21px; font-weight: 800; line-height: 1.15; }
 :global([data-ui="sheet"]) .hint { margin-top: 1px; font-size: 11px; font-weight: 500; }
-@media (max-width: 639px) {
-  :global([data-ui="sheet"]) .list { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+@media (max-width: 599px) {
+  :global([data-ui="sheet"]) .list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :global([data-ui="sheet"]) .item:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }

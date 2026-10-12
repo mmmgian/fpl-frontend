@@ -95,8 +95,9 @@
   gap: 0.2rem 0.75rem;
   margin: 0;
   padding: 6px var(--space-4);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border-strong), inset 4px 0 0 var(--accent);
+  color: var(--text);
 }
 .grandLabel { font-size: 0.8125rem; font-weight: 700; }
 .grandValue { font-size: 1.25rem; font-weight: 800; }
@@ -108,10 +109,11 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  padding: 4px var(--space-4);
-  background: var(--text);
-  color: var(--bg);
-  font-size: 13px;
+  padding: 2px 2px 3px;
+  border-bottom: 2px solid var(--text);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
 }

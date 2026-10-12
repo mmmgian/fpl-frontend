@@ -23,7 +23,7 @@ export interface ManagerStats {
   average: number;
   best: { gw: number; points: number };
   worst: { gw: number; points: number };
-  /** Consecutive latest gameweeks above (hot) or below (cold) the league's average, if at least two. */
+  /** Consecutive latest gameweeks above (hot) or below (cold) the league's average; length 1 is just this week. Null only when exactly level. */
   streak: { kind: "hot" | "cold"; length: number } | null;
   /** Points given away in hits this season (positive number). */
   hitPoints: number;
@@ -93,7 +93,7 @@ function streakOf(gws: HistoryGameweek[], averages: Map<number, number>): Manage
     if (side(g) !== first) break;
     length++;
   }
-  return length >= 2 ? { kind: first > 0 ? "hot" : "cold", length } : null;
+  return { kind: first > 0 ? "hot" : "cold", length };
 }
 
 /** Competition ranking: 1 for the best, equal scores share a rank and the next rank is skipped. */
@@ -183,7 +183,7 @@ function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histor
   add("weekWinner", best(played));
   add("woodenSpoon", played.length > 1 ? best(played, false) : null);
 
-  const hot = best(all.filter((s) => s.streak?.kind === "hot").map((s) => ({ entry: s.entry, value: s.streak!.length })));
+  const hot = best(all.filter((s) => s.streak?.kind === "hot" && s.streak.length >= 2).map((s) => ({ entry: s.entry, value: s.streak!.length }))); // "on a roll" needs a run, not one good week
   add("hotStreak", hot);
 
   const climb = best(inTable.filter((r) => r.last_rank > 0).map((r) => ({ entry: r.entry, value: r.last_rank - r.rank })).filter((p) => p.value > 0));

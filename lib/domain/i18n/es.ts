@@ -123,6 +123,8 @@ export const es: Messages = {
   },
 
   table: {
+    zonesLabel: "Zonas",
+    zones: { good: "Primeros 4", warn: "5.º–6.º", bad: "Últimos 4" } as Record<"good" | "warn" | "bad", string>,
     rank: "Puesto",
     team: "Equipo",
     gw: "J",
@@ -141,9 +143,9 @@ export const es: Messages = {
     winner: (gw) => `Ganador J${gw}`,
     winnerSr: (gw) => `Ganó la jornada ${gw}, la última terminada`,
     hot: (n) => `En racha ×${n}`,
-    hotSr: (n) => `En racha: ${n} semanas por encima del promedio de la liga`,
+    hotSr: (n) => n === 1 ? "Por encima del promedio de la liga en la última jornada" : `En racha: ${n} semanas por encima del promedio de la liga`,
     cold: (n) => `Mala racha ×${n}`,
-    coldSr: (n) => `En mala racha: ${n} semanas por debajo del promedio de la liga`,
+    coldSr: (n) => n === 1 ? "Por debajo del promedio de la liga en la última jornada" : `En mala racha: ${n} semanas por debajo del promedio de la liga`,
     chipShort: { wildcard: "WC", freehit: "FH", bboost: "BB", "3xc": "CT", manager: "AT" },
     chipSr: (name, gw) => `${name}, jornada ${gw}`,
     chipTitle: (name, gw) => `${name}, J${gw}`,
@@ -177,8 +179,8 @@ export const es: Messages = {
     overall: "Posición global",
     chipsPlayed: "Chips jugados",
     noChips: "Ninguno todavía",
-    hotLine: (n) => `En racha: ${n} semanas sobre el promedio`,
-    coldLine: (n) => `Mala racha: ${n} semanas bajo el promedio`,
+    hotLine: (n) => n === 1 ? "En racha: sobre el promedio esta semana" : `En racha: ${n} semanas sobre el promedio`,
+    coldLine: (n) => n === 1 ? "Mala racha: bajo el promedio esta semana" : `Mala racha: ${n} semanas bajo el promedio`,
   },
 
   awards: {

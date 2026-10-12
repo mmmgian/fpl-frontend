@@ -24,6 +24,8 @@ interface DataTableProps<T> {
   empty?: ReactNode;
   /** Highlight a row (e.g. "you"), conveyed to AT via aria-current. */
   isCurrentRow?: (row: T) => boolean;
+  /** Tints a row (and marks its left edge) green, amber or red, e.g. the top and bottom of a league. */
+  rowTone?: (row: T) => "good" | "warn" | "bad" | undefined;
   dense?: boolean;
   /**
    * An optional full-width row under each row, hidden until the row contains a checked `input[data-expand]`
@@ -40,6 +42,7 @@ export function DataTable<T>({
   rowKey,
   empty,
   isCurrentRow,
+  rowTone,
   dense,
   detail,
 }: DataTableProps<T>) {
@@ -79,7 +82,7 @@ export function DataTable<T>({
               const current = isCurrentRow?.(row) ?? false;
               const extra = detail?.(row, i);
               const main = (
-                <tr key={rowKey(row, i)} className={current ? styles.current : undefined} aria-current={current ? "true" : undefined}>
+                <tr key={rowKey(row, i)} className={current ? styles.current : undefined} aria-current={current ? "true" : undefined} data-tone={rowTone?.(row)}>
                   {columns.map((c) =>
                     c.rowHeader ? (
                       <th key={c.key} scope="row" className={`${cellClass(c)} ${styles.rowHeader}`}>

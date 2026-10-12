@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Crest, DataTable, MiniBars, Movement, getFormat, getT, type Column } from "@/components/ui";
-import { rankMovement, type LeagueStats, type ManagerStats } from "@/lib/domain";
+import { rankMovement, zoneOf, type LeagueStats, type ManagerStats } from "@/lib/domain";
 import type { StandingRow } from "@/lib/domain/types";
 import { ManagerStatsDetail, StatsToggle } from "./ManagerStatsPanel";
 import extras from "./leagueExtras.module.css";
@@ -25,11 +25,13 @@ interface StandingsTableProps {
   linkTeams?: boolean;
   showMovement?: boolean;
   highlightEntry?: number;
+  /** Tint the top four green, fifth and sixth amber and the bottom four red, with a key above the table. */
+  zones?: boolean;
   /** Per-manager extras from the league service. Left out for frozen history tables. */
   stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw" | "squad">;
 }
 
-export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, stats: leagueExtras }: StandingsTableProps) {
+export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras }: StandingsTableProps) {
   const t = getT();
   const tt = t.table;
   const f = getFormat();
@@ -50,6 +52,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
         <span className={styles.rankCell}>
           <span className={styles.rank}>
             {r.rank}
+            {zones && zoneOf(r.rank, rows.length) ? <span className="sr-only"> ({tt.zones[zoneOf(r.rank, rows.length)!]})</span> : null}
             {r.rank_approximate ? (
               <>
                 <span aria-hidden="true" title={tt.approxTitle}>
@@ -137,7 +140,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
     { key: "total", header: tt.total, align: "end", width: "5rem", cell: (r) => <strong>{f.number(r.total)}</strong> },
   ];
 
-  return (
+  const table = (
     <DataTable
       caption={caption}
       hideCaption={hideCaption}
@@ -145,8 +148,20 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       rows={rows}
       rowKey={(r) => r.entry}
       isCurrentRow={highlightEntry ? (r) => r.entry === highlightEntry : undefined}
+      rowTone={zones ? (r) => zoneOf(r.rank, rows.length) : undefined}
       detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} /> : null) : undefined}
       empty={tt.empty}
     />
+  );
+  if (!zones || !zoneOf(1, rows.length)) return table;
+  return (
+    <div className={extras.zoned}>
+      <ul className={extras.zoneKey} aria-label={tt.zonesLabel}>
+        <li data-zone="good">{tt.zones.good}</li>
+        <li data-zone="warn">{tt.zones.warn}</li>
+        <li data-zone="bad">{tt.zones.bad}</li>
+      </ul>
+      {table}
+    </div>
   );
 }

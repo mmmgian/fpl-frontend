@@ -97,3 +97,10 @@
 }
 :global([data-ui="sheet"]) .table tbody tr:nth-child(even) { background: var(--surface-2); }
 :global([data-ui="sheet"]) .caption { letter-spacing: 0; text-transform: none; color: var(--text); }
+
+/* ----- zones: the traffic-light colours of the macOS window buttons, faded into the row ----- */
+.table tbody tr[data-tone] { box-shadow: inset 3px 0 0 var(--zone); background: color-mix(in srgb, var(--zone) var(--zone-strength), transparent); }
+.table tbody tr[data-tone="good"] { --zone: var(--zone-good); }
+.table tbody tr[data-tone="warn"] { --zone: var(--zone-warn); }
+.table tbody tr[data-tone="bad"] { --zone: var(--zone-bad); }
+.table tbody tr[data-tone]:hover { background: color-mix(in srgb, var(--zone) calc(var(--zone-strength) + 8%), transparent); }

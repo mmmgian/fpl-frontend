@@ -25,3 +25,17 @@ export function summarizeStandings(rows: StandingRow[]): StandingsSummary | null
     managers: rows.length,
   };
 }
+
+export type Zone = "good" | "warn" | "bad";
+
+/**
+ * Where a rank sits in the table: the top four in green, fifth and sixth in amber, the bottom four in red. A league
+ * too small for the three zones to be distinct (fewer than ten managers) has none.
+ */
+export function zoneOf(rank: number, managers: number): Zone | undefined {
+  if (managers < 10) return undefined;
+  if (rank <= 4) return "good";
+  if (rank <= 6) return "warn";
+  if (rank > managers - 4) return "bad";
+  return undefined;
+}

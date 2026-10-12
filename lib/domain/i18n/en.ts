@@ -135,6 +135,8 @@ export const en = {
   },
 
   table: {
+    zonesLabel: "Zones",
+    zones: { good: "Top 4", warn: "5th–6th", bad: "Bottom 4" } as Record<"good" | "warn" | "bad", string>,
     rank: "Rank",
     team: "Team",
     gw: "GW",
@@ -153,9 +155,9 @@ export const en = {
     winner: (gw: number) => `GW${gw} winner`,
     winnerSr: (gw: number) => `Won gameweek ${gw}, the latest finished week`,
     hot: (n: number) => `Hot ×${n}`,
-    hotSr: (n: number) => `On a hot streak: ${n} weeks above the league average`,
+    hotSr: (n: number) => n === 1 ? "Above the league average in the latest gameweek" : `On a hot streak: ${n} weeks above the league average`,
     cold: (n: number) => `Cold ×${n}`,
-    coldSr: (n: number) => `In a cold spell: ${n} weeks below the league average`,
+    coldSr: (n: number) => n === 1 ? "Below the league average in the latest gameweek" : `In a cold spell: ${n} weeks below the league average`,
     chipShort: { wildcard: "WC", freehit: "FH", bboost: "BB", "3xc": "TC", manager: "AM" } as Record<string, string>,
     chipSr: (name: string, gw: number) => `${name}, gameweek ${gw}`,
     chipTitle: (name: string, gw: number) => `${name}, GW${gw}`,
@@ -189,8 +191,8 @@ export const en = {
     overall: "Overall rank",
     chipsPlayed: "Chips played",
     noChips: "None yet",
-    hotLine: (n: number) => `Hot: ${n} weeks above average`,
-    coldLine: (n: number) => `Cold: ${n} weeks below average`,
+    hotLine: (n: number) => n === 1 ? "Hot: above average this week" : `Hot: ${n} weeks above average`,
+    coldLine: (n: number) => n === 1 ? "Cold: below average this week" : `Cold: ${n} weeks below average`,
   },
 
   awards: {

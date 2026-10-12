@@ -73,14 +73,19 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
     };
   }, [enabled, intervalMs, minFocusGapMs, refresh]);
 
+  const when = !pending && updatedAt ? t.live.last(updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" })) : null;
   return (
     <div className={styles.wrap}>
       <span className={styles.status}>
         {pending ? t.live.updating : null}
-        {!pending && updatedAt ? t.live.last(updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" })) : null}
+        {when}
       </span>
-      <Button size="sm" variant="ghost" onClick={refresh} disabled={pending}>
-        {t.live.refresh}
+      <Button variant="outline" className={styles.icon} onClick={refresh} disabled={pending} aria-label={t.live.refresh} title={when ? `${t.live.refresh} · ${when}` : t.live.refresh}>
+        {/* An open circle of arrow, the way every phone draws "refresh". */}
+        <svg className={styles.glyph} data-spinning={pending} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+          <path d="M20 4v4.4h-4.4" />
+        </svg>
       </Button>
     </div>
   );

@@ -33,3 +33,19 @@
   color: var(--text-muted);
 }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/*
+ * Centred: three columns, the title in the middle and the actions in the right-hand one, with an empty column of the
+ * same width on the left so the title stays truly central whatever sits in the corner. The side columns never shrink
+ * below a 44px touch target.
+ */
+.centered {
+  display: grid;
+  grid-template-columns: minmax(2.75rem, 1fr) auto minmax(2.75rem, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  gap: var(--space-2);
+}
+.centered .titles { justify-items: center; text-align: center; max-width: 100%; }
+.centered .meta { justify-content: center; }
+.centered .actions { justify-self: end; flex-wrap: nowrap; align-items: center; }

@@ -23,6 +23,7 @@ export function LeagueView({ model }: { model: LeagueModel }) {
   return (
     <>
       <PageHeader
+        centered
         title={model.name}
         meta={
           gameweek ? (

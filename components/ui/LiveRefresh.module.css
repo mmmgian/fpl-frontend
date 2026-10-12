@@ -1,2 +1,14 @@
-.wrap { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.status { font-size: 12px; color: var(--text-muted); }
+.wrap { display: inline-flex; align-items: center; }
+/* The words stay for screen readers (what was refreshed and when); sighted people get the icon and a tooltip. */
+.status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* A round, hairline button the size of a finger, like the rest of the design's pills. */
+.icon { width: 2.75rem; min-width: 2.75rem; padding: 0; border-radius: 50%; }
+.glyph { display: block; width: 1.25rem; height: 1.25rem; transition: transform 300ms ease; }
+.icon:hover:not(:disabled) .glyph { transform: rotate(60deg); }
+.glyph[data-spinning="true"] { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .glyph { transition: none; }
+  .glyph[data-spinning="true"] { animation: none; opacity: 0.5; }
+}

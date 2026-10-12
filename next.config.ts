@@ -40,6 +40,20 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
+        // The header logo's file name carries its size and never changes content: keep it for a year.
+        source: "/brand/lobster-league-192.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        // Newspaper pages are published once; a re-publish is picked up within a day, and shown at once meanwhile.
+        source: "/times/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
+      {
+        source: "/favicon.ico",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
+      },
+      {
         source: "/mascots/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },

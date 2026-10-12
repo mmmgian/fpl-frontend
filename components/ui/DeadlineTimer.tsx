@@ -20,9 +20,20 @@ export function DeadlineTimer({ at, now, gameweek }: { at: string; now: string; 
 
   useEffect(() => {
     const tick = () => setLeft(countdown(at, Date.now()));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | undefined;
+    // A hidden tab has nobody to show the seconds to: stop ticking (and re-rendering) until it is visible again.
+    const start = () => {
+      clearInterval(id);
+      tick();
+      id = setInterval(tick, 1000);
+    };
+    const onVisibility = () => (document.visibilityState === "visible" ? start() : clearInterval(id));
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [at]);
 
   const parts: [number, string][] = [[left.days, t.days], [left.hours, t.hours], [left.minutes, t.mins], [left.seconds, t.secs]];

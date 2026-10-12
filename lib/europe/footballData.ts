@@ -92,7 +92,8 @@ export function createFootballData(apiKey: string | undefined, fetcher: typeof f
   const get = async (path: string, revalidate: number) => {
     const res = await fetcher(`${BASE}${path}`, {
       headers: { "X-Auth-Token": apiKey },
-      signal: AbortSignal.timeout(6000),
+      // An optional extra: if it is slow, the page should not wait for it.
+      signal: AbortSignal.timeout(3000),
       next: { revalidate },
     } as RequestInit);
     if (!res.ok) throw new Error(`football-data.org answered ${res.status} for ${path.split("?")[0]}`);

@@ -93,7 +93,7 @@ export function createBbcNews(fetcher: typeof fetch = fetch): NewsPort {
     async headlines(club) {
       const slug = bbcSlug(club.name);
       if (!slug) return null;
-      const res = await fetcher(bbcFeedUrl(slug), { signal: AbortSignal.timeout(5000), next: { revalidate: 900 } } as RequestInit);
+      const res = await fetcher(bbcFeedUrl(slug), { signal: AbortSignal.timeout(3000), next: { revalidate: 900 } } as RequestInit);
       if (!res.ok) throw new Error(`BBC Sport feed answered ${res.status}`);
       return { items: parseBbcFeed(await res.text()), creditUrl: bbcPageUrl(slug) };
     },

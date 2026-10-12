@@ -34,8 +34,10 @@ export function MiniBars({ values, labels, reference, showValues = false, showLa
   const width = values.length * BAR + (values.length - 1) * gap;
   const max = Math.max(...values, reference ?? 0, 1);
   const best = values.indexOf(Math.max(...values));
-  const h = (v: number) => Math.max(2, (Math.max(0, v) / max) * height);
-  const y = (v: number) => top + height - h(v);
+  // Two decimals are plenty for a few pixels, and the long fractions (40.666666666666664) were a quarter of the SVG's bytes.
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const h = (v: number) => round(Math.max(2, (Math.max(0, v) / max) * height));
+  const y = (v: number) => round(top + height - h(v));
 
   return (
     <svg

@@ -162,6 +162,21 @@ describe("DeadlineTimer", () => {
     expect(digits()).toEqual(["00Days", "01Hours", "01Mins", "59Secs"]);
   });
 
+  it("stops ticking while the tab is hidden and catches up the moment it is shown", () => {
+    vi.setSystemTime(nowAt(3725));
+    render(<DeadlineTimer at={AT} now={nowAt(3725).toISOString()} gameweek="Gameweek 7" />);
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    visibility.mockReturnValue("hidden");
+    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+    const frozen = digits();
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(digits()).toEqual(frozen);
+    visibility.mockReturnValue("visible");
+    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+    expect(digits()).toEqual(["00Days", "01Hours", "01Mins", "35Secs"]);
+    visibility.mockRestore();
+  });
+
   it("corrects itself if the browser's clock disagrees with the server's", () => {
     vi.setSystemTime(nowAt(100));                                             // the browser says 100 s left
     render(<DeadlineTimer at={AT} now={nowAt(7200).toISOString()} gameweek="Gameweek 7" />);   // the server said two hours

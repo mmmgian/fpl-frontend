@@ -42,6 +42,9 @@ export function axisStep(n: number) {
   return n <= MAX_LABELLED ? 1 : n <= 28 ? 2 : 5;
 }
 
+/** Two decimals are plenty for a few pixels. */
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 export function BarChart({ bars, format = String, label, legend, height = 120 }: BarChartProps) {
   if (bars.length === 0) return null;
   const n = bars.length;
@@ -53,7 +56,8 @@ export function BarChart({ bars, format = String, label, legend, height = 120 }:
   const width = padX * 2 + n * barW + (n - 1) * gap;
   const max = Math.max(...bars.flatMap((b) => [b.value, b.marker ?? 0]), 1);
   const best = bars.reduce((bi, b, i) => (b.value > bars[bi].value ? i : bi), 0);
-  const y = (v: number) => top + height - (Math.max(0, v) / max) * height;
+  // Two decimals are plenty for a few pixels (the long fractions made the SVG, and the page, heavier).
+  const y = (v: number) => Math.round((top + height - (Math.max(0, v) / max) * height) * 100) / 100;
   const labelled = (i: number) => n <= MAX_LABELLED || i === best || i === n - 1;
   // A number sits just above its bar, unless the bar's own marker is in that space, then it goes above the marker.
   const labelY = (b: Bar) => {
@@ -73,9 +77,9 @@ export function BarChart({ bars, format = String, label, legend, height = 120 }:
             const cls = beat === null ? (i === n - 1 ? styles.barLatest : styles.bar) : beat ? styles.barUp : styles.barDown;
             return (
               <g key={`${b.label}-${i}`}>
-                <rect x={x} y={y(b.value)} width={barW} height={Math.max(1.5, top + height - y(b.value))} rx={3} className={cls} />
+                <rect x={x} y={y(b.value)} width={barW} height={r2(Math.max(1.5, top + height - y(b.value)))} rx={3} className={cls} />
                 {labelled(i) ? (
-                  <text x={x + barW / 2} y={labelY(b)} textAnchor="middle" className={i === best ? styles.valueBest : styles.value}>
+                  <text x={x + barW / 2} y={r2(labelY(b))} textAnchor="middle" className={i === best ? styles.valueBest : styles.value}>
                     {format(b.value)}
                   </text>
                 ) : null}
@@ -173,7 +177,7 @@ export function LineChart({ points, format = String, label, invert = false, log 
   const span = hi - lo || 1;
   const frac = (t: number) => (hi === lo ? 0.5 : (t - lo) / span);
   const x = (i: number) => (n === 1 ? width / 2 : padX + i * step);
-  const y = (i: number) => top + (invert ? frac(ts[i]) : 1 - frac(ts[i])) * height;
+  const y = (i: number) => Math.round((top + (invert ? frac(ts[i]) : 1 - frac(ts[i])) * height) * 100) / 100;
 
   // "Best" is the lowest value for something inverted (a rank), the highest otherwise.
   const bestIdx = ts.reduce((bi, t, i) => ((invert ? t < ts[bi] : t > ts[bi]) ? i : bi), 0);
@@ -193,7 +197,7 @@ export function LineChart({ points, format = String, label, invert = false, log 
             <g key={`${p.label}-${i}`}>
               <circle cx={x(i)} cy={y(i)} r={last ? 5 : i === bestIdx ? 4.5 : 3.2} className={last ? styles.dotLatest : i === bestIdx ? styles.dotBest : styles.dot} />
               {labels.get(i) ? (
-                <text x={labels.get(i)!.x} y={labels.get(i)!.y} textAnchor={labels.get(i)!.anchor} className={i === bestIdx || last ? styles.valueBest : styles.value}>
+                <text x={r2(labels.get(i)!.x)} y={r2(labels.get(i)!.y)} textAnchor={labels.get(i)!.anchor} className={i === bestIdx || last ? styles.valueBest : styles.value}>
                   {format(p.value)}
                 </text>
               ) : null}

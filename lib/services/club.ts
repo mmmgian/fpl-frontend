@@ -1,4 +1,4 @@
-import { clubIdentity, clubMatches, clubNews, clubPlayers, formGuide, predictedXI, type ClubMatch } from "../domain";
+import { slugify, clubIdentity, clubMatches, clubNews, clubPlayers, formGuide, predictedXI, type ClubMatch } from "../domain";
 import type { ClubMatchView, ClubModel, Outside } from "./models";
 import type { EuropePort, FplPort, NewsPort } from "./ports";
 
@@ -19,6 +19,15 @@ export function createClubService(
   sources: { europe: EuropePort | null; news: NewsPort | null } = { europe: null, news: null },
 ) {
   return {
+    /** What an address means: a club number ("1") or a club's name as written in the address ("man-city"). Null if neither. */
+    async resolve(param: string): Promise<{ id: number; slug: string } | null> {
+      const teams = await fpl.bootstrap().then((b) => b.teams).catch(() => []);
+      const slugOf = (t: { name: string }) => slugify(t.name);
+      const found = /^[1-9]\d{0,5}$/.test(param) ? teams.find((t) => t.id === Number(param)) : teams.find((t) => slugOf(t) === param) ?? teams.find((t) => slugify(t.short_name) === param);
+      if (found) return { id: found.id, slug: slugOf(found) };
+      return /^[1-9]\d{0,5}$/.test(param) ? { id: Number(param), slug: param } : null;
+    },
+
     /** Just who the club is, for page titles: one cached request, none of the extras. Null if unknown or FPL is unreachable. */
     async identify(clubId: number) {
       const team = await fpl.bootstrap().then((b) => b.teams.find((t) => t.id === clubId)).catch(() => undefined);

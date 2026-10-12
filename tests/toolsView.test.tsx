@@ -75,7 +75,7 @@ describe("the Tools page", () => {
     const { container } = render(<ToolsView model={await model({}, 5)} />);
     const teams = container.querySelector("#teams") as HTMLElement;
     const links = within(teams).getAllByRole("link");
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/team/100", "/team/101", "/team/102", "/team/103", "/team/104"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/team/team-1", "/team/team-2", "/team/team-3", "/team/team-4", "/team/team-5"]);
     expect(links[0]).toHaveAccessibleName("Open Team 1's team sheet");
     expect(links[0]).toHaveTextContent("Manager 1");
     expect(links[0]).toHaveTextContent("#1");

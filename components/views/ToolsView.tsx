@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, type Column } from "@/components/ui";
-import { fdrBand, type PriceRow, type PriceStatus } from "@/lib/domain";
+import { entrySlugs, fdrBand, type PriceRow, type PriceStatus } from "@/lib/domain";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
@@ -235,13 +235,14 @@ function EffectiveOwnership({ model }: { model: Tools }) {
 function Teams({ teams }: { teams: Tools["teams"] }) {
   const t = getT().tools.teams;
   const f = getFormat();
+  const slugs = entrySlugs(teams.map((x) => ({ id: x.entry, name: x.teamName })));
   return (
     <Card title={t.title} headingLevel={2} className={styles.full}>
       <p className={styles.note}>{t.note}</p>
       <ul className={styles.teams}>
         {teams.map((team) => (
           <li key={team.entry}>
-            <Link href={`/team/${team.entry}`} aria-label={t.open(team.teamName)}>
+            <Link href={`/team/${slugs.get(team.entry) ?? team.entry}`} aria-label={t.open(team.teamName)}>
               <Crest src={team.avatar} name={team.teamName} size={36} />
               <span>
                 <span className={styles.teamName}>{team.teamName}</span>

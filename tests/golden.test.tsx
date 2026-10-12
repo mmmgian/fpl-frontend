@@ -198,7 +198,7 @@ describe("league page", () => {
 });
 
 describe("team page", () => {
-  const render = async (id = "7", gw?: string) =>
+  const render = async (id = "gaucho-f-c", gw?: string) =>
     (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: id }), searchParams: gwParams(gw) });
 
   it("shows the live team sheet", async () => {
@@ -207,11 +207,11 @@ describe("team page", () => {
   });
   it("shows a finished gameweek via ?gw=", async () => {
     stubFetch(world());
-    await expect(await show(() => render("7", "5"))).toMatchFileSnapshot(golden("team-final"));
+    await expect(await show(() => render("gaucho-f-c", "5"))).toMatchFileSnapshot(golden("team-final"));
   });
   it("falls back to the current GW for a bad ?gw=", async () => {
     stubFetch(world());
-    await expect(await show(() => render("7", "99"))).toMatchFileSnapshot(golden("team-bad-gw"));
+    await expect(await show(() => render("gaucho-f-c", "99"))).toMatchFileSnapshot(golden("team-bad-gw"));
   });
   it("still shows the team when live points are unavailable", async () => {
     stubFetch(world([[has("/event/6/live/"), () => new Response("x", { status: 500 })]]));
@@ -223,15 +223,24 @@ describe("team page", () => {
   });
   it("explains a team that joins later", async () => {
     stubFetch(world([[ends("/entry/7/"), entry({ started_event: 9 })]]));
-    await expect(await show(() => render("7", "5"))).toMatchFileSnapshot(golden("team-not-started"));
+    await expect(await show(() => render("gaucho-f-c", "5"))).toMatchFileSnapshot(golden("team-not-started"));
   });
   it("shows a team that started this gameweek, ignoring an earlier ?gw=", async () => {
     stubFetch(world([[ends("/entry/7/"), entry({ started_event: 6 })]]));
-    await expect(await show(() => render("7", "5"))).toMatchFileSnapshot(golden("team-late-start"));
+    await expect(await show(() => render("gaucho-f-c", "5"))).toMatchFileSnapshot(golden("team-late-start"));
   });
   it("handles pre-season", async () => {
     stubFetch(world([], { events: [event({ id: 1, name: "Gameweek 1", is_current: false, deadline_time: "2026-12-01T00:00:00Z" })] }));
     await expect(await show(() => render())).toMatchFileSnapshot(golden("team-preseason"));
+  });
+  it("sends a team number on to the team's name, keeping the gameweek", async () => {
+    stubFetch(world());
+    await expect(render("7")).rejects.toThrow("NEXT_REDIRECT:/team/gaucho-f-c");
+    await expect(render("7", "5")).rejects.toThrow("NEXT_REDIRECT:/team/gaucho-f-c?gw=5");
+  });
+  it("404s a name no team has", async () => {
+    stubFetch(world());
+    await expect(render("nobody-fc")).rejects.toThrow("NEXT_NOT_FOUND");
   });
   it("404s unknown and malformed teams", async () => {
     stubFetch(world([[ends("/entry/7/"), () => new Response("x", { status: 404 })]]));
@@ -242,7 +251,7 @@ describe("team page", () => {
     stubFetch(world());
     const { generateMetadata } = await import("@/app/team/[entryId]/page");
     const titles = [
-      await generateMetadata({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() }),
+      await generateMetadata({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() }),
       await generateMetadata({ params: Promise.resolve({ entryId: "x" }), searchParams: gwParams() }),
     ];
     await expect(JSON.stringify(titles, null, 2) + "\n").toMatchFileSnapshot(golden("team-metadata").replace(".html", ".json"));
@@ -250,7 +259,7 @@ describe("team page", () => {
 });
 
 describe("team page, optional data", () => {
-  const render = async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() });
+  const render = async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() });
 
   it("omits the season section when history is unavailable", async () => {
     stubFetch(world([[ends("/entry/7/history/"), () => new Response("x", { status: 404 })]]));
@@ -327,7 +336,7 @@ describe("bonus page", () => {
 });
 
 describe("club page", () => {
-  const render = async (id = "1") => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id }) });
+  const render = async (id = "arsenal") => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id }) });
   const feed = `<?xml version="1.0"?><rss><channel><title><![CDATA[BBC Sport]]></title>
     <item><title><![CDATA[Arteta gives injury update]]></title><description><![CDATA[The Arsenal boss speaks.]]></description><link>https://www.bbc.com/sport/football/articles/abc</link><pubDate>Sat, 10 Oct 2026 10:00:00 GMT</pubDate></item>
   </channel></rss>`;
@@ -340,6 +349,11 @@ describe("club page", () => {
   it("still shows the page when the headlines can't be fetched", async () => {
     stubFetch(world([bbc(503)]));
     await expect(await show(() => render())).toMatchFileSnapshot(golden("club-headlines-down"));
+  });
+  it("sends a club number, or its short name, on to the club's name", async () => {
+    stubFetch(world());
+    await expect(render("1")).rejects.toThrow("NEXT_REDIRECT:/club/arsenal");
+    await expect(render("ars")).rejects.toThrow("NEXT_REDIRECT:/club/arsenal");
   });
   it("is a 404 for a club FPL doesn't have, and for an id that isn't a number", async () => {
     stubFetch(world());
@@ -416,17 +430,17 @@ describe("translated pages", () => {
     ["league, unknown", () => world([off(404)]), async () => (await import("@/app/page")).default()],
     ["league, empty", () => world([[has("/leagues-classic/"), standings({ newEntries: [{}, {}] })]]), async () => (await import("@/app/page")).default()],
     ["league, pre-season", () => world([], { events: [event({ id: 1, name: "Gameweek 1", is_current: false, finished: false, deadline_time: "2026-12-01T00:00:00Z" })] }), async () => (await import("@/app/page")).default()],
-    ["team, live", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
-    ["team, finished week", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams("5") })],
-    ["team, no live points", () => world([[has("/event/6/live/"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
-    ["team, no history", () => world([[ends("/entry/7/history/"), () => new Response("x", { status: 404 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
-    ["team, joined later", () => world([[ends("/entry/7/"), entry({ started_event: 8 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "7" }), searchParams: gwParams() })],
+    ["team, live", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() })],
+    ["team, finished week", () => world(), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams("5") })],
+    ["team, no live points", () => world([[has("/event/6/live/"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() })],
+    ["team, no history", () => world([[ends("/entry/7/history/"), () => new Response("x", { status: 404 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() })],
+    ["team, joined later", () => world([[ends("/entry/7/"), entry({ started_event: 8 })]]), async () => (await import("@/app/team/[entryId]/page")).default({ params: Promise.resolve({ entryId: "gaucho-f-c" }), searchParams: gwParams() })],
     ["fixtures, feed", seasonWorld, async () => (await import("@/app/fixtures/page")).default({ searchParams: Promise.resolve({}) })],
     ["fixtures, grid", seasonWorld, async () => (await import("@/app/fixtures/page")).default({ searchParams: Promise.resolve({ n: "5" }) })],
     ["bonus, live", () => world(), async () => (await import("@/app/bonus/page")).default({ searchParams: gwParams() })],
     ["bonus, finished week", () => world(), async () => (await import("@/app/bonus/page")).default({ searchParams: gwParams("5") })],
-    ["club", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response(feed)]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
-    ["club, no headlines", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
+    ["club", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response(feed)]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "arsenal" }) })],
+    ["club, no headlines", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "arsenal" }) })],
     ["history, past tables", () => world(), async () => (await import("@/app/times/archive")).TablesArchive()],
     ["history, snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "5" }) })],
     ["history, rebuilt snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "4" }) })],

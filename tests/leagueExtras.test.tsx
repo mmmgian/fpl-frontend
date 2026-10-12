@@ -72,7 +72,7 @@ describe("LeagueAwards", () => {
     const cards = screen.getAllByRole("listitem");
     expect(cards.length).toBe(stats.awards.length);
     const winner = cards.find((c) => within(c).queryByText("Week winner"))!;
-    expect(within(winner).getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/team/1");
+    expect(within(winner).getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/team/alpha");
     expect(within(winner).getByText("80")).toBeInTheDocument();
   });
   it("renders nothing when there are no awards, or the winners are not in the table", () => {

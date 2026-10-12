@@ -20,6 +20,8 @@ export interface SheetPlayer {
   id: number;
   name: string;
   club: string;
+  /** The club's full name ("Man City"), for its page's address. */
+  clubName: string;
   clubCode: number | null;
   /** FPL team id, to look the player's fixtures up. */
   teamId: number | null;
@@ -68,6 +70,7 @@ export function buildTeamSheet(picks: EntryPicks, bootstrap: Pick<Bootstrap, "el
       id: el.id,
       name: el.web_name,
       club: team?.short_name ?? "—",
+      clubName: team?.name ?? team?.short_name ?? "—",
       clubCode: team?.code ?? null,
       teamId: team?.id ?? null,
       positionId: el.element_type,

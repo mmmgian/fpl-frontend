@@ -76,9 +76,9 @@ describe("team service: place in the league", () => {
     const team = await identity(make(async () => league(table(1))));
     expect(team.league).toEqual({
       rank: 1, size: 3, points: 420, moved: 0,
-      leader: { entryId: 7, teamName: "Team 1", rank: 1, points: 420 },
+      leader: { entryId: 7, slug: "team-1", teamName: "Team 1", rank: 1, points: 420 },
       prev: null,
-      next: { entryId: 200, teamName: "Team 2", rank: 2, points: 400 },
+      next: { entryId: 200, slug: "team-2", teamName: "Team 2", rank: 2, points: 400 },
     });
   });
   it("links both ways from the middle, knows the leader and the points, and the places moved since last week", async () => {

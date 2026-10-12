@@ -46,7 +46,7 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
             {p.club}
           </span>
         ) : (
-          <ClubLink id={p.teamId} name={p.club} className={styles.clubCell}>
+          <ClubLink id={p.teamId} name={p.clubName} className={styles.clubCell}>
             <Crest code={p.clubCode} name={p.club} size={18} />
             {p.club}
           </ClubLink>

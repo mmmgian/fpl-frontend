@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Crest, DataTable, MiniBars, Movement, getFormat, getT, type Column } from "@/components/ui";
-import { rankMovement, zoneOf, type LeagueStats, type ManagerStats } from "@/lib/domain";
+import { entrySlugs, rankMovement, zoneOf, type LeagueStats, type ManagerStats } from "@/lib/domain";
 import type { StandingRow } from "@/lib/domain/types";
 import { ManagerStatsDetail, StatsToggle } from "./ManagerStatsPanel";
 import extras from "./leagueExtras.module.css";
@@ -36,6 +36,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
   const tt = t.table;
   const f = getFormat();
   const stats = leagueExtras?.byEntry;
+  const slugs = entrySlugs(rows.map((r) => ({ id: r.entry, name: r.entry_name })));
   const formLabel = (s: ManagerStats) => tt.formLabel(s.form.length, s.form.join(", "));
   const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
   const columns: Column<StandingRow>[] = [
@@ -75,7 +76,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
           <Crest src={r.club_badge_src} name={r.entry_name} size={28} />
           <span className={styles.teamText}>
             {linkTeams ? (
-              <Link href={`/team/${r.entry}`} className={styles.teamLink}>
+              <Link href={`/team/${slugs.get(r.entry) ?? r.entry}`} className={styles.teamLink}>
                 {r.entry_name}
               </Link>
             ) : (

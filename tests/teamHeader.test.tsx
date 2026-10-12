@@ -18,16 +18,16 @@ describe("TeamHeader", () => {
   });
 
   it("links to the managers above and below, keeping the gameweek, and says who they are", () => {
-    const league = { rank: 2, size: 3, points: 400, moved: 0, leader: { entryId: 1, teamName: "Bart's Team", rank: 1, points: 420 }, prev: { entryId: 1, teamName: "Bart's Team", rank: 1, points: 420 }, next: { entryId: 9, teamName: "New Team", rank: 3, points: 380 } };
+    const league = { rank: 2, size: 3, points: 400, moved: 0, leader: { entryId: 1, slug: "barts-team", teamName: "Bart's Team", rank: 1, points: 420 }, prev: { entryId: 1, slug: "barts-team", teamName: "Bart's Team", rank: 1, points: 420 }, next: { entryId: 9, slug: "new-team", teamName: "New Team", rank: 3, points: 380 } };
     render(<TeamHeader team={team({ league })} gw={4} />);
     const nav = screen.getByRole("navigation", { name: "Neighbouring managers" });
-    expect(within(nav).getByRole("link", { name: "Previous manager: Bart's Team, ranked 1" })).toHaveAttribute("href", "/team/1?gw=4");
-    expect(within(nav).getByRole("link", { name: "Next manager: New Team, ranked 3" })).toHaveAttribute("href", "/team/9?gw=4");
+    expect(within(nav).getByRole("link", { name: "Previous manager: Bart's Team, ranked 1" })).toHaveAttribute("href", "/team/barts-team?gw=4");
+    expect(within(nav).getByRole("link", { name: "Next manager: New Team, ranked 3" })).toHaveAttribute("href", "/team/new-team?gw=4");
   });
   it("leaves out the arrow where there is nobody, and the whole nav when the league is unknown", () => {
-    const { unmount } = render(<TeamHeader team={team({ league: { rank: 1, size: 2, points: 10, moved: 0, leader: { entryId: 7, teamName: "Gaucho F.C.", rank: 1, points: 10 }, prev: null, next: { entryId: 9, teamName: "New Team", rank: 2, points: 5 } } })} />);
+    const { unmount } = render(<TeamHeader team={team({ league: { rank: 1, size: 2, points: 10, moved: 0, leader: { entryId: 7, slug: "gaucho-f-c", teamName: "Gaucho F.C.", rank: 1, points: 10 }, prev: null, next: { entryId: 9, slug: "new-team", teamName: "New Team", rank: 2, points: 5 } } })} />);
     expect(screen.queryByRole("link", { name: /Previous manager/ })).toBeNull();
-    expect(screen.getByRole("link", { name: /Next manager/ })).toHaveAttribute("href", "/team/9");
+    expect(screen.getByRole("link", { name: /Next manager/ })).toHaveAttribute("href", "/team/new-team");
     unmount();
     render(<TeamHeader team={team({ league: null })} />);
     expect(screen.queryByRole("navigation", { name: "Neighbouring managers" })).toBeNull();

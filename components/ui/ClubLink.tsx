@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+// Deep import: the domain barrel would pull every language into the browser bundle.
+import { slugify } from "@/lib/domain/slug";
 import { useT } from "./I18nProvider";
 import styles from "./ClubLink.module.css";
 
@@ -9,7 +11,7 @@ import styles from "./ClubLink.module.css";
 export function ClubLink({ id, name, children, className }: { id: number; name: string; children: ReactNode; className?: string }) {
   const t = useT().clubLink;
   return (
-    <Link href={`/club/${id}`} className={[styles.link, className].filter(Boolean).join(" ")} title={t.title(name)}>
+    <Link href={`/club/${slugify(name)}`} className={[styles.link, className].filter(Boolean).join(" ")} title={t.title(name)}>
       {children}
     </Link>
   );

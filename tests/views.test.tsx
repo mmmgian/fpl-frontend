@@ -19,7 +19,7 @@ describe("StandingsTable", () => {
   it("links teams, shows manager and movement, and passes axe", async () => {
     const { container } = render(<StandingsTable rows={rows} caption="Lobster standings" highlightEntry={2} />);
     const table = screen.getByRole("table", { name: "Lobster standings" });
-    expect(within(table).getByRole("link", { name: "Gaucho F.C." })).toHaveAttribute("href", "/team/2");
+    expect(within(table).getByRole("link", { name: "Gaucho F.C." })).toHaveAttribute("href", "/team/gaucho-f-c");
     expect(within(table).getByText("gian jaen")).toBeInTheDocument();
     expect(within(table).getByText("up 2 places")).toBeInTheDocument();
     expect(within(table).getByText("down 1 place")).toBeInTheDocument();

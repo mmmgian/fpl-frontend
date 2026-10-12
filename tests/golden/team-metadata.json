@@ -1,6 +1,12 @@
 [
   {
-    "title": "Gaucho F.C. (gian jaen)"
+    "title": "Gaucho F.C. (gian jaen)",
+    "alternates": {
+      "canonical": "/team/gaucho-f-c"
+    },
+    "openGraph": {
+      "title": "Gaucho F.C. (gian jaen)"
+    }
   },
   {
     "title": "Team"

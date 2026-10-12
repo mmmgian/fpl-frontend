@@ -15,6 +15,7 @@ export * from "./seasonCharts";
 export * from "./squadStats";
 export * from "./leagueStats";
 export * from "./params";
+export * from "./slug";
 export * from "./standings";
 export * from "./theme";
 export * from "./teamSheet";

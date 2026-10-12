@@ -9,7 +9,15 @@ import styles from "./layout.module.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   await initLocale();
-  return { title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` }, description: getT().meta.description };
+  const description = getT().meta.description;
+  return {
+    // Shared links (chat apps, social posts) show the page's name and picture; the address of the site is fixed so they resolve.
+    metadataBase: new URL(process.env.SITE_URL ?? "https://lobsterleague.fyi"),
+    title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+    description,
+    openGraph: { siteName: SITE_NAME, type: "website", description, images: [{ url: "/brand/lobster-league.webp", width: 288, height: 192, alt: SITE_NAME }] },
+    twitter: { card: "summary" },
+  };
 }
 
 export const viewport: Viewport = {

@@ -17,7 +17,7 @@ const experience = (season: { tenure: { seasons: number; firstSeason: string | n
   season && season.tenure.firstSeason ? getT().team.experience(season.tenure.firstSeason.split("/")[0], season.tenure.seasons) : null;
 
 const pagerFor = (team: TeamIdentity, gw: TeamGameweek) => (
-  <GameweekPager gw={gw.gw} min={gw.min} max={gw.max} href={(n) => `/team/${team.entryId}?gw=${n}`} />
+  <GameweekPager gw={gw.gw} min={gw.min} max={gw.max} href={(n) => `/team/${team.slug ?? team.entryId}?gw=${n}`} />
 );
 
 function Summary({ summary, isLive, gameweekName: gwName }: { summary: TeamSummary; isLive: boolean; gameweekName: string }) {

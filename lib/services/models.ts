@@ -61,10 +61,14 @@ export interface TeamIdentity {
   mascot: { action: MascotImage; press: MascotImage } | null;
   /** Where the team stands in the league and who is either side of it; set when the page loads the team. */
   league?: LeagueSpot | null;
+  /** The team's readable address ("gaucho-f-c"), if the league's table could be read to make it unique. */
+  slug?: string | null;
 }
 
 export interface LeagueNeighbour {
   entryId: number;
+  /** The neighbour's readable address. */
+  slug: string;
   teamName: string;
   rank: number;
   /** League points. */

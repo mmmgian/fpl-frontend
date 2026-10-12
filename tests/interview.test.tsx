@@ -370,7 +370,7 @@ const withMascot = (m: Extract<TeamModel, { kind: "ok" }>, on = true): Extract<T
   ...m, team: { ...m.team, mascot: on ? { action: { src: "/mascots/7-action.webp", width: 768, height: 768 }, press: { src: "/mascots/7-press.webp?v=abc", width: 1200, height: 800 } } : null },
 });
 const withLeague = (m: Extract<TeamModel, { kind: "ok" }>): Extract<TeamModel, { kind: "ok" }> => ({
-  ...m, team: { ...m.team, league: { rank: 8, size: 21, points: 380, moved: -2, leader: { entryId: 1, teamName: "Bart's Team", rank: 1, points: 443 }, prev: { entryId: 2, teamName: "Up FC", rank: 7, points: 385 }, next: { entryId: 3, teamName: "Down FC", rank: 9, points: 375 } } },
+  ...m, team: { ...m.team, league: { rank: 8, size: 21, points: 380, moved: -2, leader: { entryId: 1, slug: "barts-team", teamName: "Bart's Team", rank: 1, points: 443 }, prev: { entryId: 2, slug: "up-fc", teamName: "Up FC", rank: 7, points: 385 }, next: { entryId: 3, slug: "down-fc", teamName: "Down FC", rank: 9, points: 375 } } },
 });
 const text = (el: Element) => Array.from(el.querySelectorAll("li")).map((li) => li.textContent).join("|");
 

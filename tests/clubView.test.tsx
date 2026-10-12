@@ -34,7 +34,7 @@ describe("ClubLink", () => {
   it("goes to the club's page and says where in its tooltip", () => {
     render(<ClubLink id={7} name="Spurs">Tottenham</ClubLink>);
     const a = screen.getByRole("link", { name: "Tottenham" });
-    expect(a).toHaveAttribute("href", "/club/7");
+    expect(a).toHaveAttribute("href", "/club/spurs");
     expect(a).toHaveAttribute("title", expect.stringContaining("Spurs"));
   });
 });
@@ -52,7 +52,7 @@ describe("ClubView", () => {
     const card = screen.getByRole("heading", { name: "Up next" }).closest("section")!;
     const links = within(card).getAllByRole("link", { name: /Man City/ });
     expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute("href", "/club/2");
+    expect(links[0]).toHaveAttribute("href", "/club/man-city");
     expect(within(card).getByText("Home")).toBeInTheDocument();
     expect(within(card).getByText("Away")).toBeInTheDocument();
     expect(within(card).getAllByText(/difficulty 3 of 5/)).toHaveLength(2);

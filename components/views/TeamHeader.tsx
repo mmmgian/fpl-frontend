@@ -25,7 +25,7 @@ export function TeamHeader({ team, facts = [], actions, gw }: { team: TeamIdenti
           <nav className={styles.neighbours} aria-label={t.team.header.neighbours.label}>
             {team.league.prev ? (
               <Link
-                href={`/team/${team.league.prev.entryId}${gw ? `?gw=${gw}` : ""}`}
+                href={`/team/${team.league.prev.slug}${gw ? `?gw=${gw}` : ""}`}
                 className={styles.neighbour}
                 aria-label={t.team.header.neighbours.prev(team.league.prev.teamName, team.league.prev.rank)}
               >
@@ -36,7 +36,7 @@ export function TeamHeader({ team, facts = [], actions, gw }: { team: TeamIdenti
             ) : null}
             {team.league.next ? (
               <Link
-                href={`/team/${team.league.next.entryId}${gw ? `?gw=${gw}` : ""}`}
+                href={`/team/${team.league.next.slug}${gw ? `?gw=${gw}` : ""}`}
                 className={styles.neighbour}
                 aria-label={t.team.header.neighbours.next(team.league.next.teamName, team.league.next.rank)}
               >

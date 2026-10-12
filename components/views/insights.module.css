@@ -35,24 +35,4 @@
 .slots { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
 /* ----- the manager page ----- */
-:global([data-ui="sheet"]) .sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 2px 2px 3px;
-  border-bottom: 2px solid var(--text);
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
-}
-:global([data-ui="sheet"]) .sectionTitle::before { content: ""; width: 8px; height: 8px; background: var(--accent); }
-:global([data-ui="sheet"]) .grid { gap: 0; margin: 1px; align-items: stretch; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
-:global([data-ui="sheet"]) .big { font-size: 1.3rem; letter-spacing: 0; }
-:global([data-ui="sheet"]) .fact { margin-top: var(--space-2); font-size: 0.8125rem; }
-:global([data-ui="sheet"]) .track { height: 0.4rem; border-radius: 0; }
-:global([data-ui="sheet"]) .fill { border-radius: 0; }
-:global([data-ui="sheet"]) .barsWide { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.45rem 1.25rem; }
-:global([data-ui="sheet"]) .fact + .bars { margin-top: 8px; }
+

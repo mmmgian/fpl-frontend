@@ -3,6 +3,7 @@
  * Pages import `services` from here; nothing else imports an adapter and a service together.
  */
 import { avatarGateway } from "./avatars";
+import { leagueId } from "./config";
 import { mascotGateway } from "./mascots";
 import { historyGateway } from "./backend";
 import { createFootballData } from "./europe/footballData";
@@ -23,7 +24,7 @@ const replaceBadges = process.env.AVATARS_REPLACE_BADGES !== "false";
 
 export const services = {
   league: createLeagueService(fplGateway, { avatars: avatarGateway, replaceBadges }),
-  team: createTeamService(fplGateway, { avatars: avatarGateway, mascots: mascotGateway }),
+  team: createTeamService(fplGateway, { avatars: avatarGateway, mascots: mascotGateway, leagueId }),
   bonus: createBonusService(fplGateway),
   fixtures: createFixturesService(fplGateway),
   club: createClubService(fplGateway, { europe: createFootballData(process.env.FOOTBALL_DATA_API_KEY), news: createBbcNews() }),

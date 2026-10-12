@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // The past league tables now sit under The Times.
+        source: "/history",
+        destination: "/times#tables",
+        permanent: true,
+      },
+      {
         // One address for the site: www.lobsterleague.fyi goes to lobsterleague.fyi, whatever the path and query.
         source: "/:path*",
         has: [{ type: "host", value: "www.lobsterleague.fyi" }],

@@ -30,29 +30,14 @@
 }
 
 /* ----- the manager page: key figures as a ruled table, label cell above value cell ----- */
-:global([data-ui="sheet"]) .list { gap: 0; margin: 1px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-:global([data-ui="sheet"]) .item {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--border-strong);
+
+/* An optional tint: a coloured top edge and a faint wash of the same colour. */
+.item[data-tone] {
+  --tone: var(--accent);
+  border-top: 3px solid var(--tone);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 12%, transparent), transparent 70%), var(--surface);
 }
-:global([data-ui="sheet"]) .label {
-  padding: 3px 8px;
-  background: var(--wash);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--text);
-}
-:global([data-ui="sheet"]) .value { margin: 0; padding: 5px 8px 6px; font-size: 21px; font-weight: 800; line-height: 1.15; }
-:global([data-ui="sheet"]) .hint { margin-top: 1px; font-size: 11px; font-weight: 500; }
-@media (max-width: 599px) {
-  :global([data-ui="sheet"]) .list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  :global([data-ui="sheet"]) .item:last-child:nth-child(odd) { grid-column: 1 / -1; }
-}
+.item[data-tone="cool"] { --tone: var(--accent-2); }
+.item[data-tone="good"] { --tone: var(--zone-good); }
+.item[data-tone="warn"] { --tone: var(--zone-warn); }
+.item[data-tone="bad"] { --tone: var(--zone-bad); }

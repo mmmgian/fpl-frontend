@@ -10,7 +10,7 @@ import styles from "./sheet.module.css";
 
 type TeamState = Exclude<TeamModel, { kind: "not-found" }>;
 
-const header = (team: TeamIdentity, facts?: HeaderFact[], actions?: ReactNode) => <TeamHeader team={team} facts={facts} actions={actions} />;
+const header = (team: TeamIdentity, facts?: HeaderFact[], actions?: ReactNode, gw?: number) => <TeamHeader team={team} facts={facts} actions={actions} gw={gw} />;
 
 /** "Playing since 2019 · 7 earlier seasons": the manager's experience, for the header. */
 const experience = (season: { tenure: { seasons: number; firstSeason: string | null } } | null): string | null =>
@@ -31,12 +31,13 @@ function Summary({ summary, isLive, gameweekName: gwName }: { summary: TeamSumma
         {
           label: isLive ? t.gwPointsLive : t.gwPoints,
           value: summary.gwPoints,
+          tone: "accent" as const,
           hint: [hit ? t.inclHit(hit) : null, isLive ? t.beforeAutoSubs : null].filter(Boolean).join(" · ") || undefined,
         },
-        { label: t.total, value: f.number(summary.total) },
-        { label: t.overallRank, value: f.rank(summary.overallRank) },
-        { label: t.transfers, value: summary.transfers, hint: hit ? t.hitPts(hit) : t.noHit },
-        { label: t.teamValue, value: f.money(summary.value), hint: t.inBank(f.money(summary.bank)) },
+        { label: t.total, value: f.number(summary.total), tone: "cool" as const },
+        { label: t.overallRank, value: f.rank(summary.overallRank), tone: "good" as const },
+        { label: t.transfers, value: summary.transfers, hint: hit ? t.hitPts(hit) : t.noHit, tone: hit ? ("bad" as const) : ("warn" as const) },
+        { label: t.teamValue, value: f.money(summary.value), hint: t.inBank(f.money(summary.bank)), tone: "cool" as const },
       ]}
     />
   );
@@ -66,7 +67,7 @@ export function TeamView({ model }: { model: TeamState }) {
   const tv = getT().team;
 
   const page = (content: ReactNode) => (
-    <div className={styles.sheet} data-ui="sheet">
+    <div className={styles.sheet}>
       {content}
     </div>
   );
@@ -96,7 +97,7 @@ export function TeamView({ model }: { model: TeamState }) {
       const gw = model.gameweek;
       return page(
         <>
-          {header(team, factsFor(gw), pagerFor(team, gw))}
+          {header(team, factsFor(gw), pagerFor(team, gw), gw.gw)}
           <StateMessage title={tv.noPicksTitle(gameweekName(gw.name))}>
             <p>{tv.noPicksBody}</p>
           </StateMessage>
@@ -115,6 +116,7 @@ export function TeamView({ model }: { model: TeamState }) {
               {pagerFor(team, gw)}
               {gw.isLive ? <LiveRefresh enabled /> : null}
             </>,
+            gw.gw,
           )}
 
           <Summary summary={model.summary} isLive={gw.isLive} gameweekName={gameweekName(gw.name)} />

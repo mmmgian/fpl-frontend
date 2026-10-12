@@ -79,6 +79,8 @@ export interface ServiceOptions {
   avatars?: AvatarPort;
   /** If given, the manager page shows the mascot's action and press scenes. */
   mascots?: MascotPort;
+  /** The league the team belongs to, so the page can link to the managers above and below it. */
+  leagueId?: () => number;
   /** Also replace badges managers uploaded themselves (a consistent look). Off unless asked for. */
   replaceBadges?: boolean;
 }

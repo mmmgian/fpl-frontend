@@ -59,6 +59,24 @@ export interface TeamIdentity {
   avatar: string | null;
   /** The mascot's football action and press-conference scenes, if drawn. */
   mascot: { action: MascotImage; press: MascotImage } | null;
+  /** Where the team stands in the league and who is either side of it; set when the page loads the team. */
+  league?: LeagueSpot | null;
+}
+
+export interface LeagueNeighbour {
+  entryId: number;
+  teamName: string;
+  rank: number;
+}
+
+/** The team's place in the league table, with the managers just above and just below it. */
+export interface LeagueSpot {
+  rank: number;
+  size: number;
+  /** The manager one place higher, if there is one. */
+  prev: LeagueNeighbour | null;
+  /** The manager one place lower, if there is one. */
+  next: LeagueNeighbour | null;
 }
 
 export interface TeamGameweek {

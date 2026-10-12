@@ -1,6 +1,6 @@
 import type { Entry } from "../domain";
 import { buildTeamSheet, currentEvent, gameweekPoints, selectGameweek } from "../domain";
-import type { TeamGameweek, TeamIdentity, TeamModel } from "./models";
+import type { LeagueSpot, TeamGameweek, TeamIdentity, TeamModel } from "./models";
 import type { AvatarPort, FplPort, MascotPort, ServiceOptions } from "./ports";
 import { buildInsights } from "./teamInsights";
 
@@ -16,8 +16,8 @@ const identityOf = (entry: Entry, avatars?: AvatarPort, mascots?: MascotPort): T
 
 /** Use case: one manager's team sheet for a gameweek. */
 export function createTeamService(
-  fpl: Pick<FplPort, "bootstrap" | "entry" | "picks" | "live" | "fixtures" | "allFixtures" | "history">,
-  { now = () => new Date(), avatars, mascots }: ServiceOptions = {},
+  fpl: Pick<FplPort, "bootstrap" | "entry" | "picks" | "live" | "fixtures" | "allFixtures" | "history" | "standings">,
+  { now = () => new Date(), avatars, mascots, leagueId }: ServiceOptions = {},
 ) {
   /**
    * Picks (null = FPL has none for that GW), live points and match state (null = unavailable). The last two
@@ -29,6 +29,20 @@ export function createTeamService(
       fpl.live(gw, settled).catch(() => null),
       fpl.fixtures(gw, settled).catch(() => null),
     ]);
+
+  /** The team's place in the league table; null if the league is unknown or unavailable (the page works without it). */
+  const leagueSpot = async (entryId: number): Promise<LeagueSpot | null> => {
+    if (!leagueId) return null;
+    try {
+      const rows = [...((await fpl.standings(leagueId()))?.standings.results ?? [])].sort((a, b) => a.rank - b.rank);
+      const i = rows.findIndex((r) => r.entry === entryId);
+      if (i < 0) return null;
+      const at = (r: (typeof rows)[number] | undefined) => (r ? { entryId: r.entry, teamName: r.entry_name, rank: r.rank } : null);
+      return { rank: rows[i].rank, size: rows.length, prev: at(rows[i - 1]), next: at(rows[i + 1]) };
+    } catch {
+      return null;
+    }
+  };
 
   return {
     /** Who the team is, or null if it doesn't exist or FPL can't be reached (used for page titles). */
@@ -44,6 +58,7 @@ export function createTeamService(
       // Season facts and the schedule don't depend on anything else, so start them now. Both are optional.
       const historyRequest = fpl.history(entryId).catch(() => null);
       const scheduleRequest = fpl.allFixtures().catch(() => null);
+      const leagueRequest = leagueSpot(entryId);
 
       // Speculate: the gameweek only depends on the entry when ?gw= is before the team's first gameweek, so
       // start picks + live as soon as bootstrap is in, instead of waiting for the entry as well (one round trip).
@@ -55,7 +70,7 @@ export function createTeamService(
 
       const [entry, bootstrap] = await Promise.all([fpl.entry(entryId), bootstrapRequest]);
       if (!entry) return { kind: "not-found" };
-      const team = identityOf(entry, avatars, mascots);
+      const team = { ...identityOf(entry, avatars, mascots), league: await leagueRequest };
 
       const latest = currentEvent(bootstrap.events);
       if (!latest) return { kind: "no-season", team };

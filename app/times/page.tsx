@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { TimesLibraryView } from "@/components/views/TimesLibraryView";
 import { services } from "@/lib/container";
-import { getT } from "@/components/ui";
+import { Skeleton, getT } from "@/components/ui";
+import { TablesArchive } from "./archive";
 import { initLocale } from "@/app/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,5 +22,13 @@ type Props = { searchParams: Promise<{ kind?: string | string[] }> };
 
 export default async function TimesPage({ searchParams }: Props) {
   await initLocale();
-  return <TimesLibraryView model={await services.times.library((await searchParams).kind)} />;
+  const model = await services.times.library((await searchParams).kind);
+  return (
+    <>
+      <TimesLibraryView model={model} />
+      <Suspense fallback={<Skeleton height={120} radius={16} />}>
+        <TablesArchive />
+      </Suspense>
+    </>
+  );
 }

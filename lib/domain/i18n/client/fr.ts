@@ -5,7 +5,7 @@ export const clientFr: ClientMessages = {
 
   theme: { group: "Thème de couleur", light: "Normal", night: "Lecture de nuit", dark: "Sombre" },
 
-  live: { updating: "Mise à jour…", auto: "Mise à jour automatique chaque minute", last: (time) => ` · mis à jour à ${time}`, refresh: "Actualiser" },
+  live: { updating: "Mise à jour…", last: (time) => `Mis à jour à ${time}`, refresh: "Actualiser" },
 
   errors: {
     title: "Impossible de charger cette page",
@@ -16,7 +16,7 @@ export const clientFr: ClientMessages = {
     historyTitle: "L'historique est indisponible pour le moment",
     historyBody: "Le serveur d'historique n'a pas répondu. Il tourne sur un hébergement gratuit qui s'endort quand il n'est pas utilisé ; réessayer fonctionne en général une fois qu'il est réveillé.",
   },
-  nav: { label: "Principale", table: "Classement", tools: "Outils", bonus: "Bonus", fixtures: "Calendrier", times: "Times", history: "Historique", skip: "Aller au contenu" },
+  nav: { label: "Principale", table: "Classement", tools: "Outils", bonus: "Bonus", fixtures: "Calendrier", times: "The Times", home: "Accueil", skip: "Aller au contenu" },
 
   deadline: { title: "Prochaine date limite", days: "Jours", hours: "Heures", mins: "Min", secs: "Sec", passed: "La date limite est passée" },
 

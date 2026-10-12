@@ -76,7 +76,7 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
   return (
     <div className={styles.wrap}>
       <span className={styles.status}>
-        {pending ? t.live.updating : enabled ? t.live.auto : null}
+        {pending ? t.live.updating : null}
         {!pending && updatedAt ? t.live.last(updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" })) : null}
       </span>
       <Button size="sm" variant="ghost" onClick={refresh} disabled={pending}>

@@ -36,6 +36,7 @@
 }
 .table tbody tr:last-child > * { border-bottom: 0; }
 .dense th, .dense td { padding: 7px var(--space-2); }
+@media (max-width: 479px) { .dense th, .dense td { padding: 7px 5px; } .dense { font-size: 13px; } }
 
 .table thead th {
   background: var(--surface-head);
@@ -83,22 +84,6 @@
 .detail > td > * { width: 0; min-width: 100%; }
 
 /* ----- the manager page: a ruled table, shaded header, quiet zebra ----- */
-:global([data-ui="sheet"]) .region { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-:global([data-ui="sheet"]) .table { font-size: 13px; }
-:global([data-ui="sheet"]) .table th,
-:global([data-ui="sheet"]) .table td { padding: 4px 8px; border-right: 1px solid var(--border); }
-:global([data-ui="sheet"]) .table th:last-child,
-:global([data-ui="sheet"]) .table td:last-child { border-right: 0; }
-:global([data-ui="sheet"]) .table thead th {
-  background: var(--wash);
-  border-bottom: 1px solid var(--border-strong);
-  font-size: 12px;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--text);
-}
-:global([data-ui="sheet"]) .table tbody tr:nth-child(even) { background: var(--surface-2); }
-:global([data-ui="sheet"]) .caption { letter-spacing: 0; text-transform: none; color: var(--text); }
 
 /* ----- zones: the traffic-light colours of the macOS window buttons, faded into the row ----- */
 .table tbody tr[data-tone] { box-shadow: inset 3px 0 0 var(--zone); background: color-mix(in srgb, var(--zone) var(--zone-strength), transparent); }

@@ -47,8 +47,3 @@
 @media (pointer: coarse), (max-width: 699px) {
   .sm { min-height: 2.75rem; }
 }
-
-/* The manager page packs more in: smaller controls where a mouse is likely (phones keep the 44px touch target). */
-@media (min-width: 640px) {
-  :global([data-ui="sheet"]) .button { min-height: 2rem; padding: 0 0.75rem; font-size: 0.8125rem; }
-}

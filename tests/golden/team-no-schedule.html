@@ -1,11 +1,25 @@
-<div class="sheet" data-ui="sheet">
+<div class="sheet">
 <header class="head">
+<div class="topRow">
 <p class="back">
 <a href="/">← League table</a>
 </p>
+<nav class="neighbours" aria-label="Neighbouring managers">
+<a class="neighbour" aria-label="Previous manager: Bart&#x27;s Team, ranked 1" href="/team/1?gw=6">
+<span aria-hidden="true">←</span>
+<span class="rank" aria-hidden="true">#1</span>
+<span class="neighbourName" aria-hidden="true">Bart&#x27;s Team</span>
+</a>
+<a class="neighbour" aria-label="Next manager: New Team, ranked 3" href="/team/9?gw=6">
+<span class="neighbourName" aria-hidden="true">New Team</span>
+<span class="rank" aria-hidden="true">#3</span>
+<span aria-hidden="true">→</span>
+</a>
+</nav>
+</div>
 <div class="identity">
 <span class="avatar">
-<span class="crest" style="width:72px;height:72px;font-size:27.36px" data-crest="failed" aria-hidden="true">
+<span class="crest" style="width:64px;height:64px;font-size:24.32px" data-crest="failed" aria-hidden="true">
 <span class="initials">GF</span>
 </span>
 </span>
@@ -25,7 +39,8 @@
 </span>
 </nav>
 <div class="wrap">
-<span class="status">Auto-updates every minute</span>
+<span class="status">
+</span>
 <button type="button" class="button ghost sm">Refresh</button>
 </div>
 </div>
@@ -45,25 +60,25 @@
 </dl>
 </header>
 <dl class="list" aria-label="Gameweek 6 summary">
-<div class="item">
+<div class="item" data-tone="accent">
 <dt class="label">GW points (live)</dt>
 <dd class="value">27<span class="hint">incl. −4 hit · before auto-subs</span>
 </dd>
 </div>
-<div class="item">
+<div class="item" data-tone="cool">
 <dt class="label">Total</dt>
 <dd class="value">427</dd>
 </div>
-<div class="item">
+<div class="item" data-tone="good">
 <dt class="label">Overall rank</dt>
 <dd class="value">175,936</dd>
 </div>
-<div class="item">
+<div class="item" data-tone="bad">
 <dt class="label">Transfers</dt>
 <dd class="value">1<span class="hint">−4 pts</span>
 </dd>
 </div>
-<div class="item">
+<div class="item" data-tone="cool">
 <dt class="label">Team value</dt>
 <dd class="value">£99.7m<span class="hint">£1.4m in the bank</span>
 </dd>

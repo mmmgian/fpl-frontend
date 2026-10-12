@@ -46,6 +46,7 @@ export const en = {
 
   footer: {
     disclaimer: "Data from the official Fantasy Premier League API. Not affiliated with the Premier League.",
+    credit: "Developed by a lobster · Est. 2025",
   },
 
 
@@ -123,7 +124,6 @@ export const en = {
     /** Before and after the `LEAGUE_ID` setting name, which is shown as code. */
     notFoundLead: (id: number) => `FPL has no classic league with ID ${id}. Check the `,
     notFoundTail: " environment variable.",
-    eyebrow: (id: number) => `Classic league · ID ${id}`,
     preSeason: "Pre-season",
     emptyTitle: "The table is empty for now",
     emptyBody: "Standings appear after the first gameweek deadline.",
@@ -249,7 +249,14 @@ export const en = {
 
   team: {
     /** The labels of the ruled facts row under the team name. */
-    header: { manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience" },
+    header: {
+      manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience",
+      neighbours: {
+        label: "Neighbouring managers",
+        prev: (team: string, rank: number) => `Previous manager: ${team}, ranked ${rank}`,
+        next: (team: string, rank: number) => `Next manager: ${team}, ranked ${rank}`,
+      },
+    },
     positions: { 1: "Goalkeepers", 2: "Defenders", 3: "Midfielders", 4: "Forwards" } as Record<number, string>,
     flags: { Doubtful: "Doubtful", Injured: "Injured", Suspended: "Suspended", Unavailable: "Unavailable" } as Record<string, string>,
     experience: (year: string, n: number) => `Playing since ${year} · ${n} earlier ${n === 1 ? "season" : "seasons"}`,

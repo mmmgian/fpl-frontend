@@ -12,7 +12,6 @@ const NAV = [
   { href: "/bonus", key: "bonus" },
   { href: "/fixtures", key: "fixtures" },
   { href: "/times", key: "times" },
-  { href: "/history", key: "history" },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -26,8 +25,9 @@ export function SiteHeader({ siteName }: { siteName: string }) {
   return (
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
-        <Link href="/" className={styles.brand}>
-          <span aria-hidden="true">🦞</span> {siteName}
+        <Link href="/" className={styles.brand} aria-label={`${siteName}: ${t.nav.home}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a small fixed-size picture, already optimised */}
+          <img src="/brand/lobster-league.webp" alt="" width={72} height={48} className={styles.logo} decoding="async" />
         </Link>
         <div className={styles.theme}>
           <ThemeToggle />

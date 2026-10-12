@@ -5,7 +5,7 @@ export const clientEs: ClientMessages = {
 
   theme: { group: "Tema de color", light: "Normal", night: "Lectura nocturna", dark: "Oscuro" },
 
-  live: { updating: "Actualizando…", auto: "Se actualiza cada minuto", last: (time) => ` · actualizado ${time}`, refresh: "Actualizar" },
+  live: { updating: "Actualizando…", last: (time) => `Actualizado ${time}`, refresh: "Actualizar" },
 
   errors: {
     title: "No se pudo cargar esta página",
@@ -16,7 +16,7 @@ export const clientEs: ClientMessages = {
     historyTitle: "El historial no está disponible en este momento",
     historyBody: "El servidor del historial no respondió. Corre en un alojamiento gratuito que se duerme cuando no se usa; normalmente funciona al reintentar cuando ya despertó.",
   },
-  nav: { label: "Principal", table: "Tabla", tools: "Herramientas", bonus: "Bonus", fixtures: "Calendario", times: "Times", history: "Historial", skip: "Saltar al contenido" },
+  nav: { label: "Principal", table: "Tabla", tools: "Herramientas", bonus: "Bonus", fixtures: "Calendario", times: "The Times", home: "Inicio", skip: "Saltar al contenido" },
 
   deadline: { title: "Próximo cierre", days: "Días", hours: "Horas", mins: "Min", secs: "Seg", passed: "El cierre ya pasó" },
 

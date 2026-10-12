@@ -48,6 +48,9 @@
 .clubCell { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; white-space: nowrap; }
 
 /* ----- History ----- */
+.tables { display: grid; gap: var(--space-3); scroll-margin-top: 72px; }
+.tablesTitle { margin: var(--space-4) 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.tablesIntro { margin: 0; color: var(--text-muted); }
 .snapshotList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -104,19 +107,4 @@
 .grandNote { font-size: 0.75rem; opacity: 0.85; }
 
 /* ----- the manager page ----- */
-:global([data-ui="sheet"]) .sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 2px 2px 3px;
-  border-bottom: 2px solid var(--text);
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
-}
-:global([data-ui="sheet"]) .sectionTitle::before { content: ""; width: 8px; height: 8px; background: var(--accent); }
-:global([data-ui="sheet"]) .positionGrid { gap: 0; margin: 1px; align-items: stretch; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
-:global([data-ui="sheet"]) .benchSlot { border-radius: 1px; }
+

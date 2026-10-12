@@ -37,7 +37,7 @@ export const es: Messages = {
 
 
 
-  footer: { disclaimer: "Datos de la API oficial de Fantasy Premier League. Sin afiliación con la Premier League." },
+  footer: { disclaimer: "Datos de la API oficial de Fantasy Premier League. Sin afiliación con la Premier League.", credit: "Desarrollado por una langosta · Desde 2025" },
 
 
   pager: {
@@ -110,7 +110,6 @@ export const es: Messages = {
     notFoundTitle: "Liga no encontrada",
     notFoundLead: (id) => `FPL no tiene ninguna liga clásica con el ID ${id}. Revisa la variable de entorno `,
     notFoundTail: ".",
-    eyebrow: (id) => `Liga clásica · ID ${id}`,
     preSeason: "Pretemporada",
     emptyTitle: "La tabla está vacía por ahora",
     emptyBody: "La clasificación aparece después del cierre de la primera jornada.",
@@ -235,7 +234,14 @@ export const es: Messages = {
 
   team: {
     /** The labels of the ruled facts row under the team name. */
-    header: { manager: "Manager", gameweek: "Jornada", chip: "Chip", experience: "Experiencia" },
+    header: {
+      manager: "Manager", gameweek: "Jornada", chip: "Chip", experience: "Experiencia",
+      neighbours: {
+        label: "Managers vecinos",
+        prev: (team, rank) => `Manager anterior: ${team}, puesto ${rank}`,
+        next: (team, rank) => `Manager siguiente: ${team}, puesto ${rank}`,
+      },
+    },
     positions: { 1: "Porteros", 2: "Defensas", 3: "Mediocampistas", 4: "Delanteros" },
     flags: { Doubtful: "Duda", Injured: "Lesionado", Suspended: "Suspendido", Unavailable: "No disponible" },
     experience: (year, n) => `Juega desde ${year} · ${n} ${n === 1 ? "temporada anterior" : "temporadas anteriores"}`,

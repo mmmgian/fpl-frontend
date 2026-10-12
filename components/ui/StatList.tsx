@@ -5,6 +5,8 @@ export interface Stat {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
+  /** Tints the figure's card, so a row of them reads at a glance. */
+  tone?: "accent" | "cool" | "good" | "warn" | "bad";
 }
 
 /** Key figures as a description list (label/value pairs are announced together). */
@@ -12,7 +14,7 @@ export function StatList({ items, label }: { items: Stat[]; label?: string }) {
   return (
     <dl className={styles.list} aria-label={label}>
       {items.map((s) => (
-        <div key={s.label} className={styles.item}>
+        <div key={s.label} className={styles.item} data-tone={s.tone}>
           <dt className={styles.label}>{s.label}</dt>
           <dd className={styles.value}>
             {s.value}

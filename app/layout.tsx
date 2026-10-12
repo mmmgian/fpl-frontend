@@ -38,8 +38,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             {children}
           </main>
           <footer className={`container ${styles.footer}`}>
-            <p>{t.footer.disclaimer}</p>
-            <LanguageSwitcher />
+            <div className={styles.footerInner}>
+              <div className={styles.about}>
+                <p>{t.footer.disclaimer}</p>
+                <p className={styles.credit}>{t.footer.credit}</p>
+              </div>
+              <LanguageSwitcher />
+            </div>
           </footer>
           <CrestFallback />
         </I18nProvider>

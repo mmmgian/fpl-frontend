@@ -14,8 +14,7 @@ export const clientEn = {
 
   live: {
     updating: "Updating…",
-    auto: "Auto-updates every minute",
-    last: (time: string) => ` · last ${time}`,
+    last: (time: string) => `Updated ${time}`,
     refresh: "Refresh",
   },
 
@@ -34,8 +33,8 @@ export const clientEn = {
     tools: "Tools",
     bonus: "Bonus",
     fixtures: "Fixtures",
-    times: "Times",
-    history: "History",
+    times: "The Times",
+    home: "Home",
     skip: "Skip to content",
   },
 

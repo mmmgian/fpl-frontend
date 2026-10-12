@@ -1,8 +1,33 @@
-/* Tools: forms, tiles and tabs in the data-sheet look (see sheet.module.css). */
-.jump { display: flex; flex-wrap: wrap; gap: 0; margin: 1px; padding: 0; list-style: none; }
-.jump li { flex: 1 1 8rem; }
-.jump a { display: block; padding: 5px 10px; background: var(--surface); box-shadow: 0 0 0 1px var(--border-strong); font-weight: 700; text-align: center; text-decoration: none; }
-.jump a:hover { background: var(--wash); }
+/*
+ * Tools: rounded cards like the rest of the site, with a nod to the old rainbow Apple: six soft colours that mark
+ * the sections (jump pills, the title stripe, the pitch) and nothing else.
+ */
+.rainbow { --c1: #61bb46; --c2: #fdb827; --c3: #f5821f; --c4: #e03a3e; --c5: #963d97; --c6: #009ddc; }
+.stripe {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--c1) 0 16.66%, var(--c2) 0 33.33%, var(--c3) 0 50%, var(--c4) 0 66.66%, var(--c5) 0 83.33%, var(--c6) 0);
+  opacity: 0.85;
+}
+.jump { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.jump a::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--dot-c, var(--c1)); }
+.jump li:nth-child(1) a { --dot-c: var(--c1); }
+.jump li:nth-child(2) a { --dot-c: var(--c3); }
+.jump li:nth-child(3) a { --dot-c: var(--c5); }
+.jump li:nth-child(4) a { --dot-c: var(--c6); }
+.jump a:hover { background: var(--hover-wash); border-color: var(--dot-c); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); align-items: start; }
 .full { grid-column: 1 / -1; }
@@ -11,11 +36,20 @@
 /* ----- Team of the Week ----- */
 .formation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 var(--space-3); font-weight: 700; }
 .formation span { color: var(--text-muted); font-weight: 500; }
-.lines { display: grid; margin: 1px; }
-.line { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); background: var(--surface); box-shadow: 0 0 0 1px var(--border-strong); }
-.lineName { display: flex; align-items: center; padding: 4px 8px; background: var(--wash); font-size: 12px; font-weight: 700; }
-.tiles { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 0; }
-.tile { display: grid; justify-items: center; align-content: start; gap: 2px; flex: 0 1 8.5rem; padding: 6px 4px; text-align: center; box-shadow: 0 0 0 0.5px var(--border); }
+.lines {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border-radius: var(--radius);
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--c1) 22%, transparent) 0 44px, color-mix(in srgb, var(--c1) 12%, transparent) 44px 88px),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--c1) 40%, var(--border));
+}
+.line { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; border-radius: 12px; }
+.lineName { padding: 4px 8px; font-size: 12px; font-weight: 700; color: var(--text); }
+.tiles { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 4px; }
+.tile { display: grid; justify-items: center; align-content: start; gap: 2px; flex: 0 1 8.5rem; padding: 8px 4px; border-radius: 12px; text-align: center; }
 .tileName { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font-weight: 700; overflow-wrap: anywhere; }
 .tileMeta { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; font-size: 11px; }
 .xp { font-size: 12px; color: var(--text-muted); }
@@ -27,7 +61,7 @@
 /* ----- Price changes ----- */
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--space-3); align-items: end; margin-bottom: var(--space-3); }
 .field { display: grid; gap: 2px; font-size: 12px; font-weight: 700; }
-.input { min-height: 2rem; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-solid); color: var(--text); font: inherit; font-weight: 500; }
+.input { min-height: 2.25rem; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-solid); color: var(--text); font: inherit; font-weight: 500; }
 .check { display: flex; align-items: center; gap: 6px; min-height: 2rem; font-weight: 600; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .myTeam { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; margin: 0 0 var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
@@ -42,15 +76,16 @@
 
 /* ----- Effective ownership ----- */
 .tabs { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; margin-bottom: var(--space-3); }
-.tabGroup { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
-.tabGroup > span { margin-right: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
-.tab { padding: 3px 10px; background: var(--surface); box-shadow: 0 0 0 1px var(--border-strong); font-weight: 700; text-decoration: none; }
-.tab[aria-current="true"] { background: var(--text); color: var(--bg); }
+.tabGroup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tabGroup > span { margin-right: 2px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.tab { padding: 3px 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); font-weight: 700; text-decoration: none; }
+.tab:hover { background: var(--hover-wash); }
+.tab[aria-current="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
 
 /* ----- Teams ----- */
-.teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 0; margin: 1px; padding: 0; list-style: none; }
-.teams a { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--border-strong); text-decoration: none; }
-.teams a:hover { background: var(--wash); }
+.teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.teams a { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-decoration: none; }
+.teams a:hover { background: var(--hover-wash); border-color: var(--accent); }
 .teamName { font-weight: 700; overflow-wrap: anywhere; }
 .teamSub { font-size: 11px; color: var(--text-muted); }
-.teamRank { font-size: 12px; font-weight: 700; text-align: right; }
+.teamRank { padding: 1px 8px; border-radius: var(--radius-pill); background: var(--wash); font-size: 12px; font-weight: 700; text-align: right; }

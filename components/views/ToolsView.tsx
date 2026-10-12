@@ -267,8 +267,9 @@ export function ToolsView({ model }: { model: Tools }) {
   const t = getT();
   const tt = t.tools;
   return (
-    <div className={sheet.sheet} data-ui="sheet">
+    <div className={`${sheet.sheet} ${styles.rainbow}`}>
       <h1 className={sheet.title}>{tt.heading}</h1>
+      <div className={styles.stripe} aria-hidden />
       {model.deadline ? <DeadlineTimer at={model.deadline.at} now={model.now} gameweek={gameweekName(model.deadline.name)} /> : null}
       <nav aria-label={tt.heading}>
         <ul className={styles.jump}>

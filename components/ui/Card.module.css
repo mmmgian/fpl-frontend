@@ -29,33 +29,5 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-
-/* ----- the manager page's data sheet: a ruled panel with a tinted title band ----- */
-:global([data-ui="sheet"]) .card {
-  padding: 0 var(--space-4) var(--space-4);
-  border: 0;
-  border-radius: 0;
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--border-strong);
-}
-:global([data-ui="sheet"]) .flush { padding: 0; }
-:global([data-ui="sheet"]) .card > .header {
-  margin: 0 calc(-1 * var(--space-4)) var(--space-3);
-  padding: 4px var(--space-4);
-  background: var(--wash);
-  border-bottom: 1px solid var(--border-strong);
-}
-:global([data-ui="sheet"]) .flush > .header { margin: 0; }
-:global([data-ui="sheet"]) .title {
-  padding: 0 0 0 7px;
-  border: 0;
-  border-left: 3px solid var(--accent);
-  border-radius: 0;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.35;
-  text-transform: none;
-}
 /* A flush panel (a table) is a column, so a total under it sits at the bottom whatever the height of its neighbour. */
-:global([data-ui="sheet"]) .flush { display: flex; flex-direction: column; }
+

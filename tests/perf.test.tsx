@@ -280,6 +280,6 @@ describe("LiveRefresh", () => {
     await act(async () => fireEvent.click(button));
     await act(async () => fireEvent.click(button));
     expect(refresh).toHaveBeenCalledTimes(2); // guard released after each completed refresh
-    expect(screen.getByText(/· last /)).toBeInTheDocument();
+    expect(screen.getByText(/^Updated /)).toBeInTheDocument();
   });
 });

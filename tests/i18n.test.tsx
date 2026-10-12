@@ -370,7 +370,11 @@ describe("the site's address", () => {
   it("sends www.lobsterleague.fyi to lobsterleague.fyi, keeping the path, and does nothing for any other host", async () => {
     const config = (await import("../next.config")).default;
     const rules = await config.redirects!();
-    expect(rules).toHaveLength(1);
-    expect(rules[0]).toMatchObject({ source: "/:path*", destination: "https://lobsterleague.fyi/:path*", permanent: true, has: [{ type: "host", value: "www.lobsterleague.fyi" }] });
+    expect(rules).toHaveLength(2);
+    expect(rules.find((r) => r.source === "/:path*")).toMatchObject({ destination: "https://lobsterleague.fyi/:path*", permanent: true, has: [{ type: "host", value: "www.lobsterleague.fyi" }] });
+  });
+  it("sends the old history address to the past tables under The Times", async () => {
+    const rules = await (await import("../next.config")).default.redirects!();
+    expect(rules.find((r) => r.source === "/history")).toMatchObject({ destination: "/times#tables", permanent: true });
   });
 });

@@ -350,7 +350,7 @@ describe("club page", () => {
 });
 
 describe("history pages", () => {
-  const list = async () => (await import("@/app/history/page")).default();
+  const list = async () => (await import("@/app/times/archive")).TablesArchive();
   const one = async (gw: string) => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw }) });
 
   it("lists snapshots newest first", async () => {
@@ -365,7 +365,7 @@ describe("history pages", () => {
     stubFetch(world([[ends("/history/467763"), { league_id: 467763, snapshots: [] }]]));
     await expect(await show(list)).toMatchFileSnapshot(golden("history-empty"));
   });
-  it("surfaces a backend outage", async () => {
+  it("says so quietly when the history server cannot be reached", async () => {
     stubFetch(world([[ends("/history/467763"), () => new Response("x", { status: 502 })]]));
     await expect(await show(list)).toMatchFileSnapshot(golden("history-outage"));
   });
@@ -427,7 +427,7 @@ describe("translated pages", () => {
     ["bonus, finished week", () => world(), async () => (await import("@/app/bonus/page")).default({ searchParams: gwParams("5") })],
     ["club", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response(feed)]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
     ["club, no headlines", () => world([[has("/sport/football/teams/arsenal/rss.xml"), () => new Response("x", { status: 500 })]]), async () => (await import("@/app/club/[id]/page")).default({ params: Promise.resolve({ id: "1" }) })],
-    ["history, list", () => world(), async () => (await import("@/app/history/page")).default()],
+    ["history, past tables", () => world(), async () => (await import("@/app/times/archive")).TablesArchive()],
     ["history, snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "5" }) })],
     ["history, rebuilt snapshot", () => world(), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "4" }) })],
     ["history, missing snapshot", () => world([[has("/history/467763/7"), () => new Response("x", { status: 404 })]]), async () => (await import("@/app/history/[gw]/page")).default({ params: Promise.resolve({ gw: "7" }) })],

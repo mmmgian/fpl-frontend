@@ -23,7 +23,6 @@ export function LeagueView({ model }: { model: LeagueModel }) {
   return (
     <>
       <PageHeader
-        eyebrow={t.eyebrow(model.leagueId)}
         title={model.name}
         meta={
           gameweek ? (

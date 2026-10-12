@@ -8,7 +8,7 @@ export function SnapshotView({ gw, snapshot }: { gw: number; snapshot: SnapshotM
   const t = getT();
   const h = t.history;
   const f = getFormat();
-  const back = <Link href="/history">{h.back}</Link>;
+  const back = <Link href="/times#tables">{h.back}</Link>;
 
   if (!snapshot) {
     return (

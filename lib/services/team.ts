@@ -138,6 +138,7 @@ export function createTeamService(
           hit: gwHistory.event_transfers_cost,
           total: gwHistory.total_points,
           overallRank: gwHistory.overall_rank,
+          fieldSize: bootstrap.total_players ?? null,
           transfers: gwHistory.event_transfers,
           value: gwHistory.value,
           bank: gwHistory.bank,

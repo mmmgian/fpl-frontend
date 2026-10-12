@@ -25,7 +25,8 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
   const locale = getLocale();
   const gw = gameweekName(gameweek.name);
   const input = interviewInputOf(model, getT(), getFormat().money, gw, (s) => s.toLocaleLowerCase(INTL_LOCALE[locale]));
-  const ctx = interviewContext(input);
+  const f = getFormat();
+  const ctx = interviewContext(input, { money: f.money, oneDecimal: f.oneDecimal, number: f.number });
   const live = gameweek.status === "live";
   const day = live ? Math.floor(now.getTime() / DAY_MS) : 0;
   const exchanges = pickInterview(interviewSeed(team.entryId, gameweek.gw, day), candidatesOf(input), {

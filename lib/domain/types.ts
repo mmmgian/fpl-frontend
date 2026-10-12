@@ -157,6 +157,13 @@ export interface LiveStats {
   /** Expected goals and assists this gameweek, as FPL sends them: decimal strings such as "0.38". */
   expected_goals?: string;
   expected_assists?: string;
+  yellow_cards?: number;
+  red_cards?: number;
+  own_goals?: number;
+  penalties_missed?: number;
+  saves?: number;
+  clean_sheets?: number;
+  goals_conceded?: number;
 }
 
 export interface LiveElement {

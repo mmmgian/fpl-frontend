@@ -560,6 +560,10 @@ export const es: Messages = {
       (c, q) => `${c.first}, una rápida: ${q}`,
       (c, q) => `Se lo planteo a ${c.manager}: ${q}`,
       (c, q) => `En nombre de la prensa, ${c.first}: ${q}`,
+      (c, q) => `${c.first}, si me permite: ${q}`,
+      (c, q) => `Perdone la pregunta, ${c.manager}: ${q}`,
+      (c, q) => `La sala quiere saber, ${c.first}: ${q}`,
+      (c, q) => `Unas palabras para el manager de ${c.team}: ${q}`,
     ],
     pressAlt: (team) => `La mascota de ${team} en una rueda de prensa con periodistas.`,
     transcript: "Transcripción",
@@ -824,6 +828,563 @@ export const es: Messages = {
           egotist: () => `No estoy cayendo. Estoy descendiendo para ascender de forma más teatral.`,
         },
       },
+      // ----- lesiones -----
+      injuredBench: {
+        q: {
+          genius: (c) => `${c.benchFlagged} figura como ${c.benchFlaggedLabel} y sigue en su banca. ¿Cuál es el plan de contingencia cuando un suplente es un expediente médico?`,
+          dumb: (c) => `${c.benchFlagged} está ${c.benchFlaggedLabel}. ¿Sigue contando como suplente si no puede entrar?`,
+          satirical: (c) => `Un ${c.benchFlagged} ${c.benchFlaggedLabel} en la banca: ¿es profundidad de plantilla o un cojín carísimo?`,
+        },
+        a: {
+          genius: (c) => `Un puesto en la banca solo tiene valor de opción si es probable ejercerlo. Valoré en casi cero la probabilidad de que ${c.benchFlagged} apareciera, y la prima fue baja.`,
+          snarky: () => `Por lo menos no se queja de los minutos.`,
+          egotist: (c) => `Toda gran plantilla guarda un rincón tranquilo para un héroe en recuperación. ${c.benchFlagged} volverá, y será mío.`,
+        },
+      },
+      squadInjuries: {
+        q: {
+          genius: (c) => `${c.flaggedCount} de sus quince jugadores llevan una alerta de la FPL. ¿En qué momento gestionar una plantilla se vuelve gestionar un hospital?`,
+          dumb: (c) => `${c.flaggedCount} de sus jugadores tienen alerta. ¿Hay un médico en la sala?`,
+          satirical: (c) => `${c.flaggedCount} jugadores con alerta: ¿es un equipo de fantasía o una sala de espera?`,
+        },
+        a: {
+          genius: (c) => `Las lesiones siguen más o menos una distribución de Poisson, y tengo una cartera diversificada de riesgo. ${c.flaggedCount} alertas entre quince entran en la tasa base, no son una crisis.`,
+          snarky: () => `Me gusta mantener empleados a los fisios. Es una empresa social.`,
+          egotist: () => `Otros managers tienen plantillas sanas y cero ambición. La mía afronta la liga herida.`,
+        },
+      },
+      captainDoubt: {
+        q: {
+          genius: (c) => `${c.captain} lleva su brazalete y figura como ${c.captainFlag}. ¿Cuál es el valor esperado de un capitán que quizá no juegue?`,
+          dumb: (c) => `Su capitán ${c.captain} está ${c.captainFlag}. ¿El brazalete funciona desde la sala de tratamiento?`,
+          satirical: (c) => `El capitán ${c.captain} está ${c.captainFlag}. ¿El brazalete es un cargo de liderazgo o un amuleto de recuperación?`,
+        },
+        a: {
+          genius: () => `Para eso existe la regla del vicecapitán. La pérdida está acotada y la ganancia es la misma que la de cualquier otro capitán.`,
+          snarky: () => `Es un líder. Los líderes lideran desde la camilla del fisio.`,
+          egotist: (c) => `${c.captain} va a jugar. Los médicos trabajan para mí.`,
+        },
+      },
+      ghostStarter: {
+        q: {
+          genius: (c) => `${c.ghost} fue titular y no tocó un balón. ¿Cómo racionaliza una selección sin posibilidad de aportar?`,
+          dumb: (c) => `${c.ghost} estaba en su once titular y no jugó. ¿Eso es normal?`,
+          satirical: (c) => `${c.ghost} figuró en su once y se esfumó. ¿Es un jugador o un rumor?`,
+        },
+        a: {
+          genius: () => `Un titular que no juega es justo la razón de que exista la banca. El sistema está hecho para corregir un error gratis.`,
+          snarky: () => `Es un misterio. Como el resto de esta plantilla.`,
+          egotist: () => `Estuvo ahí en espíritu. Yo tomo decisiones del alma.`,
+        },
+      },
+      rotatedOut: {
+        q: {
+          genius: (c) => `${c.rotated} estaba en forma, fue titular y aun así no sumó minutos. ¿Cómo modela el riesgo de rotación en un jugador que acaba de decepcionarle?`,
+          dumb: (c) => `${c.rotated} estaba sano pero nunca pisó la cancha. ¿Su entrenador se olvidó de él?`,
+          satirical: (c) => `${c.rotated} estaba sano, alineado y sin usar. ¿La rotación es táctica o una broma?`,
+        },
+        a: {
+          genius: (c) => `La rotación es una tasa de riesgo, no una propiedad fija. Los minutos de ${c.rotated} tienen mucha varianza, y lo tuve con descuento.`,
+          snarky: () => `A lo mejor su entrenador simplemente no está de acuerdo conmigo. Le pasa a todo el mundo.`,
+          egotist: (c) => `A ${c.rotated} lo descansaron por respeto a mi brillantez.`,
+        },
+      },
+      // ----- goles, asistencias, goles esperados -----
+      hatTrick: {
+        q: {
+          genius: (c) => `${c.scorer} marcó ${c.scorerGoals} para usted. ¿Fue un evento de cola contra el que se cubrió o una pura suerte?`,
+          dumb: (c) => `${c.scorer} hizo ${c.scorerGoals} goles. ¿Es mucho?`,
+          satirical: (c) => `${c.scorer} marcó ${c.scorerGoals}. ¿Lo eligió usted o lo eligió él a usted?`,
+        },
+        a: {
+          genius: () => `Los hat-tricks viven en la cola gruesa de una distribución sesgada, y yo tenía el activo correcto. La suerte necesita preparación para ser útil.`,
+          snarky: () => `Sí, soy un genio, y no, no voy a explicar cómo.`,
+          egotist: () => `Lo vi venir hace tres jornadas. Se lo digo a todos y nadie escucha.`,
+        },
+      },
+      brace: {
+        q: {
+          genius: (c) => `${c.scorer} marcó dos goles en su once. ¿Un doblete cambia su estimación de su talento de fondo o es ruido?`,
+          dumb: (c) => `${c.scorer} metió dos goles. ¿El dos viene después del uno?`,
+          satirical: (c) => `${c.scorer} hizo un doblete. ¿Se va a entregar usted mismo una placa o va a aceptar una?`,
+        },
+        a: {
+          genius: (c) => `Un doblete mueve apenas la posterior, y mi prior sobre ${c.scorer} ya era fuerte. El proceso se mantiene.`,
+          snarky: () => `Dos goles. Sé contar hasta dos, gracias.`,
+          egotist: () => `Un doblete es lo que espero de mis jugadores. Menos que eso es un error administrativo.`,
+        },
+      },
+      defenderScored: {
+        q: {
+          genius: (c) => `${c.defScorer} marcó desde la defensa. ¿Qué probabilidad le asignó a que su zaga superara en goles a los delanteros?`,
+          dumb: (c) => `${c.defScorer} es defensa y marcó. ¿No les está prohibido?`,
+          satirical: (c) => `Un gol de ${c.defScorer}: ¿fue a balón parado o un error administrativo?`,
+        },
+        a: {
+          genius: () => `La amenaza a balón parado es un atributo reconocido y subvalorado. Invierto en ella a propósito.`,
+          snarky: () => `Los defensas marcan a veces. Es como encontrar cinco dólares en un abrigo viejo.`,
+          egotist: () => `Tenía una corazonada con él. Llámeme profeta.`,
+        },
+      },
+      assistHaul: {
+        q: {
+          genius: (c) => `${c.assister} suma ${c.assisterAssists} asistencias para usted. ¿Su modelo valora más la creación o la conversión?`,
+          dumb: (c) => `${c.assister} dio ${c.assisterAssists} asistencias. ¿Qué es una asistencia, exactamente?`,
+          satirical: (c) => `${c.assister} sirvió ${c.assisterAssists}. ¿La generosidad ya es una estrategia?`,
+        },
+        a: {
+          genius: () => `La creación es la habilidad más estable; la conversión, el resultado más volátil. Tengo las dos, cubiertas por posición.`,
+          snarky: () => `Una asistencia es cuando otro hace lo difícil y yo me llevo el crédito.`,
+          egotist: (c) => `${c.assister} es mi asistente. Me hace quedar bien.`,
+        },
+      },
+      blankAttack: {
+        q: {
+          genius: () => `Ni uno de sus mediocampistas o delanteros marcó. ¿Cuál es la producción esperada de un ataque donde todos los tiros fallan?`,
+          dumb: () => `Ninguno de sus atacantes marcó. ¿No se supone que lo hagan?`,
+          satirical: () => `Su ataque fue una colección perfecta de ceros. ¿Los compró como conjunto?`,
+        },
+        a: {
+          genius: () => `Cero goles con varias ocasiones es regresión a punto de ocurrir. El proceso está intacto; la definición, no.`,
+          snarky: () => `Están guardando sus goles. Nadie me dijo para qué.`,
+          egotist: () => `Mis atacantes no marcan. Inspiran a otros a marcar. Es distinto.`,
+        },
+      },
+      xgWaste: {
+        q: {
+          genius: (c) => `${c.xgPlayer} tuvo ${c.xgValue} goles esperados y ningún gol. ¿Cuánto es mala definición y cuánto mala suerte?`,
+          dumb: (c) => `${c.xgPlayer} tuvo ${c.xgValue} de xG pero no marcó. ¿Qué es el xG?`,
+          satirical: (c) => `${c.xgPlayer} generó ${c.xgValue} goles esperados y un cero perfecto. ¿Eso es un talento?`,
+        },
+        a: {
+          genius: () => `Los goles esperados dicen que las ocasiones estaban ahí; la definición tiene mucha varianza. El modelo me premia aunque el marcador no.`,
+          snarky: () => `xG es una forma educada de decir "debió marcar". Lo sé.`,
+          egotist: () => `Los goles esperados son los únicos goles que reconozco. Con esa vara, gané.`,
+        },
+      },
+      luckyGoals: {
+        q: {
+          genius: (c) => `Su once marcó ${c.squadGoals} goles con ${c.squadXg} esperados. ¿Cuánto de ese rendimiento extra espera que sobreviva?`,
+          dumb: (c) => `Sus jugadores marcaron ${c.squadGoals} goles pero debían marcar ${c.squadXg}. ¿Hicieron trampa?`,
+          satirical: (c) => `${c.squadGoals} goles con ${c.squadXg} de xG: ¿brujería o una gran semana de la varianza?`,
+        },
+        a: {
+          genius: () => `Definir por encima de lo esperado es en parte habilidad y en parte ruido. Lo regresaría a la mitad y me quedaría con el resto.`,
+          snarky: () => `La suerte es una habilidad. La practico cada mañana.`,
+          egotist: () => `No creo en el rendimiento extra. Creo en la definición superior de mi plantilla.`,
+        },
+      },
+      unluckyXg: {
+        q: {
+          genius: (c) => `Su once creó ${c.squadXg} goles esperados y marcó ${c.squadGoals}. ¿Es varianza o su plantilla está hecha para fallar?`,
+          dumb: (c) => `Tuvo ${c.squadXg} goles esperados y ${c.squadGoals} reales. ¿Cuál cuenta?`,
+          satirical: (c) => `${c.squadXg} goles esperados, ${c.squadGoals} de verdad. ¿La pelota se tomó el día libre?`,
+        },
+        a: {
+          genius: () => `Quedar por debajo del xG es combustible de reversión. Las ocasiones son la señal; los goles vendrán.`,
+          snarky: () => `Solo cuentan los de verdad. Esa es la parte cruel.`,
+          egotist: () => `Los goles vienen en camino. Los programo yo personalmente.`,
+        },
+      },
+      penMiss: {
+        q: {
+          genius: (c) => `${c.penPlayer} falló un penal para usted. ¿Tener lanzadores de penales es una prima por oportunidad o un impuesto a la varianza?`,
+          dumb: (c) => `${c.penPlayer} falló un penal. ¿No es donde se patea y el portero no la ataja?`,
+          satirical: (c) => `${c.penPlayer} falló desde los once metros. ¿Va a mandar flores?`,
+        },
+        a: {
+          genius: () => `Los lanzadores convierten cuatro de cada cinco, más o menos. Un fallo es el costo de tener la oportunidad, y mantendré la exposición.`,
+          snarky: () => `Es humano. Por desgracia, yo también.`,
+          egotist: () => `Al portero le sonrió la suerte, y le deseo suerte con el resto de su carrera.`,
+        },
+      },
+      ownGoal: {
+        q: {
+          genius: (c) => `${c.ownPlayer} marcó en propia puerta para usted. ¿Hay algún modelo que valore eso?`,
+          dumb: (c) => `${c.ownPlayer} marcó en su propia portería. ¿Esos cuentan doble?`,
+          satirical: (c) => `${c.ownPlayer} encontró la portería equivocada. ¿Lo eligió por su sentido de la orientación?`,
+        },
+        a: {
+          genius: () => `Los autogoles son raros y, por definición, impredecibles. No me cubro contra lo imprevisible.`,
+          snarky: () => `Al menos marcó. La dirección es otro tema.`,
+          egotist: () => `Una definición audaz, de vanguardia. La crítica lo entenderá con el tiempo.`,
+        },
+      },
+      captainHaul: {
+        q: {
+          genius: (c) => `${c.captain} rindió ${c.captainPts} como capitán. ¿Fue convicción o tropezó con ello?`,
+          dumb: (c) => `${c.captain} sacó ${c.captainPts} puntos de capitán. ¿Eso significa que lo hizo bien?`,
+          satirical: (c) => `${c.captainPts} puntos de ${c.captain}. ¿También lee el futuro en las hojas de té?`,
+        },
+        a: {
+          genius: (c) => `La capitanía es una apuesta por la cola derecha. ${c.captain} tenía el mayor rendimiento esperado en mi modelo, y pagó.`,
+          snarky: () => `Diría que fue habilidad, pero no quiero gafar el próximo.`,
+          egotist: (c) => `${c.captain} tuvo el privilegio de llevar mi brazalete y estuvo a la altura.`,
+        },
+      },
+      // ----- defensa y disciplina -----
+      cleanSheets: {
+        q: {
+          genius: (c) => `${c.csCount} vallas invictas de su defensa. ¿Fue la construcción deliberada de un muro o un accidente del calendario?`,
+          dumb: (c) => `Su defensa dejó ${c.csCount} vallas invictas. ¿Eso significa que estaban limpias?`,
+          satirical: (c) => `${c.csCount} vallas invictas. ¿También está en el negocio de las lavanderías?`,
+        },
+        a: {
+          genius: () => `Las vallas invictas se correlacionan con la debilidad del rival. Elegí defensas frente a ataques pobres a propósito, y esa es la ventaja.`,
+          snarky: () => `Los defensas son como paraguas: solo sirven cuando no llueve.`,
+          egotist: () => `La mejor defensa soy yo. Lo demás es administración.`,
+        },
+      },
+      leakyDefence: {
+        q: {
+          genius: (c) => `Su zaga encajó ${c.conceded} goles entre todos. ¿Se eligió solo por dificultad del calendario?`,
+          dumb: (c) => `Sus defensas dejaron entrar ${c.conceded} goles. ¿Lo hicieron a propósito?`,
+          satirical: (c) => `${c.conceded} goles encajados: ¿su defensa es un muro o una cortina de cuentas?`,
+        },
+        a: {
+          genius: () => `Los goles encajados dependen de la calidad rival y de la varianza. Me preocuparía más si no tuviera exposición a los mejores ataques.`,
+          snarky: () => `Son generosos. En las personas es una cualidad.`,
+          egotist: () => `Hasta una gran defensa encaja. La de un campeón encaja los goles más dramáticos.`,
+        },
+      },
+      keeperSaves: {
+        q: {
+          genius: (c) => `${c.gk} hizo ${c.gkSaves} paradas para usted. ¿Es habilidad del portero o señal de que su defensa está asediada?`,
+          dumb: (c) => `${c.gk} hizo ${c.gkSaves} paradas. ¿Es buena o mala noticia?`,
+          satirical: (c) => `${c.gkSaves} paradas de ${c.gk}. ¿Su portero es un héroe o simplemente tiene mucho trabajo?`,
+        },
+        a: {
+          genius: () => `Las paradas son un indicador estable del volumen de tiros recibidos. Los puntos son un premio de consolación para una defensa que los ofrece.`,
+          snarky: () => `Él ataja, yo me llevo el mérito. Una relación perfectamente sana.`,
+          egotist: (c) => `${c.gk} solo sigue mi ejemplo. Salvar el día es lo mío.`,
+        },
+      },
+      keeperBlank: {
+        q: {
+          genius: (c) => `${c.gk} rindió ${c.gkPts} ${pts(c.gkPts)}. ¿El portero es la parte menos eficiente de su cartera?`,
+          dumb: (c) => `Su portero ${c.gk} sacó ${c.gkPts} ${pts(c.gkPts)}. ¿Los porteros suman puntos?`,
+          satirical: (c) => `${c.gk} entregó ${c.gkPts} ${pts(c.gkPts)} y un encogimiento de hombros. ¿Tiene contrato o solo está de visita?`,
+        },
+        a: {
+          genius: () => `Los porteros son un activo de baja varianza y techo bajo. Lo que importa es un piso fiable, no el espectáculo.`,
+          snarky: () => `Estuvo ahí parado. Es una habilidad infravalorada.`,
+          egotist: () => `Mi portero no va de puntos. Va de presencia.`,
+        },
+      },
+      redCard: {
+        q: {
+          genius: (c) => `${c.redPlayer} fue expulsado jugando para usted. ¿Cuál es el costo esperado de tener a un jugador con problemas de disciplina?`,
+          dumb: (c) => `${c.redPlayer} vio una tarjeta roja. ¿Eso significa que es bueno con el rojo?`,
+          satirical: (c) => `${c.redPlayer} fue expulsado. ¿Le dijeron que el partido duraba noventa minutos o solo treinta?`,
+        },
+        a: {
+          genius: () => `Una roja cuesta puntos y minutos. Es el riesgo de cola de tener jugadores combativos, y acepto la prima.`,
+          snarky: () => `Se fue temprano. Yo haría lo mismo si pudiera.`,
+          egotist: (c) => `${c.redPlayer} estaba haciendo una declaración. Yo apoyo las declaraciones.`,
+        },
+      },
+      yellowFest: {
+        q: {
+          genius: (c) => `${c.yellowCount} tarjetas amarillas en su once. ¿Hay arbitraje en tener jugadores agresivos o es solo un costo?`,
+          dumb: (c) => `${c.yellowCount} tarjetas amarillas en su equipo. ¿El amarillo es un buen color?`,
+          satirical: (c) => `${c.yellowCount} tarjetas amarillas: ¿su once es un equipo de fútbol o un scrum de rugby?`,
+        },
+        a: {
+          genius: () => `Las tarjetas reflejan asumir riesgos, que se correlaciona con acciones defensivas. Los puntos de DefCon suelen venir de la misma conducta.`,
+          snarky: () => `Son apasionados. Esa es la palabra educada.`,
+          egotist: () => `Mis jugadores juegan con intensidad. El árbitro debería sentirse halagado.`,
+        },
+      },
+      defconHaul: {
+        q: {
+          genius: (c) => `${c.defconCount} de sus jugadores sumaron el bonus de DefCon. ¿Fue a propósito?`,
+          dumb: (c) => `${c.defconCount} de sus jugadores sacaron bonus de DefCon. ¿Qué es DefCon?`,
+          satirical: (c) => `${c.defconCount} bonus de DefCon. ¿Dirige una defensa o una empresa de seguridad?`,
+        },
+        a: {
+          genius: () => `Las contribuciones defensivas son una parte estable y subvalorada del sistema de puntos. Voy por ellas a propósito.`,
+          snarky: () => `Un bonus por hacer lo aburrido. Apúnteme.`,
+          egotist: () => `Yo inventé el DefCon. En espíritu.`,
+        },
+      },
+      defconNear: {
+        q: {
+          genius: (c) => `${c.defconNear} se quedó a uno del bonus de DefCon. ¿Cómo se lleva un umbral tan cruel?`,
+          dumb: (c) => `${c.defconNear} estuvo a uno del bonus. ¿No podía hacer uno más?`,
+          satirical: (c) => `${c.defconNear} se quedó a una entrada del bonus. ¿Es el destino o pura descortesía?`,
+        },
+        a: {
+          genius: () => `Los umbrales crean discontinuidades, y quedarse a uno es la cola más cruel de la distribución. Se promedia a lo largo de una temporada.`,
+          snarky: () => `A uno. Esa es toda mi carrera de fantasía en dos palabras.`,
+          egotist: () => `Él no falló el bonus. El bonus lo falló a él.`,
+        },
+      },
+      // ----- a quién eligió -----
+      expensiveFlop: {
+        q: {
+          genius: (c) => `${c.expensive} costó ${c.expensivePrice} y rindió ${c.expensivePts} ${pts(c.expensivePts)}. ¿Qué retorno de capital espera de un activo premium?`,
+          dumb: (c) => `${c.expensive} cuesta ${c.expensivePrice} y sacó ${c.expensivePts}. ¿Eso es caro?`,
+          satirical: (c) => `${c.expensivePrice} por ${c.expensivePts} ${pts(c.expensivePts)}: ¿${c.expensive} es un jugador o un pasatiempo de lujo?`,
+        },
+        a: {
+          genius: () => `Los activos premium son una apuesta asimétrica: se paga por el techo. Una semana floja es el costo de tener ese techo.`,
+          snarky: () => `Es un lujo. Los lujos no se distinguen por ser prácticos.`,
+          egotist: (c) => `${c.expensive} refleja mi gusto. El marcador es simplemente grosero.`,
+        },
+      },
+      templateBlank: {
+        q: {
+          genius: (c) => `${c.template} está en el ${c.templateOwn}% de los equipos y no sumó. ¿Seguir la plantilla es gestión de riesgo o falta de ideas?`,
+          dumb: (c) => `${c.template} está en el ${c.templateOwn}% de los equipos y no hizo nada. ¿No lo tiene todo el mundo por algo?`,
+          satirical: (c) => `El ${c.templateOwn}% de los managers tiene a ${c.template}. ¿Alguna vez tiene una idea original?`,
+        },
+        a: {
+          genius: () => `Un fallo de alta propiedad duele a todos por igual, y deja el ranking casi intacto. Para eso sirve una plantilla.`,
+          snarky: () => `Si voy a fracasar, prefiero tener compañía.`,
+          egotist: (c) => `Yo no sigo la plantilla. La plantilla me sigue a mí, y ${c.template} es un error administrativo.`,
+        },
+      },
+      differentialHit: {
+        q: {
+          genius: (c) => `${c.diff}, que tiene el ${c.diffOwn}% de los managers, rindió ${c.diffPts}. ¿Fue un diferencial calculado o una apuesta con suerte?`,
+          dumb: (c) => `Solo el ${c.diffOwn}% tiene a ${c.diff}, y sacó ${c.diffPts}. ¿Por qué no lo elige todo el mundo?`,
+          satirical: (c) => `${c.diff}, casi sin dueños, marcó ${c.diffPts}. ¿Se lo sopló un portero?`,
+        },
+        a: {
+          genius: () => `Un diferencial de verdad tiene poca propiedad y un valor esperado defendible. Eso fue esto.`,
+          snarky: () => `Es una apuesta que salió bien. Por favor no me pida repetirla.`,
+          egotist: (c) => `Los demás llegaron tarde, simplemente. Yo llevo semanas con ${c.diff}.`,
+        },
+      },
+      coldStarter: {
+        q: {
+          genius: (c) => `La forma de ${c.cold} es ${c.coldForm} y sigue en su once. ¿Cree en la forma o en la reversión a la media?`,
+          dumb: (c) => `${c.cold} tiene una forma de ${c.coldForm}. ¿Es un número para presumir?`,
+          satirical: (c) => `${c.cold}, forma ${c.coldForm}, sigue de titular. ¿La lealtad es una estrategia?`,
+        },
+        a: {
+          genius: (c) => `La forma es un indicador rezagado con poca señal. Apuesto por la calidad a largo plazo, y los números de fondo de ${c.cold} siguen intactos.`,
+          snarky: () => `La lealtad es una estrategia. Mala, pero estrategia.`,
+          egotist: (c) => `${c.cold} encontrará la forma, porque yo creo en él. Así funciona.`,
+        },
+      },
+      hotBench: {
+        q: {
+          genius: (c) => `La forma de ${c.hotBench} es ${c.hotForm} y está en su banca. ¿Por qué el jugador en forma es suplente?`,
+          dumb: (c) => `${c.hotBench} tiene una forma de ${c.hotForm} y es suplente. ¿No debería ser al revés?`,
+          satirical: (c) => `${c.hotBench}, forma ${c.hotForm}, está en su banca. ¿Lo está castigando por algo?`,
+        },
+        a: {
+          genius: (c) => `La forma es ruidosa. Los calendarios y los minutos importan más, y ${c.hotBench} perdió esa comparación esta semana.`,
+          snarky: () => `Está descansando para el gran momento. Es una estrategia. Quizá.`,
+          egotist: () => `No lo dejé en la banca. Lo preservé para una jornada más digna.`,
+        },
+      },
+      tripleUp: {
+        q: {
+          genius: (c) => `${c.trioCount} de sus titulares juegan en el ${c.trioClub}. ¿Cuál es su riesgo de correlación?`,
+          dumb: (c) => `${c.trioCount} de sus jugadores son del ${c.trioClub}. ¿Es un equipo o una reunión familiar?`,
+          satirical: (c) => `${c.trioCount} jugadores del ${c.trioClub} en su once. ¿Le hicieron descuento por volumen?`,
+        },
+        a: {
+          genius: () => `La concentración es una apuesta deliberada por el ataque o la defensa de un equipo. Sube la varianza y el techo, que es lo que quería.`,
+          snarky: () => `Otra vez la lealtad. Parece un tema recurrente.`,
+          egotist: () => `Compré la sección entera de una vez. Un equipo es un equipo.`,
+        },
+      },
+      formation: {
+        q: {
+          genius: (c) => `Alineó un ${c.formation}. ¿Qué lo llevó a esa estructura sobre las alternativas?`,
+          dumb: (c) => `Jugó con un ${c.formation}. ¿Es bueno?`,
+          satirical: (c) => `Un ${c.formation}: ¿lo eligió usted o simplemente le pasó?`,
+        },
+        a: {
+          genius: () => `La formación es un resultado, no un dato de entrada. Compro los mejores puntos esperados y la forma se acomoda sola.`,
+          snarky: () => `Tiene números. Es lo mejor que puedo decir.`,
+          egotist: (c) => `El ${c.formation} es mío. Las demás formaciones son imitadoras.`,
+        },
+      },
+      oneManShow: {
+        q: {
+          genius: (c) => `${c.star} produjo el ${c.starShare}% de sus puntos. ¿Esa concentración es una fortaleza o una vulnerabilidad?`,
+          dumb: (c) => `${c.star} le dio el ${c.starShare}% de su puntaje. ¿Dónde estaban los demás?`,
+          satirical: (c) => `${c.star} hizo el ${c.starShare}% del trabajo. ¿Los demás están de vacaciones?`,
+        },
+        a: {
+          genius: () => `Una concentración alta es convicción. Cuando funciona se llama techo; cuando falla, piso.`,
+          snarky: () => `Los demás aportaron apoyo moral.`,
+          egotist: (c) => `${c.star} es mi instrumento. Yo soy la orquesta.`,
+        },
+      },
+      subSaved: {
+        q: {
+          genius: (c) => `${c.subIn} entró desde la banca y sumó ${c.subInPts}. ¿Fue profundidad de plantilla o suerte?`,
+          dumb: (c) => `${c.subIn} entró de suplente y sacó ${c.subInPts} puntos. ¿Debió ser titular?`,
+          satirical: (c) => `${c.subIn} rescató ${c.subInPts} puntos gracias al robot de cambios. ¿Se lo agradece?`,
+        },
+        a: {
+          genius: () => `Los cambios automáticos son un seguro que paga en silencio. Una banca profunda lo hace posible.`,
+          snarky: () => `El robot me hizo un favor. Que siga haciéndolos.`,
+          egotist: (c) => `Puse a ${c.subIn} en la banca sabiendo que entraría. La brillantez está en los detalles.`,
+        },
+      },
+      toughRun: {
+        q: {
+          genius: (c) => `Su once enfrenta una dificultad de calendario de ${c.runAvg} en las próximas jornadas, la más dura contra ${c.hardClub}. ¿Está descontado?`,
+          dumb: (c) => `La racha que viene se ve difícil, sobre todo ${c.hardClub}. ¿Debería preocuparse?`,
+          satirical: (c) => `${c.hardClub} está en su calendario y sus titulares en el menú. ¿Algún plan?`,
+        },
+        a: {
+          genius: () => `La dificultad del calendario es un dato entre muchos. Los minutos y los roles de la plantilla importan más que la etiqueta.`,
+          snarky: () => `Me preocuparé después de los partidos. Preocuparse antes está sobrevalorado.`,
+          egotist: () => `Los calendarios duros son para managers con plantillas blandas.`,
+        },
+      },
+      // ----- la temporada -----
+      rankRise: {
+        q: {
+          genius: (c) => `Su ranking general pasó de ${c.rankFrom} a ${c.rankTo}. ¿Qué decisiones provocaron ese movimiento?`,
+          dumb: (c) => `Su ranking pasó de ${c.rankFrom} a ${c.rankTo}. ¿Subir es bueno?`,
+          satirical: (c) => `De ${c.rankFrom} a ${c.rankTo} en el general. ¿A quién le ha estado mandando notitas?`,
+        },
+        a: {
+          genius: () => `Un cambio de ranking refleja el rendimiento relativo más que el absoluto. Le gané al campo en la cola derecha.`,
+          snarky: () => `Sobre todo otros teniendo malas semanas. Lo acepto.`,
+          egotist: () => `Claro que subió. Sabía que lo estaba mirando.`,
+        },
+      },
+      rankFall: {
+        q: {
+          genius: (c) => `Su ranking general cayó de ${c.rankFrom} a ${c.rankTo}. ¿Qué cambió en la distribución?`,
+          dumb: (c) => `Su ranking pasó de ${c.rankFrom} a ${c.rankTo}. ¿Para qué lado es eso?`,
+          satirical: (c) => `De ${c.rankFrom} a ${c.rankTo}: ¿el ascensor está fuera de servicio?`,
+        },
+        a: {
+          genius: () => `El ranking es relativo, y una semana floja es un gran movimiento en esta etapa. Espero una reversión parcial.`,
+          snarky: () => `No estoy cayendo. Voy por el camino panorámico.`,
+          egotist: () => `Un bache. Los grandes se hunden un poco para que la gente se sienta mejor.`,
+        },
+      },
+      planetTop: {
+        q: {
+          genius: (c) => `Su ranking general es ${c.rankTo}, por delante del ${c.rankPct}% del mundo. ¿Es habilidad o sesgo de supervivencia?`,
+          dumb: (c) => `Es el puesto ${c.rankTo} del mundo. ¿Eso está cerca de la cima?`,
+          satirical: (c) => `El ${c.rankPct}% del planeta queda detrás de usted. ¿Les va a mandar una postal?`,
+        },
+        a: {
+          genius: () => `El percentil es estable a lo largo de muchas semanas y la suerte se diluye. Diría que es sobre todo proceso.`,
+          snarky: () => `En la cima del mundo, y aun así me hacen preguntas difíciles.`,
+          egotist: () => `Claro que sí. El planeta lo sabe.`,
+        },
+      },
+      planetLow: {
+        q: {
+          genius: (c) => `Su ranking general es ${c.rankTo}, por delante de solo el ${c.rankPct}% del mundo. ¿Cómo explica que la mayor parte del planeta lo supere?`,
+          dumb: (c) => `Su ranking general es ${c.rankTo}. ¿Es un número grande o uno pequeño?`,
+          satirical: (c) => `${c.rankTo} en el mundo: ¿probó apagarlo y volver a encenderlo?`,
+        },
+        a: {
+          genius: () => `El ranking mundial tiene una cola pesada de managers casuales. Optimizo para la liga, no para el planeta.`,
+          snarky: () => `El planeta no me conoce. Es una ventaja.`,
+          egotist: () => `El resto del planeta simplemente está equivocado.`,
+        },
+      },
+      valueUp: {
+        q: {
+          genius: (c) => `El valor de su plantilla subió ${c.valueDelta}, hasta ${c.valueNow}. ¿Es habilidad en traspasos o suerte con los precios?`,
+          dumb: (c) => `Su equipo vale ahora ${c.valueNow}, ${c.valueDelta} más que al empezar. ¿Se puede vender?`,
+          satirical: (c) => `Valor de plantilla arriba ${c.valueDelta}. ¿Ha pensado en dedicarse a los bienes raíces?`,
+        },
+        a: {
+          genius: () => `El crecimiento de valor se compone porque compra flexibilidad. Anticipar los movimientos de precio es una ventaja pequeña pero real.`,
+          snarky: () => `Soy el único de esta liga que entiende de dinero. Nadie preguntó.`,
+          egotist: () => `Mi plantilla se revaloriza porque es una obra maestra.`,
+        },
+      },
+      valueDown: {
+        q: {
+          genius: (c) => `Su plantilla perdió ${c.valueDelta} de valor y ahora vale ${c.valueNow}. ¿Qué dice eso de su momento para traspasar?`,
+          dumb: (c) => `Su equipo perdió ${c.valueDelta} de valor. ¿A dónde se fue?`,
+          satirical: (c) => `Valor de plantilla abajo ${c.valueDelta}. ¿Sus jugadores son de hielo?`,
+        },
+        a: {
+          genius: () => `Las caídas de precio recaen en jugadores que mantuve durante una baja. Lo acepto como el costo de la convicción.`,
+          snarky: () => `Es un activo que se deprecia, como un carro o una esperanza.`,
+          egotist: () => `El valor es temporal. La grandeza se tiene en arriendo largo.`,
+        },
+      },
+      beatLow: {
+        q: {
+          genius: (c) => `Solo ha superado al manager promedio en ${c.beatWeeks} de ${c.beatOf} semanas. ¿Cómo justifica su proceso frente a esa referencia?`,
+          dumb: (c) => `Superó al promedio en ${c.beatWeeks} de ${c.beatOf} semanas. ¿El promedio es muy bueno?`,
+          satirical: (c) => `Ha superado al promedio en ${c.beatWeeks} de ${c.beatOf} semanas. ¿Es su rival o su suplente?`,
+        },
+        a: {
+          genius: () => `El manager promedio es ruidoso, y las muestras cortas exageran cualquier brecha. Querría una serie más larga antes de reescribir nada.`,
+          snarky: () => `Superar al promedio está sobrevalorado. Prefiero seguir siendo impredecible.`,
+          egotist: () => `El promedio es el problema. Yo soy la solución.`,
+        },
+      },
+      beatHigh: {
+        q: {
+          genius: (c) => `Ha superado al manager promedio en ${c.beatWeeks} de ${c.beatOf} semanas. ¿Cuál es, concretamente, su ventaja?`,
+          dumb: (c) => `Superó al promedio en ${c.beatWeeks} de ${c.beatOf} semanas. Eso es bueno, ¿verdad?`,
+          satirical: (c) => `Ha superado al promedio en ${c.beatWeeks} de ${c.beatOf} semanas. ¿Hace trampa o es simplemente insoportable?`,
+        },
+        a: {
+          genius: () => `Una ventaja constante suele venir de decisiones pequeñas bien tomadas muchas veces: capitanía, minutos y calendario.`,
+          snarky: () => `Soy modesto al respecto. Aunque también tengo razón.`,
+          egotist: () => `El promedio debería avergonzarse. Seguro que lo está.`,
+        },
+      },
+      noTransfers: {
+        q: {
+          genius: () => `No hizo ningún traspaso esta jornada. ¿Quedarse quieto es una decisión o una renuncia?`,
+          dumb: () => `No hizo ni un solo traspaso. ¿Se le olvidó dónde está el botón?`,
+          satirical: () => `Cero traspasos. ¿Es una estrategia o una siesta?`,
+        },
+        a: {
+          genius: () => `No hacer nada no tiene costo de transacción y suele tener un valor esperado positivo. La contención es una habilidad.`,
+          snarky: () => `Me quedé en casa. El clima estaba feo.`,
+          egotist: () => `Mi plantilla ya es perfecta. Cambiarla sería vandalismo.`,
+        },
+      },
+      bigRevamp: {
+        q: {
+          genius: (c) => `Hizo ${c.transfers} traspasos esta semana. ¿Qué vio que el resto de la liga no vio?`,
+          dumb: (c) => `Hizo ${c.transfers} traspasos. ¿Perdió su equipo anterior?`,
+          satirical: (c) => `${c.transfers} traspasos en una semana. ¿Es manager o agente de viajes?`,
+        },
+        a: {
+          genius: () => `La rotación se justifica cuando la ganancia esperada supera el costo. Creí que la suma de los cambios era positiva.`,
+          snarky: () => `Me aburro. Es un defecto de carácter que a veces paga.`,
+          egotist: () => `Una revolución no es más que una secuencia de decisiones correctas.`,
+        },
+      },
+      ftBanked: {
+        q: {
+          genius: (c) => `Está sentado sobre ${c.freeTransfers} traspasos gratis. ¿Qué espera?`,
+          dumb: (c) => `Tiene ${c.freeTransfers} traspasos gratis guardados. ¿No caducan?`,
+          satirical: (c) => `${c.freeTransfers} traspasos gratis acumulados como un dragón. ¿Cuál es el plan?`,
+        },
+        a: {
+          genius: () => `Los traspasos acumulados son una opción sin vencimiento, hasta el tope. Los despliego cuando la información es mejor.`,
+          snarky: () => `Están ahorrando para algo especial. Yo también.`,
+          egotist: () => `No tengo prisa. La perfección requiere paciencia.`,
+        },
+      },
+      viceBetter: {
+        q: {
+          genius: (c) => `Su vicecapitán ${c.vice} sumó ${c.viceBase} y su capitán ${c.captain} solo ${c.captainPts}. ¿Estaba reñida la elección entre ambos?`,
+          dumb: (c) => `${c.vice} sacó ${c.viceBase} puntos y ${c.captain} sacó ${c.captainPts}. ¿Cuál de los dos llevaba el brazalete?`,
+          satirical: (c) => `El vicecapitán ${c.vice} superó al capitán por un kilómetro. ¿Cambió los brazaletes a oscuras?`,
+        },
+        a: {
+          genius: () => `Capitán y vice son casi intercambiables ex ante. La diferencia aquí es enteramente ex post.`,
+          snarky: () => `Sí, lo hice al revés. Es una tradición.`,
+          egotist: (c) => `${c.vice} solo se está adelantando para ganarse su propio brazalete.`,
+        },
+      },
       // ----- atemporales, para cuando hay poco de qué preguntar -----
       variance: {
         q: { genius: (c) => `${c.points} ${pts(c.points)} en la ${c.gw}. ¿Cuánto de eso es señal y cuánto varianza, y qué intervalo de confianza tendría su proceso?` },
@@ -913,6 +1474,18 @@ export const es: Messages = {
         () => "Confié en las flechitas. Verde es bueno, ¿verdad?",
         () => "Perdone, estaba leyendo la caja de cereal. ¿Cuál era la pregunta?",
         () => "Tenía un plan, pero lo dejé en el bus.",
+        () => "¿Seguimos hablando de fútbol? Yo pensaba que esto era bingo.",
+        () => "No leí la pregunta. Solo asentí.",
+        () => "Creo que mi equipo es el de las camisetas azules.",
+        () => "¿El capitán cobra más?",
+        () => "Mi horóscopo dijo que esto saldría bien. No mencionó los puntos.",
+        () => "Yo creía que FPL era un tipo de pasta.",
+        () => "¿Puede repetir la pregunta? ¿Más despacio? ¿Con dibujos?",
+        () => "Yo solo aprieto los botones que parecen importantes.",
+        () => "Se me da muy bien esto cuando nadie mira.",
+        () => "Todo tiene sentido si uno no piensa.",
+        () => "Compré un jugador porque su nombre era divertido de decir.",
+        () => "¿Esta es la parte donde finjo que entiendo?",
       ],
       chill: [
         () => "Sí. Justo. Así es la vida.",
@@ -927,6 +1500,18 @@ export const es: Messages = {
         () => "Está bien. Todo está bien. Todo está bien.",
         () => "Yo casi no reviso la app. La app me revisa a mí.",
         () => "¿Sinceramente? Prefiero hablar del almuerzo.",
+        () => "Mmm. Sí. Sin opiniones fuertes, la verdad.",
+        () => "Es una temporada larga. No lo pongamos raro.",
+        () => "Lo consulto con la almohada. Unas tres semanas.",
+        () => "Podría ser peor. También mejor. ¿Eso es una merienda?",
+        () => "Soy más de ver qué pasa.",
+        () => "Sin estrés. En algún lado está saliendo el sol.",
+        () => "Dejo que las vibras manejen todo. Y una hoja de cálculo que nunca abro.",
+        () => "Lo que sea. Sigamos. ¿Esta es la última pregunta?",
+        () => "Lo resuelvo el lunes. O el lunes siguiente.",
+        () => "Pasó. Ya está. Me estoy tomando un té.",
+        () => "¿Sinceramente? Se me olvidó de qué hablábamos.",
+        () => "Mire, el grupo de chat va a decir que me robaron. Con eso me basta.",
       ],
       pr: [
         () => "Adoptamos un enfoque basado en datos y seguimos plenamente comprometidos con el proceso.",
@@ -941,6 +1526,18 @@ export const es: Messages = {
         () => "Puedo confirmar que hay un plan. No puedo confirmar cuál es.",
         (c) => `Son tiempos emocionantes para ${c.team}, y la junta sigue unida.`,
         () => "Agradecemos la pregunta y emitiremos un comunicado a su debido tiempo.",
+        () => "Seguimos tranquilos y enfocados en el próximo partido.",
+        () => "Eso es asunto de la junta, y la junta no hará comentarios.",
+        () => "No nos dejaremos arrastrar a la especulación ni a la aritmética.",
+        () => "Nuestra estrategia está en revisión constante y, hasta nuevo aviso, sin cambios.",
+        () => "Queremos tranquilizar a la afición: la estructura del club sigue siendo sólida.",
+        () => "Le remito al comunicado que todavía no he escrito.",
+        () => "Habrá una revisión completa, y por completa quiero decir breve.",
+        () => "El manager conserva toda la confianza del manager.",
+        () => "No estamos en crisis. Estamos en transición, que es crisis con mejor nombre.",
+        () => "Todos en el club tiran en la misma dirección. Más o menos.",
+        () => "Ha sido una semana complicada, como son las semanas complicadas.",
+        () => "Dejaremos que los puntos hablen. Ahora mismo están en silencio.",
       ],
       conspiracy: [
         (c) => `Pregúntese a quién beneficia que haga ${c.points} ${pts(c.points)}. Despierte.`,
@@ -955,6 +1552,18 @@ export const es: Messages = {
         () => "Mi mascota sabe más de lo que dice. Mire sus ojos. Los desiguales.",
         () => "Tengo una hoja de cálculo que lo demuestra. No demuestra nada, y esa es la prueba.",
         () => "Al Gran Calendario no le conviene que tengamos esta conversación.",
+        () => "Fíjese en que nadie pregunta nunca por la oficina de los puntos bonus.",
+        () => "Eso es exactamente lo que quieren que pregunte.",
+        () => "Revise las marcas de tiempo. Las marcas de tiempo no mienten. Tampoco hablan.",
+        () => "Confío en los números. Lo que no sé es de dónde salen.",
+        () => "¿Por qué siempre les dan el bonus a los mismos tres jugadores? Piénselo.",
+        () => "Los cambios de precio 'aleatorios' no son aleatorios. Siga el dinero.",
+        () => "No digo que el juego esté arreglado. Digo que mi capitán sabe algo.",
+        () => "Actualizan la tabla cuando uno no mira. Ya les puse una trampa.",
+        () => "Cuente las rojas de esta temporada. Ahora cuente a quiénes benefician.",
+        () => "Por algo se llama blanco. Nadie dice nunca de qué está en blanco.",
+        () => "Las noticias de lesión siempre llegan justo después de que traspaso. ¿Casualidad? Para nada.",
+        () => "El vecino de mi primo trabaja en la Premier League. Dice que no.",
       ],
       dramatic: [
         () => "Capitanear o no capitanear: esa es la cuestión. Elegí lo segundo. ¡Ay!",
@@ -969,6 +1578,18 @@ export const es: Messages = {
         () => "¿Es un campo lo que veo ante mí? No. Es la banca. Como siempre.",
         () => "Llegué, vi, lo pensé demasiado. ¿Tú también, capitán?",
         (c) => `¡Telón! Bajen el telón de la ${c.gw}, se los ruego.`,
+        () => "¡Ay, quién fuera un humilde portero suplente, libre de esta presión!",
+        () => "Aprieto mi brazalete y lloro sobre mi hoja de cálculo.",
+        () => "¡Ay, pobre capitán! Lo conocí, Horacio, unos seis minutos.",
+        () => "Que la historia deje constancia de que lo intenté y de que la historia fue cruel.",
+        (c) => `Cae el telón sobre la ${c.gw}, y con él mis esperanzas. Los aplausos son opcionales.`,
+        () => "¿Es esto el final? ¿O apenas el intermedio?",
+        () => "Yo no elegí la vida de manager. La vida de manager me eligió, y luego olvidó mencionar la banca.",
+        () => "Que entren los violines. Más fuerte. MÁS FUERTE.",
+        () => "Esta noche lloro. Mañana traspaso.",
+        () => "Errar es humano. Errar ante toda la liga es teatro.",
+        () => "Hasta las estrellas apartan la mirada cuando abro mi alineación.",
+        () => "¡Destino, qué cruel eres! Y además, al parecer, tienes razón.",
       ],
     },
   },

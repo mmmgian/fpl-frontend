@@ -45,6 +45,21 @@ export interface SheetPlayer {
   bps: number | null;
   /** Defensive contribution count (CBIT / CBIRT); null when unknown. */
   defcon: number | null;
+  /** Expected goals and assists this gameweek (0 when FPL sent none), and the other things that happened to the player. */
+  xg: number;
+  xa: number;
+  bonus: number;
+  yellow: number;
+  red: number;
+  ownGoals: number;
+  penMissed: number;
+  saves: number;
+  cleanSheet: boolean;
+  conceded: number;
+  /** Price in tenths of £m; null if unknown. */
+  price: number | null;
+  /** FPL's form figure (average points over recent matches); null if unknown. */
+  form: number | null;
 }
 
 export interface TeamSheet {
@@ -89,6 +104,18 @@ export function buildTeamSheet(picks: EntryPicks, bootstrap: Pick<Bootstrap, "el
       assists: stats ? (stats.assists ?? 0) : null,
       bps: stats ? stats.bps : null,
       defcon: stats ? (stats.defensive_contribution ?? 0) : null,
+      xg: Number(stats?.expected_goals) || 0,
+      xa: Number(stats?.expected_assists) || 0,
+      bonus: stats?.bonus ?? 0,
+      yellow: stats?.yellow_cards ?? 0,
+      red: stats?.red_cards ?? 0,
+      ownGoals: stats?.own_goals ?? 0,
+      penMissed: stats?.penalties_missed ?? 0,
+      saves: stats?.saves ?? 0,
+      cleanSheet: (stats?.clean_sheets ?? 0) > 0,
+      conceded: stats?.goals_conceded ?? 0,
+      price: el.now_cost ?? null,
+      form: el.form == null || Number.isNaN(Number(el.form)) ? null : Number(el.form),
     });
   }
   players.sort((a, b) => a.slot - b.slot);

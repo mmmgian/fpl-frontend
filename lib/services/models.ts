@@ -110,6 +110,8 @@ export interface TeamSummary {
   /** Tenths of a million, as FPL reports them. */
   value: number;
   bank: number;
+  /** How many managers play FPL this season, when FPL says. */
+  fieldSize?: number | null;
 }
 
 /** The next opponent shown beside a player. */

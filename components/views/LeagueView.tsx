@@ -1,4 +1,4 @@
-import { LiveRefresh, PageHeader, StateMessage, StatList, gameweekName, gameweekShort, getFormat, getT } from "@/components/ui";
+import { DeadlineTimer, LiveRefresh, PageHeader, StateMessage, StatList, gameweekName, gameweekShort, getFormat, getT } from "@/components/ui";
 import type { LeagueModel } from "@/lib/services/models";
 import { GwStatusBadge } from "./GwStatusBadge";
 import { LeagueAwards } from "./LeagueAwards";
@@ -19,7 +19,7 @@ export function LeagueView({ model }: { model: LeagueModel }) {
     );
   }
 
-  const { gameweek, summary, rows } = model;
+  const { gameweek, summary, rows, deadline } = model;
   return (
     <>
       <PageHeader
@@ -37,6 +37,8 @@ export function LeagueView({ model }: { model: LeagueModel }) {
         }
         actions={gameweek?.status === "live" ? <LiveRefresh enabled /> : undefined}
       />
+
+      {deadline ? <DeadlineTimer at={deadline.at} now={deadline.now} gameweek={gameweekName(deadline.name)} /> : null}
 
       {!summary ? (
         <StateMessage title={t.emptyTitle}>

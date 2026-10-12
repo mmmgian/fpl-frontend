@@ -31,12 +31,15 @@ export const clientEn = {
   nav: {
     label: "Main",
     table: "Table",
+    tools: "Tools",
     bonus: "Bonus",
     fixtures: "Fixtures",
     times: "Times",
     history: "History",
     skip: "Skip to content",
   },
+
+  deadline: { title: "Next deadline", days: "Days", hours: "Hours", mins: "Mins", secs: "Secs", passed: "The deadline has passed" },
 
   fdr: {
     difficulty: (n: number) => `, difficulty ${n} of 5`,

@@ -7,6 +7,7 @@ export { Button, ButtonAnchor, ButtonLink, ButtonPlaceholder } from "./Button";
 export { Card } from "./Card";
 export { ClubLink } from "./ClubLink";
 export { Crest } from "./Crest";
+export { DeadlineTimer } from "./DeadlineTimer";
 export { English } from "./English";
 export { I18nProvider, useIntlLocale, useLocale, useT } from "./I18nProvider";
 export { gameweekName, gameweekShort, getFormat, getIntlLocale, getLocale, getT, setRequestLocale } from "./i18n";

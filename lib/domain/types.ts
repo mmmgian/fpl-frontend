@@ -44,6 +44,13 @@ export interface FplElement {
   total_points?: number;
   /** Recent form, e.g. "4.2". */
   form?: string;
+  /** FPL's own expected points for the next gameweek, e.g. "5.3". */
+  ep_next?: string;
+  /** Managers who bought / sold the player since the last deadline, and how many price steps he has moved this gameweek and this season (tenths of £m). */
+  transfers_in_event?: number;
+  transfers_out_event?: number;
+  cost_change_event?: number;
+  cost_change_start?: number;
 }
 
 /** One chip window from bootstrap: each chip can be played once inside [start_event, stop_event]. */
@@ -58,6 +65,8 @@ export interface Bootstrap {
   teams: FplTeam[];
   elements: FplElement[];
   chips?: BootstrapChip[];
+  /** Everyone playing FPL this season. */
+  total_players?: number;
 }
 
 export interface StandingRow {

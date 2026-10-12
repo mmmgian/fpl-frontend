@@ -8,6 +8,7 @@ import styles from "./SiteHeader.module.css";
 
 const NAV = [
   { href: "/", key: "table" },
+  { href: "/tools", key: "tools" },
   { href: "/bonus", key: "bonus" },
   { href: "/fixtures", key: "fixtures" },
   { href: "/times", key: "times" },

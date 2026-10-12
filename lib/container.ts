@@ -15,6 +15,7 @@ import { createHistoryService } from "./services/history";
 import { createLeagueService } from "./services/league";
 import { createTeamService } from "./services/team";
 import { createTimesService } from "./services/times";
+import { createToolsService } from "./services/tools";
 
 /** Avatars replace managers' own badges too, for a consistent look. Set AVATARS_REPLACE_BADGES=false to keep their badges. */
 const replaceBadges = process.env.AVATARS_REPLACE_BADGES !== "false";
@@ -27,4 +28,5 @@ export const services = {
   club: createClubService(fplGateway, { europe: createFootballData(process.env.FOOTBALL_DATA_API_KEY), news: createBbcNews() }),
   history: createHistoryService(historyGateway, avatarGateway, { replaceBadges }),
   times: createTimesService(timesGateway),
+  tools: createToolsService(fplGateway, { avatars: avatarGateway, replaceBadges }),
 };

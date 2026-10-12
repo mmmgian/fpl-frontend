@@ -1,20 +1,12 @@
-import { currentEvent, gwStatus, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, summarizeStandings } from "../domain";
+import { currentEvent, gwStatus, leagueStats, matchCounts, MAX_STATS_MANAGERS, nextDeadline, squadWeek, summarizeStandings } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
 import type { LeagueModel } from "./models";
 import { withAvatars } from "./avatars";
 import type { FplPort, ServiceOptions } from "./ports";
+import { withinDeadline } from "./shared";
 
-/** How long the table waits for the extras before showing itself without them. The requests keep going and fill the cache. */
-export const STATS_DEADLINE_MS = 6000;
-
-/** Wait for `work` but never longer than the deadline; whatever has arrived by then is what gets used. */
-async function withinDeadline(work: Promise<unknown>): Promise<void> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<void>((resolve) => (timer = setTimeout(resolve, STATS_DEADLINE_MS)));
-  await Promise.race([work, deadline]);
-  clearTimeout(timer);
-}
+export { STATS_DEADLINE_MS } from "./shared";
 
 /** Every manager's season, fetched together. A manager whose history fails or is missing is simply left out. */
 async function loadHistories(fpl: Pick<FplPort, "history">, rows: StandingRow[]): Promise<Map<number, EntryHistory>> {
@@ -85,6 +77,10 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
         leagueId,
         name: standings.league.name,
         gameweek: event ? { name: event.name, status: gwStatus(event, now()) } : null,
+        deadline: (() => {
+          const d = nextDeadline(events, now());
+          return d && { ...d, now: now().toISOString() };
+        })(),
         rows,
         truncated: Boolean(standings.standings.has_next),
         newEntries: standings.new_entries?.results.length ?? 0,

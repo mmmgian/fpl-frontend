@@ -1,0 +1,28 @@
+/* A ruled strip, like the rest of the data views: label band on top, four cells, the date underneath. */
+.timer {
+  display: grid;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: clip;
+  font-variant-numeric: tabular-nums;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 5px 12px;
+  background: var(--wash);
+  border-bottom: 1px solid var(--border-strong);
+}
+.title { margin: 0; padding-left: 8px; border-left: 3px solid var(--accent); font-size: 13px; font-weight: 800; line-height: 1.35; }
+.gw { font-size: 13px; font-weight: 700; }
+.cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cell { display: grid; justify-items: center; padding: 8px 4px 6px; }
+.cell + .cell { border-left: 1px solid var(--border); }
+.value { font-size: clamp(26px, 6vw, 38px); font-weight: 800; line-height: 1.1; letter-spacing: 0; }
+.label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.passed { margin: 0; padding: 14px 12px; font-weight: 700; text-align: center; }
+.when { margin: 0; padding: 5px 12px; border-top: 1px solid var(--border); font-size: 12px; text-align: center; color: var(--text-muted); }

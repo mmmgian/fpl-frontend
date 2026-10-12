@@ -16,7 +16,9 @@ export const clientFr: ClientMessages = {
     historyTitle: "L'historique est indisponible pour le moment",
     historyBody: "Le serveur d'historique n'a pas répondu. Il tourne sur un hébergement gratuit qui s'endort quand il n'est pas utilisé ; réessayer fonctionne en général une fois qu'il est réveillé.",
   },
-  nav: { label: "Principale", table: "Classement", bonus: "Bonus", fixtures: "Calendrier", times: "Times", history: "Historique", skip: "Aller au contenu" },
+  nav: { label: "Principale", table: "Classement", tools: "Outils", bonus: "Bonus", fixtures: "Calendrier", times: "Times", history: "Historique", skip: "Aller au contenu" },
+
+  deadline: { title: "Prochaine date limite", days: "Jours", hours: "Heures", mins: "Min", secs: "Sec", passed: "La date limite est passée" },
 
   fdr: { difficulty: (n) => `, difficulté ${n} sur 5`, scale: "Échelle de difficulté : 1 la plus facile, 5 la plus difficile" },
   feed: {

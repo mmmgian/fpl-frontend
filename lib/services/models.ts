@@ -5,6 +5,7 @@
  */
 import type { Issue, IssueKind, IssueSummary } from "../domain";
 import type {
+  BestXI, Deadline, EoTier, PriceRow, PositionId,
   AutoSub, ClubMatch, ClubNewsItem, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
   FreeTransfers, GwStatus, LeagueStats, Ownership, PlayersRemaining, RotationRisk, SeasonCharts, SeasonForm, SquadFlag, StandingRow, TeamSheet, Tenure,
 } from "../domain";
@@ -31,6 +32,8 @@ export type LeagueModel =
       name: string;
       /** null before the season starts. */
       gameweek: GameweekInfo | null;
+      /** The next FPL deadline, null once the season is over. `now` is the clock the server used, so the first paint agrees with the browser's. */
+      deadline: (Deadline & { now: string }) | null;
       rows: StandingRow[];
       /** More pages exist than were fetched. */
       truncated: boolean;
@@ -334,3 +337,47 @@ export type TimesIssueModel =
       newer: IssueSummary | null;
       older: IssueSummary | null;
     };
+
+// ---------- Tools ----------
+
+export interface ToolsTeam {
+  entry: number;
+  teamName: string;
+  manager: string;
+  avatar: string | null;
+  rank: number;
+  total: number;
+}
+
+export interface ToolsEoRow {
+  id: number;
+  name: string;
+  club: string;
+  clubCode: number | null;
+  /** Effective ownership across the chosen managers, percent. */
+  eo: number;
+  started: number;
+  captained: number;
+  /** Ownership across all of FPL, percent. */
+  owned: number;
+}
+
+export interface ToolsPrices {
+  /** The first rows of the filtered list. */
+  rows: PriceRow[];
+  /** How many players match the filters in all. */
+  matching: number;
+  clubs: { id: number; short: string }[];
+  filter: { q: string; position: PositionId | null; team: number | null; movingOnly: boolean };
+}
+
+export type ToolsModel = {
+  kind: "ok";
+  now: string;
+  deadline: Deadline | null;
+  xi: { gw: number; best: BestXI } | null;
+  prices: ToolsPrices;
+  /** null when the league's picks could not be had. */
+  eo: { gw: number; managers: number; tier: EoTier["key"]; tiers: EoTier[]; by: "eo" | "captain"; rows: ToolsEoRow[] } | null;
+  teams: ToolsTeam[];
+};

@@ -16,7 +16,9 @@ export const clientEs: ClientMessages = {
     historyTitle: "El historial no está disponible en este momento",
     historyBody: "El servidor del historial no respondió. Corre en un alojamiento gratuito que se duerme cuando no se usa; normalmente funciona al reintentar cuando ya despertó.",
   },
-  nav: { label: "Principal", table: "Tabla", bonus: "Bonus", fixtures: "Calendario", times: "Times", history: "Historial", skip: "Saltar al contenido" },
+  nav: { label: "Principal", table: "Tabla", tools: "Herramientas", bonus: "Bonus", fixtures: "Calendario", times: "Times", history: "Historial", skip: "Saltar al contenido" },
+
+  deadline: { title: "Próximo cierre", days: "Días", hours: "Horas", mins: "Min", secs: "Seg", passed: "El cierre ya pasó" },
 
   fdr: { difficulty: (n) => `, dificultad ${n} de 5`, scale: "Escala de dificultad: 1 la más fácil, 5 la más difícil" },
   feed: {

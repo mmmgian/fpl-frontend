@@ -29,7 +29,7 @@ describe("slim bootstrap", () => {
     const raw = {
       events: [{ ...bootstrap.events[0], chip_plays: [1, 2], most_captained: 9 }],
       teams: [{ ...bootstrap.teams[0], strength: 5, pulse_id: 1 }],
-      elements: [{ ...bootstrap.elements[0], now_cost: 55, status: "a", news: "", ep_next: "4.1" }],
+      elements: [{ ...bootstrap.elements[0], now_cost: 55, status: "a", news: "", ict_index: "4.1" }],
       chips: [{ id: 1, name: "wildcard", number: 1, start_event: 2, stop_event: 19, chip_policy: {} }],
       element_stats: [{}],
       phases: [{}],
@@ -42,6 +42,25 @@ describe("slim bootstrap", () => {
     expect(bs.elements[0]).toEqual({ id: 1, web_name: "Raya", team: 1, element_type: 1, selected_by_percent: "20.5", now_cost: 55 }); // names unused; defaults omitted
     expect(bs.teams[0]).toEqual(bootstrap.teams[0]);
     expect(bs.events[0]).toEqual(bootstrap.events[0]);
+  });
+});
+
+describe("slim bootstrap keeps what the Tools page reads", () => {
+  it("retains expected points, this week's transfers and price steps, and the player count; omits zeros", async () => {
+    const { slimBootstrap } = await import("@/lib/fpl");
+    const raw = {
+      ...bootstrap,
+      total_players: 11_000_000,
+      elements: [
+        { ...bootstrap.elements[0], now_cost: 55, ep_next: "5.3", transfers_in_event: 1200, transfers_out_event: 300, cost_change_event: 1, cost_change_start: -2, ict_index: "9" },
+        { ...bootstrap.elements[1], now_cost: 45, ep_next: "0.0", transfers_in_event: 0, transfers_out_event: 0, cost_change_event: 0, cost_change_start: 0 },
+      ],
+    };
+    const slim = slimBootstrap(raw as never);
+    expect(slim.total_players).toBe(11_000_000);
+    expect(slim.elements[0]).toMatchObject({ ep_next: "5.3", transfers_in_event: 1200, transfers_out_event: 300, cost_change_event: 1, cost_change_start: -2 });
+    expect(slim.elements[0]).not.toHaveProperty("ict_index");
+    for (const k of ["ep_next", "transfers_in_event", "transfers_out_event", "cost_change_event", "cost_change_start"]) expect(slim.elements[1], k).not.toHaveProperty(k);
   });
 });
 

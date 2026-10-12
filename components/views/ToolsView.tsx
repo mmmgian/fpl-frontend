@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, type Column } from "@/components/ui";
-import { entrySlugs, fdrBand, type PriceRow, type PriceStatus } from "@/lib/domain";
+import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
+import { entrySlugs, fdrBand, type PriceRow, type PriceStatus, type UpsidePick } from "@/lib/domain";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
@@ -73,6 +73,62 @@ function TeamOfTheWeek({ xi }: { xi: NonNullable<Tools["xi"]> }) {
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+/** The altered view's tool: little-owned players worth chasing, the armband gambles and the players about to rise. */
+function UpsideLab({ upside }: { upside: NonNullable<Tools["upside"]> }) {
+  const t = getT().tools.upside;
+  const tt = getT();
+  const f = getFormat();
+  const columns: Column<UpsidePick>[] = [
+    {
+      key: "player",
+      header: t.cols.player,
+      rowHeader: true,
+      cell: (r) => (
+        <span className={styles.player}>
+          <Crest code={r.clubCode} name={r.club} size={22} />
+          <span className={styles.playerText}>
+            <span className={styles.playerName}>{r.name}</span>
+            <span className={styles.playerMeta}>
+              {r.club} · {tt.tools.positionShort[r.positionId]}
+            </span>
+          </span>
+        </span>
+      ),
+    },
+    { key: "owned", header: t.cols.owned, align: "end", cell: (r) => tt.common.percent(f.oneDecimal(r.ownership)) },
+    { key: "xp", header: t.cols.xp, align: "end", cell: (r) => <strong>{f.oneDecimal(r.xp)}</strong> },
+    { key: "form", header: t.cols.form, align: "end", hideBelow: "sm", cell: (r) => f.oneDecimal(r.form) },
+    { key: "price", header: t.cols.price, align: "end", hideBelow: "sm", cell: (r) => f.money(r.price) },
+  ];
+  const lists: [string, UpsidePick[], boolean][] = [
+    [t.differentials, upside.differentials, false],
+    [t.captain, upside.captainGambles, false],
+    [t.risers, upside.risers, true],
+  ];
+  return (
+    <Card title={t.title} headingLevel={2} className={styles.full}>
+      <p className={styles.note}>{t.note}</p>
+      <div className={styles.upsideGrid}>
+        {lists.map(([title, rows, buying]) => (
+          <div key={title}>
+            <h3 className={styles.upsideTitle}>{title}</h3>
+            <DataTable
+              caption={title}
+              hideCaption
+              dense
+              columns={buying ? [...columns.slice(0, 2), { key: "buying", header: t.cols.buying, align: "end", cell: (r: UpsidePick) => f.number(r.transfersIn) }, columns[2]] : columns}
+              rows={rows}
+              rowKey={(r) => r.id}
+              empty={t.none}
+            />
+          </div>
+        ))}
+      </div>
+      <p className={styles.note}>{t.tip}</p>
     </Card>
   );
 }
@@ -267,12 +323,18 @@ function Teams({ teams }: { teams: Tools["teams"] }) {
 export function ToolsView({ model }: { model: Tools }) {
   const t = getT();
   const tt = t.tools;
+  const trip = isTrip();
   return (
     <div className={`${sheet.sheet} ${styles.pitch}`}>
       <h1 className={sheet.title}>{tt.heading}</h1>
       {model.deadline ? <DeadlineTimer at={model.deadline.at} now={model.now} gameweek={gameweekName(model.deadline.name)} /> : null}
       <nav aria-label={tt.heading}>
         <ul className={styles.jump}>
+          {trip && model.upside ? (
+            <li>
+              <a href="#upside">{tt.upside.title}</a>
+            </li>
+          ) : null}
           {model.xi ? (
             <li>
               <a href="#xi">{tt.xi.title(gameweekName(`Gameweek ${model.xi.gw}`)).split(" · ")[0]}</a>
@@ -292,6 +354,11 @@ export function ToolsView({ model }: { model: Tools }) {
         </ul>
       </nav>
       <div className={styles.grid}>
+        {trip && model.upside ? (
+          <section id="upside" className={styles.full}>
+            <UpsideLab upside={model.upside} />
+          </section>
+        ) : null}
         {model.xi ? (
           <section id="xi" className={styles.full}>
             <TeamOfTheWeek xi={model.xi} />

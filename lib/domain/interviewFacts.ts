@@ -4,6 +4,7 @@
  * context those questions and answers may quote, and which topics apply and how much each is worth. Pure: no I/O.
  */
 import type { FullTopic } from "./interview";
+import type { Upside } from "./upside";
 
 /** Where the topics come from. The conference takes one from the faults and one from the league, then spreads out. */
 export type Group = "blunder" | "injury" | "attack" | "defence" | "market" | "season" | "position";
@@ -105,7 +106,9 @@ export interface InterviewInput {
   beat: { weeks: number; of: number } | null;
   freeTransfers: number | null;
   /** The toughest and kindest club runs the starting XI faces next. */
-  outlook: { average: number; hardest: string } | null;
+  outlook: { average: number; hardest: string; easiest: string } | null;
+  /** Little-owned players worth chasing, for the altered press conference. */
+  upside: Upside | null;
 }
 
 /** What a question or answer may mention. Every field is always filled; a topic only uses what it was chosen for. */
@@ -207,6 +210,14 @@ export interface InterviewContext {
   freeTransfers: number;
   hardClub: string;
   runAvg: string;
+  easyClub: string;
+  /** Starters most of the world also owns (a third of managers or more). */
+  templateCount: number;
+  // the tip being given in the altered conference
+  upName: string;
+  upClub: string;
+  upOwn: string;
+  upXp: string;
 }
 
 const best = <T>(items: T[], pick: (t: T) => number): T | undefined =>
@@ -359,6 +370,12 @@ export function interviewContext(i: InterviewInput, fmt: InterviewFormat = PLAIN
     freeTransfers: i.freeTransfers ?? 0,
     hardClub: i.outlook?.hardest ?? "",
     runAvg: fmt.oneDecimal(i.outlook?.average ?? 0),
+    easyClub: i.outlook?.easiest ?? "",
+    templateCount: starters(i).filter((p) => (p.ownership ?? 0) >= 35).length,
+    upName: "",
+    upClub: "",
+    upOwn: "",
+    upXp: "",
   };
 }
 

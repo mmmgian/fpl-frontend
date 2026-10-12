@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { CrestFallback, I18nProvider, LanguageSwitcher, SiteHeader, SkipLink, getT } from "@/components/ui";
+import { CrestFallback, I18nProvider, LanguageSwitcher, SiteHeader, SkipLink, TripSwitch, getT, isTrip } from "@/components/ui";
 import { initLocale } from "./locale";
 import { SITE_NAME } from "@/lib/config";
 import { HTML_LANG, THEME_SCRIPT } from "@/lib/domain";
 import "./globals.css";
+import "./trip.css";
 import styles from "./layout.module.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,14 +33,26 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await initLocale();
   const t = getT();
+  const trip = isTrip();
   return (
     // data-theme is set by the script below before first paint, so React must not treat it as a mismatch.
-    <html lang={HTML_LANG[locale]} suppressHydrationWarning>
+    <html lang={HTML_LANG[locale]} data-trip={trip ? "on" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
         <I18nProvider locale={locale}>
+          {trip ? (
+            // A slow warp for pictures only (see trip.css): a few small images is cheap, the whole page would not be.
+            <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute" }}>
+              <filter id="trip-wobble" x="-5%" y="-5%" width="110%" height="110%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" seed="4" result="noise">
+                  <animate attributeName="baseFrequency" dur="16s" values="0.015 0.02;0.025 0.012;0.015 0.02" repeatCount="indefinite" />
+                </feTurbulence>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
+            </svg>
+          ) : null}
           <SkipLink />
           <SiteHeader siteName={SITE_NAME} />
           <main id="main" tabIndex={-1} className={`container ${styles.main}`}>
@@ -51,7 +64,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <p>{t.footer.disclaimer}</p>
                 <p className={styles.credit}>{t.footer.credit}</p>
               </div>
-              <LanguageSwitcher />
+              <div className={styles.controls}>
+                <TripSwitch on={trip} />
+                <LanguageSwitcher />
+              </div>
             </div>
           </footer>
           <CrestFallback />

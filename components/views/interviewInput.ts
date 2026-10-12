@@ -116,6 +116,7 @@ export function interviewInputOf(
     value: form ? { now: form.value.now, start: form.value.start } : null,
     beat: charts?.beatAverage ?? null,
     freeTransfers: insights.season?.freeTransfers.available ?? null,
-    outlook: insights.squad.outlook ? { average: insights.squad.outlook.average, hardest: insights.squad.outlook.hardest.club } : null,
+    outlook: insights.squad.outlook ? { average: insights.squad.outlook.average, hardest: insights.squad.outlook.hardest.club, easiest: insights.squad.outlook.easiest.club } : null,
+    upside: insights.squad.upside ?? null,
   };
 }

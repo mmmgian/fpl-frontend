@@ -1,0 +1,125 @@
+/*
+ * The altered view (an easter egg): <html data-trip="on">, set by the server from a cookie. Deep purple, saturated
+ * colour, text that breathes, tables that sway, avatars that glow. Everything moves on transform, opacity and
+ * text-shadow, which are cheap; and nothing moves for people who ask for less motion.
+ */
+:root[data-trip="on"],
+:root[data-trip="on"][data-theme] {
+  color-scheme: dark;
+  --bg: #12001f;
+  --surface: rgba(26, 0, 52, 0.66);
+  --surface-head: rgba(40, 0, 80, 0.55);
+  --surface-solid: #1d0536;
+  --surface-2: rgba(255, 255, 255, 0.09);
+  --text: #fff7ff;
+  --text-muted: #e1c8ff;
+  --border: rgba(255, 140, 255, 0.4);
+  --border-strong: rgba(255, 220, 90, 0.7);
+  --wash: rgba(255, 255, 255, 0.1);
+  --accent: #ff5de0;
+  --accent-2: #35e8ff;
+  --positive: #8cff72;
+  --negative: #ff7a99;
+  --warning: #ffe14a;
+  --focus: #ffe14a;
+  --dot: transparent;
+  --hover-wash: rgba(255, 93, 224, 0.2);
+  --shadow: 0 0 22px rgba(255, 93, 224, 0.28), inset 0 0 18px rgba(53, 232, 255, 0.12);
+  --glass-blur: saturate(1.8) blur(5px);
+  --zone-strength: 30%;
+}
+
+:root[data-trip="on"] body { background: var(--bg); position: relative; overflow-x: clip; }
+
+/* The sky: slow colour fields turning behind everything. */
+:root[data-trip="on"] body::before {
+  content: "";
+  position: fixed;
+  inset: -30%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 40% at 20% 25%, rgba(255, 93, 224, 0.55), transparent 70%),
+    radial-gradient(45% 45% at 80% 20%, rgba(53, 232, 255, 0.45), transparent 70%),
+    radial-gradient(50% 50% at 70% 80%, rgba(255, 225, 74, 0.4), transparent 70%),
+    radial-gradient(45% 45% at 15% 80%, rgba(140, 255, 114, 0.35), transparent 70%),
+    conic-gradient(from 0deg at 50% 50%, #ff5de0, #ffe14a, #8cff72, #35e8ff, #8f5bff, #ff5de0);
+  opacity: 0.55;
+  animation: trip-turn 90s linear infinite, trip-hue 40s linear infinite;
+}
+
+/* Words breathe: a slow swell and a rainbow fringe that pulses in and out of focus. */
+:root[data-trip="on"] :is(h1, h2, h3, p, dt, dd, li > a, th, td, label, summary, legend, figcaption) {
+  animation: trip-fringe 5.5s ease-in-out infinite;
+}
+:root[data-trip="on"] :is(h1, h2, h3) {
+  animation: trip-fringe 5.5s ease-in-out infinite, trip-breathe 7s ease-in-out infinite;
+  transform-origin: left center;
+}
+:root[data-trip="on"] :is(h1, h2) {
+  background: linear-gradient(90deg, #ff5de0, #ffe14a, #8cff72, #35e8ff, #b48bff, #ff5de0) 0 0 / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: trip-slide 9s linear infinite, trip-breathe 7s ease-in-out infinite;
+}
+
+/* Cards and tables sway and glow. */
+:root[data-trip="on"] main :is(section, article, figure, dl > div, nav, header, [class*="Card_card"], [class*="StatList_item"], [class*="DataTable_region"]) {
+  border-color: var(--border);
+  animation: trip-glow 8s ease-in-out infinite;
+}
+:root[data-trip="on"] tbody tr { animation: trip-sway 9s ease-in-out infinite; transform-origin: 50% 50%; }
+:root[data-trip="on"] tbody tr:nth-child(3n + 1) { animation-delay: -2s; }
+:root[data-trip="on"] tbody tr:nth-child(3n + 2) { animation-delay: -5s; }
+:root[data-trip="on"] tbody tr:nth-child(odd) td { background: rgba(255, 93, 224, 0.08); }
+:root[data-trip="on"] tbody tr:nth-child(even) td { background: rgba(53, 232, 255, 0.08); }
+
+/* Avatars and pictures: a rainbow aura, and a gentle warp. */
+:root[data-trip="on"] [data-crest] { border-radius: 50%; animation: trip-aura 6s linear infinite; }
+:root[data-trip="on"] [data-crest] img { filter: saturate(1.5) url(#trip-wobble); }
+:root[data-trip="on"] main figure img { filter: saturate(1.4) contrast(1.05) url(#trip-wobble); }
+
+/* Buttons, pills and links. */
+:root[data-trip="on"] a { text-decoration-line: underline; text-decoration-style: wavy; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+:root[data-trip="on"] :is(button, [class*="Button_button"], [class*="SiteHeader_link"], [class*="neighbour"]) { box-shadow: 0 0 14px rgba(255, 93, 224, 0.4); }
+:root[data-trip="on"] ::selection { background: #ffe14a; color: #12001f; }
+
+/* The press conference: the speech bubbles shimmer like soap. */
+:root[data-trip="on"] [class*="interview_bubble"] {
+  background: linear-gradient(120deg, rgba(255, 93, 224, 0.28), rgba(53, 232, 255, 0.24), rgba(255, 225, 74, 0.22), rgba(255, 93, 224, 0.28)) 0 0 / 300% 300%;
+  animation: trip-soap 10s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+@keyframes trip-turn { to { transform: rotate(360deg); } }
+@keyframes trip-hue { to { filter: hue-rotate(360deg); } }
+@keyframes trip-slide { to { background-position: 300% 0; } }
+@keyframes trip-breathe { 0%, 100% { transform: scale(1) skewX(0deg); } 50% { transform: scale(1.025) skewX(-1.2deg); } }
+@keyframes trip-fringe {
+  0%, 100% { text-shadow: 1px 0 0 rgba(255, 60, 200, 0.55), -1px 0 0 rgba(40, 230, 255, 0.55), 0 0 0 rgba(255, 255, 255, 0); }
+  50% { text-shadow: 2.5px 0 1px rgba(255, 60, 200, 0.65), -2.5px 0 1px rgba(40, 230, 255, 0.65), 0 0 12px rgba(255, 225, 74, 0.45); }
+}
+@keyframes trip-sway { 0%, 100% { transform: translateX(0) scaleY(1); } 33% { transform: translateX(-2px) scaleY(1.03); } 66% { transform: translateX(2px) scaleY(0.98); } }
+@keyframes trip-glow {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 93, 224, 0.35), inset 0 0 12px rgba(53, 232, 255, 0.1); }
+  50% { box-shadow: 0 0 26px rgba(255, 225, 74, 0.45), inset 0 0 20px rgba(255, 93, 224, 0.18); }
+}
+@keyframes trip-aura {
+  0% { box-shadow: 0 0 0 2px #ff5de0, 0 0 14px #ff5de0; }
+  25% { box-shadow: 0 0 0 2px #ffe14a, 0 0 14px #ffe14a; }
+  50% { box-shadow: 0 0 0 2px #8cff72, 0 0 14px #8cff72; }
+  75% { box-shadow: 0 0 0 2px #35e8ff, 0 0 14px #35e8ff; }
+  100% { box-shadow: 0 0 0 2px #ff5de0, 0 0 14px #ff5de0; }
+}
+@keyframes trip-soap { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+/* Less motion: the colours stay, the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-trip="on"] *,
+  :root[data-trip="on"] *::before { animation: none !important; }
+  :root[data-trip="on"] [data-crest] img,
+  :root[data-trip="on"] main figure img { filter: saturate(1.4); }
+  :root[data-trip="on"] :is(h1, h2) { background-position: 40% 0; }
+}

@@ -22,4 +22,6 @@ export * from "./theme";
 export * from "./teamSheet";
 export * from "./times";
 export * from "./tools";
+export * from "./trip";
+export * from "./upside";
 export type * from "./types";

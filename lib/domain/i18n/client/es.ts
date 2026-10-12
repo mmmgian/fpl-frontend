@@ -1,6 +1,7 @@
 import type { ClientMessages } from "./en";
 
 export const clientEs: ClientMessages = {
+  trip: { enter: "Probar algo extraño", leave: "Volver a la normalidad" },
   language: { label: "Idioma", changeTo: "Cambiar idioma" },
 
   theme: { group: "Tema de color", light: "Normal", night: "Lectura nocturna", dark: "Oscuro" },

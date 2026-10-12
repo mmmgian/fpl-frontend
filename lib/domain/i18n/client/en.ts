@@ -5,6 +5,11 @@ export const clientEn = {
     changeTo: "Change language",
   },
 
+  trip: {
+    enter: "Try something strange",
+    leave: "Come back to normal",
+  },
+
   theme: {
     group: "Colour theme",
     light: "Regular",

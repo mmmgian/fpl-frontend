@@ -114,6 +114,8 @@
 .reply[data-answer="pr"] { --ink: #6f8cff; }
 .reply[data-answer="conspiracy"] { --ink: #a77bfa; }
 .reply[data-answer="dramatic"] { --ink: var(--accent); }
+.reply[data-answer="trip"] { --ink: #ff4fd8; }
+.ask[data-ask="trip"] { --ink: #35e0ff; }
 .reply .bubble { background: color-mix(in srgb, var(--ink) 16%, var(--surface-solid)); border-color: color-mix(in srgb, var(--ink) 50%, var(--border)); }
 .chip {
   padding: 0 9px;

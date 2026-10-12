@@ -28,7 +28,7 @@ const pl = (over: Partial<InterviewPlayer> = {}): InterviewPlayer => ({
 });
 const base = (over: Partial<InterviewInput> = {}): InterviewInput => ({
   team: "Gaucho F.C.", first: "Gian", manager: "Gian Jaen", gw: "Gameweek 6", gwNumber: 6, points: 60, total: 433, hit: 0, transfers: 1, bank: 5, bankText: "£0.5m", settled: true,
-  players: [], rotated: null, planet: null, rankMove: null, value: null, beat: null, freeTransfers: null, outlook: null,
+  players: [], rotated: null, planet: null, rankMove: null, value: null, beat: null, freeTransfers: null, outlook: null, upside: null,
   league: { rank: 8, size: 21, points: 380, leader: { team: "Bart's Team", points: 443 }, up: { team: "Up FC", points: 385 }, down: { team: "Down FC", points: 375 }, moved: 0 },
   captain: null, bench: null, chip: null, flagged: null, autoSub: null, season: null, ...over,
 });
@@ -164,7 +164,7 @@ describe("what the squad, season and league give a conference to ask about", () 
     ["oneManShow", withPlayers({ points: 20, multiplier: 2, captain: true })],
     ["viceBetter", withPlayers({ captain: true, points: 2, multiplier: 2 }, { vice: true, points: 10 })],
     ["subSaved", base({ autoSub: { out: "A", in: "B", inPoints: 8, outPoints: 0 } })],
-    ["toughRun", base({ players: [pl()], outlook: { average: 3.6, hardest: "Hardton" } })],
+    ["toughRun", base({ players: [pl()], outlook: { average: 3.6, hardest: "Hardton", easiest: "Easyton" } })],
     ["rankRise", base({ rankMove: { from: 400_000, to: 200_000 } })],
     ["rankFall", base({ rankMove: { from: 200_000, to: 400_000 } })],
     ["planetTop", base({ planet: { rank: 50_000, of: 10_000_000 } })],
@@ -210,7 +210,9 @@ describe("what the squad, season and league give a conference to ask about", () 
 
   it("fills every field of the context from a team where everything happened, and names the right player", () => {
     const c = interviewContext(richInput());
+    const tipOnly = new Set(["upName", "upClub", "upOwn", "upXp"]); // filled only for the altered conference's tip
     for (const [key, value] of Object.entries(c)) {
+      if (tipOnly.has(key)) continue;
       expect(value === "" || value === 0, `${key} is empty`).toBe(false);
     }
     expect(c).toMatchObject({
@@ -384,7 +386,7 @@ function randomManager(i: number, settled: boolean): InterviewInput {
     season: { average: 50 + Math.floor(r() * 25), benchPoints: Math.floor(r() * 70), hitPoints: Math.floor(r() * 16) },
     planet: { rank: 50_000 + Math.floor(r() * 9_000_000), of: 10_000_000 }, rankMove: { from: 100_000 + Math.floor(r() * 900_000), to: 100_000 + Math.floor(r() * 900_000) },
     value: { now: 995 + Math.floor(r() * 40), start: 1000 }, beat: { weeks: Math.floor(r() * 6), of: 5 }, freeTransfers: 1 + Math.floor(r() * 4),
-    outlook: { average: 2.4 + r() * 1.6, hardest: pick(clubs) },
+    outlook: { average: 2.4 + r() * 1.6, hardest: pick(clubs), easiest: pick(clubs) },
   });
 }
 
@@ -488,7 +490,7 @@ const richInput = (over: Partial<InterviewInput> = {}): InterviewInput =>
     chip: { code: "3xc", label: "Triple Captain", points: 3 }, hit: 4, flagged: { name: "Hurt", label: "injured" }, autoSub: { out: "Outy", in: "Inny", inPoints: 7, outPoints: 0 },
     season: { average: 66, benchPoints: 52, hitPoints: 12 }, bank: 25, bankText: "£2.5m",
     players: squad(), rotated: { name: "Rotato" }, planet: { rank: 1_200_000, of: 10_000_000 }, rankMove: { from: 400_000, to: 800_000 },
-    value: { now: 1022, start: 1000 }, beat: { weeks: 1, of: 5 }, freeTransfers: 4, transfers: 3, outlook: { average: 3.6, hardest: "Hardton" },
+    value: { now: 1022, start: 1000 }, beat: { weeks: 1, of: 5 }, freeTransfers: 4, transfers: 3, outlook: { average: 3.6, hardest: "Hardton", easiest: "Easyton" },
     ...over,
   });
 const ctx = (over: Partial<ReturnType<typeof interviewContext>> = {}) => ({ ...interviewContext(richInput()), ...over });
@@ -595,7 +597,7 @@ async function okModel(gw?: string): Promise<Extract<TeamModel, { kind: "ok" }>>
   return m;
 }
 const withMascot = (m: Extract<TeamModel, { kind: "ok" }>, on = true): Extract<TeamModel, { kind: "ok" }> => ({
-  ...m, team: { ...m.team, mascot: on ? { action: { src: "/mascots/7-action.webp", width: 768, height: 768 }, press: { src: "/mascots/7-press.webp?v=abc", width: 1200, height: 800 } } : null },
+  ...m, team: { ...m.team, mascot: on ? { action: { src: "/mascots/7-action.webp", width: 768, height: 768 }, press: { src: "/mascots/7-press.webp?v=abc", width: 1200, height: 800 }, trip: { src: "/psychedelic/7-l.webp", width: 512, height: 512 } } : null },
 });
 const withLeague = (m: Extract<TeamModel, { kind: "ok" }>): Extract<TeamModel, { kind: "ok" }> => ({
   ...m, team: { ...m.team, league: { rank: 8, size: 21, points: 380, moved: -2, leader: { entryId: 1, slug: "barts-team", teamName: "Bart's Team", rank: 1, points: 443 }, prev: { entryId: 2, slug: "up-fc", teamName: "Up FC", rank: 7, points: 385 }, next: { entryId: 3, slug: "down-fc", teamName: "Down FC", rank: 9, points: 375 } } },
@@ -714,10 +716,12 @@ describe("the mascot gateway and its files", () => {
     for (const id of ids) {
       const s = gateway.scenes(Number(id))!;
       expect(s, id).not.toBeNull();
-      for (const [role, img] of Object.entries(s)) {
+      for (const [role, img] of Object.entries({ action: s.action, press: s.press })) {
         expect(img.src).toMatch(new RegExp(`^/mascots/${id}-${role}\\.webp\\?v=[0-9a-f]{10}$`));
         expect(existsSync(join(process.cwd(), "public", img.src.split("?")[0])), img.src).toBe(true);
       }
+      expect(s.trip?.src, id).toMatch(new RegExp(`^/psychedelic/${id}-l\\.webp\\?v=[0-9a-f]{10}$`));
+      expect(existsSync(join(process.cwd(), "public", s.trip!.src.split("?")[0])), id).toBe(true);
       expect(s.press.width / s.press.height).toBeCloseTo(1.5, 2);
       expect(s.action.width).toBe(s.action.height);
     }

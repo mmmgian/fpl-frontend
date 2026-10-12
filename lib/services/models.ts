@@ -6,7 +6,7 @@
 import type { Issue, IssueKind, IssueSummary } from "../domain";
 import type { MascotImage } from "./ports";
 import type {
-  BestXI, Deadline, EoTier, PriceRow, PositionId,
+  BestXI, Deadline, Upside, EoTier, PriceRow, PositionId,
   AutoSub, ClubMatch, ClubNewsItem, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
   FreeTransfers, GwStatus, LeagueStats, Ownership, PlayersRemaining, RotationRisk, SeasonCharts, SeasonForm, SquadFlag, StandingRow, TeamSheet, Tenure,
 } from "../domain";
@@ -56,7 +56,7 @@ export interface TeamIdentity {
   /** The manager's drawn avatar, if there is one; the initials show otherwise. */
   avatar: string | null;
   /** The mascot's football action and press-conference scenes, if drawn. */
-  mascot: { action: MascotImage; press: MascotImage } | null;
+  mascot: { action: MascotImage; press: MascotImage; trip: MascotImage | null } | null;
   /** Where the team stands in the league and who is either side of it; set when the page loads the team. */
   league?: LeagueSpot | null;
   /** The team's readable address ("gaucho-f-c"), if the league's table could be read to make it unique. */
@@ -138,6 +138,8 @@ export interface GameweekInsights {
 }
 
 export interface SquadInsights {
+  /** Who little-owned and likely to score the manager could chase (for the altered press conference); null if unknown. */
+  upside?: Upside | null;
   ownership: Ownership | null;
   /** Only for the latest gameweek. */
   outlook: FixtureOutlook | null;
@@ -413,4 +415,6 @@ export type ToolsModel = {
   /** null when the league's picks could not be had. */
   eo: { gw: number; managers: number; tier: EoTier["key"]; tiers: EoTier[]; by: "eo" | "captain"; rows: ToolsEoRow[] } | null;
   teams: ToolsTeam[];
+  /** Little-owned players worth chasing, for the altered view. */
+  upside: Upside | null;
 };

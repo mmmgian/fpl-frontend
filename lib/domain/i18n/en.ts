@@ -3,7 +3,7 @@
  * and not translated fails the type check. Strings that need numbers or names are functions; each language decides
  * its own plural rules.
  */
-import type { AnswerKind, AskKind, GenericAnswer, InterviewContext, InterviewTopic, InterviewVoice, TopicId } from "../interview";
+import type { AnswerKind, AskKind, GenericAnswer, InterviewContext, InterviewTopic, InterviewVoice, TopicId, TripTipId } from "../interview";
 import { clientEn } from "./client/en";
 
 const gw = (n: number) => `GW${n}`;
@@ -523,6 +523,17 @@ export const en = {
   tools: {
     positionShort: { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" } as Record<number, string>,
     heading: "Tools",
+    /** The altered view's extra tool: sneaky upside for climbing the world leaderboard. */
+    upside: {
+      title: "Upside lab",
+      note: "For climbing the world leaderboard: the little-owned players FPL expects to score, the armband gambles, and who the crowd is buying before the price moves. Most of the world looks elsewhere. That is the point.",
+      differentials: "Little-owned, big expected points",
+      captain: "Armband gambles",
+      risers: "Buy before the price rises",
+      cols: { player: "Player", owned: "Owned", xp: "xP", form: "Form", price: "Price", buying: "Buying" },
+      none: "Nothing stands out yet.",
+      tip: "Tip: one differential and one bold armband move you further than five safe swaps.",
+    },
     xi: {
       title: (gw: string) => `Team of the Week · ${gw}`,
       note: "The best legal eleven by FPL's own expected points for the next gameweek. Players who are injured or unlikely to play are left out.",
@@ -1619,6 +1630,65 @@ export const en = {
         () => "Fate, thou art cruel! And also, apparently, correct.",
       ],
     } as Record<GenericAnswer, InterviewVoice>,
+    /** The altered press conference: sneaky upside tips for climbing the world leaderboard. */
+    trip: {
+      heading: "The Upside Oracle",
+      lede: (manager: string, team: string, gw: string) => `${manager} of ${team} dissolves into the press room after ${gw}. The walls breathe.`,
+      pressAlt: (team: string) => `${team}'s mascot, glowing, in a psychedelic sunshine scene.`,
+      askers: ["The Third Eye", "The Kaleidoscope", "The Stardust Reporter"],
+      askerRole: "Asks sideways",
+      chip: "Sneaky upside",
+      tips: {
+        diffBuy: {
+          q: [() => `The geometry of the rank ladder bends towards the unowned. Which door is open to your team?`, () => `If the world leaderboard is a spiral, who is the quiet doorway out of it?`],
+          a: [(c) => `Behold ${c.upName} (${c.upClub}): owned by only ${c.upOwn}% and glowing at ${c.upXp} xP. Buy him before the crowd looks up.`, (c) => `The unowned shine brightest. ${c.upName}, ${c.upOwn}% ownership, ${c.upXp} expected points: a sneaky upside the template cannot see.`],
+        },
+        captainRoulette: {
+          q: [() => `Who wears the armband when the sky turns inside out?`, () => `Captaincy is a coin that lands on a colour. Which colour?`],
+          a: [(c) => `Put it on ${c.upName}: ${c.upOwn}% own him, ${c.upXp} xP. While everyone captains the obvious, one big return from him moves you a thousand places.`, (c) => `The brave armband goes to ${c.upName} (${c.upOwn}% owned, ${c.upXp} xP). Risky is how you climb, mortal.`],
+        },
+        riser: {
+          q: [() => `The prices are breathing in and out. Who rises next?`, () => `Which player is about to swell in cost as the crowd inhales?`],
+          a: [(c) => `${c.upName} is being bought by the tide. Get in before the price rises and you gain value while the others pay more.`, (c) => `Whisper it: ${c.upName}. The transfers pour in and the price will follow. Be early.`],
+        },
+        sellCold: {
+          q: [() => `What drags your aura down?`, () => `Which player in your XI has stopped glowing?`],
+          a: [(c) => `${c.cold}, form ${c.coldForm}. Sell the fading light and let a hotter one in.`, (c) => `The dimmest star is ${c.cold} (form ${c.coldForm}). To climb, you must let go.`],
+        },
+        breakTemplate: {
+          q: [() => `How many of your players are the same as everyone else's?`, () => `Is your team a mirror of the crowd?`],
+          a: [(c) => `${c.templateCount} of your starters are owned by over a third of the world. To climb, leave the herd with at least one bold swap.`, (c) => `${c.templateCount} copies of the crowd. A leaderboard climb needs a difference, not another echo.`],
+        },
+        benchBuy: {
+          q: [() => `A ghost sits on your bench. Is it time to swap it for a living thing?`, () => `What is the use of a bench made of fog?`],
+          a: [(c) => `${c.benchFlagged} is ${c.benchFlaggedLabel}. Trade him for a player with real minutes and your safety net stops being a mirage.`, (c) => `Replace ${c.benchFlagged} (${c.benchFlaggedLabel}) with someone who plays. A real bench saves a gameweek.`],
+        },
+        bankIdle: {
+          q: [() => `Money is sleeping in your bank. What should it dream of?`, (c) => `What would ${c.bank} become if it woke up?`],
+          a: [(c) => `Deploy ${c.bank}: fund an upgrade on your weakest slot, or a differential. Idle money earns nothing but regret.`, (c) => `Spend the ${c.bank}. Upside likes company: a premium upgrade or a fresh punt.`],
+        },
+        ftRoll: {
+          q: [(c) => `You hold ${c.freeTransfers} free transfers. Roll them, or burn them?`, (c) => `Time folds. Do your ${c.freeTransfers} free transfers keep sleeping?`],
+          a: [(c) => `With ${c.freeTransfers} in hand, use one on the biggest upside and roll the rest. Free movement is a gift.`, (c) => `Use the free ones before you pay for any. ${c.freeTransfers} chances to change your fate at no cost.`],
+        },
+        easyRun: {
+          q: [() => `Which kingdom has the softest road ahead?`, () => `Where does the calendar lie down and let you pass?`],
+          a: [(c) => `Load up on ${c.easyClub}. Their run is the kindest of all, and the points come from gentle schedules.`, (c) => `${c.easyClub} walk through an easy stretch. Take two of their players and let the fixtures do the work.`],
+        },
+        worldClimb: {
+          q: [(c) => `You stand at ${c.rankTo} in the world. What lifts you up?`, () => `How does one fall upwards?`],
+          a: [(c) => `You beat ${c.rankPct}% of the world already. To go higher, be different: one differential, one bold captain, no panic hits.`, () => `The leaderboard rewards the brave and the early. Take the unowned, captain the unexpected, and ignore the herd.`],
+        },
+        hitMath: {
+          q: [(c) => `You paid −${c.hit}. Was the future worth it?`, () => `What did the hit buy?`],
+          a: [(c) => `A hit pays only if the new player returns more than ${c.hit} points over the next few weeks. Chase upside, not comfort.`, (c) => `Only take a −${c.hit} for someone with a real ceiling, a fixture feast and low ownership. Otherwise wait.`],
+        },
+        chaos: {
+          q: [() => `Is variance the enemy?`, () => `The lower you are, the louder the dice. What do you roll?`],
+          a: [() => `When you chase, variance is your friend. The safe path keeps your rank; the strange path changes it.`, () => `Be strange on purpose. The top of the world is full of people who dared to be different at the right time.`],
+        },
+      } as Record<TripTipId, { q: ((c: InterviewContext) => string)[]; a: ((c: InterviewContext) => string)[] }>,
+    },
   },
 
   loading: {

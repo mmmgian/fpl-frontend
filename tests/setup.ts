@@ -2,11 +2,14 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { setRequestLocale } from "@/components/ui/i18n";
+import { setRequestTrip } from "@/components/ui/tripSlot";
 import { testLanguage } from "./language";
 
 afterEach(() => {
   cleanup();
   setRequestLocale("en"); // a test that rendered another language must not leak it into the next
+  setRequestTrip(false);
+  testLanguage.trip = undefined;
   testLanguage.cookie = undefined;
   testLanguage.acceptLanguage = undefined;
 });
@@ -44,6 +47,9 @@ vi.mock("react", async (importOriginal) => {
 
 // Pages read the language from the request's cookie and Accept-Language header; a test sets them via `testLanguage`.
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: (name: string) => (name === "lobster-lang" && testLanguage.cookie ? { name, value: testLanguage.cookie } : undefined) }),
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "lobster-lang" && testLanguage.cookie ? { name, value: testLanguage.cookie } : name === "lobster-trip" && testLanguage.trip ? { name, value: testLanguage.trip } : undefined,
+  }),
   headers: async () => new Headers(testLanguage.acceptLanguage ? { "accept-language": testLanguage.acceptLanguage } : {}),
 }));

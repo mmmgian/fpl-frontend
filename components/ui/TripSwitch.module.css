@@ -1,0 +1,16 @@
+.sun {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 200ms ease, transform 400ms ease;
+}
+.sun:hover, .sun:focus-visible { opacity: 1; transform: rotate(18deg) scale(1.15); }
+.sun img { display: block; width: 24px; height: 24px; border-radius: 4px; }
+.sun[aria-pressed="true"] { opacity: 1; }

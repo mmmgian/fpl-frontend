@@ -33,3 +33,5 @@ export type { Stat } from "./StatList";
 
 // Flipbook is deliberately NOT re-exported here: import it from "@/components/ui/Flipbook".
 // A server page that imports this barrel ships every client component in it, used or not.
+export { TripSwitch } from "./TripSwitch";
+export { isTrip, setRequestTrip } from "./tripSlot";

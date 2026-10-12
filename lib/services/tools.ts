@@ -1,5 +1,5 @@
 import type { Pick as FplPick, PositionId, StandingRow } from "../domain";
-import { bestXI, currentEvent, effectiveOwnership, eoTiers, filterPrices, nextDeadline, opponentsIn, priceRows } from "../domain";
+import { bestXI, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, nextDeadline, opponentsIn, priceRows } from "../domain";
 import type { Bootstrap, FplEvent } from "../domain/types";
 import { MAX_STATS_MANAGERS } from "../domain";
 import { withAvatars } from "./avatars";
@@ -113,6 +113,7 @@ export function createToolsService(
         },
         eo,
         teams,
+        upside: upsidePicks(bootstrap, 8),
       };
     },
   };

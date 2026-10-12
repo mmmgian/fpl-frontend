@@ -1,7 +1,7 @@
 import type { Bootstrap, EntryHistory, EntryPicks, Fixture, ScheduledFixture, TeamSheet } from "../domain";
 import {
   allPlayers, autoSubs, benchInsight, captainInsight, chipContribution, chipStatus, defconProgress, fixtureOutlook, freeTransfers,
-  matchCounts, matchesByTeam, ownership, playersRemaining, rotationRisks, seasonCharts, seasonForm, squadFlags, teamStates, tenure,
+  matchCounts, matchesByTeam, ownership, playersRemaining, rotationRisks, seasonCharts, seasonForm, squadFlags, teamStates, tenure, upsidePicks,
 } from "../domain";
 import type { NextMatch, SeasonInsights, TeamGameweek, TeamInsights } from "./models";
 
@@ -66,6 +66,7 @@ export function buildInsights(input: InsightInput): { insights: TeamInsights; ne
         flags: isLatest ? squadFlags(sheet) : [],
       },
       squad: {
+        upside: isLatest ? upsidePicks(bootstrap) : null,
         ownership: isLatest ? ownership(sheet) : null,
         outlook: isLatest && schedule ? fixtureOutlook(sheet, schedule, latest + 1, 3) : null,
       },

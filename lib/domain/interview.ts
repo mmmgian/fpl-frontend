@@ -10,6 +10,7 @@
 import type { Candidate, Group, InterviewContext } from "./interviewFacts";
 
 export * from "./interviewFacts";
+export * from "./tripInterview";
 
 export type AskKind = "genius" | "dumb" | "satirical";
 /** Who answers. The first three have a line written for every question; the rest have a pool of lines for any question. */

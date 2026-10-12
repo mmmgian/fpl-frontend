@@ -500,6 +500,16 @@ export const fr: Messages = {
   tools: {
     positionShort: { 1: "GAR", 2: "DEF", 3: "MIL", 4: "ATT" } as Record<number, string>,
     heading: "Outils",
+    upside: {
+      title: "Laboratoire d'upside",
+      note: "Pour grimper au classement mondial : les joueurs peu possédés que la FPL voit marquer, les paris de brassard et ceux que la foule achète avant le changement de prix. Le reste du monde regarde ailleurs. C'est tout l'intérêt.",
+      differentials: "Peu possédés, beaucoup de points attendus",
+      captain: "Paris de brassard",
+      risers: "À acheter avant la hausse de prix",
+      cols: { player: "Joueur", owned: "Possédé", xp: "xP", form: "Forme", price: "Prix", buying: "Achats" },
+      none: "Rien ne ressort pour l'instant.",
+      tip: "Astuce : un différentiel et un brassard audacieux vous font monter plus que cinq échanges prudents.",
+    },
     xi: {
       title: (gw) => `Équipe de la semaine · ${gw}`,
       note: "Le meilleur onze valide d'après les points attendus de la FPL elle-même pour la prochaine journée. Les joueurs blessés ou peu susceptibles de jouer sont écartés.",
@@ -1592,6 +1602,64 @@ export const fr: Messages = {
         () => "Même les étoiles détournent les yeux quand j'ouvre ma feuille de match.",
         () => "Destin, que tu es cruel ! Et aussi, apparemment, dans le vrai.",
       ],
+    },
+    trip: {
+      heading: "L'Oracle de l'Upside",
+      lede: (manager, team, gw) => `${manager}, de ${team}, se dissout dans la salle de presse après la ${gw}. Les murs respirent.`,
+      pressAlt: (team) => `La mascotte de ${team}, rayonnante, dans une scène psychédélique de soleil.`,
+      askers: ["Le Troisième Œil", "Le Kaléidoscope", "Le Reporter de Poussière d'Étoiles"],
+      askerRole: "Questionne de biais",
+      chip: "Upside furtif",
+      tips: {
+        diffBuy: {
+          q: [() => `La géométrie de l'échelle du classement se courbe vers ce que personne ne possède. Quelle porte est ouverte à votre équipe ?`, () => `Si le classement mondial est une spirale, qui est la porte discrète pour en sortir ?`],
+          a: [(c) => `Contemplez ${c.upName} (${c.upClub}) : possédé par seulement ${c.upOwn} % et rayonnant à ${c.upXp} xP. Achetez-le avant que la foule lève les yeux.`, (c) => `Ce que personne n'a brille le plus. ${c.upName}, ${c.upOwn} % de possession, ${c.upXp} points attendus : un upside furtif que la masse ne voit pas.`],
+        },
+        captainRoulette: {
+          q: [() => `Qui porte le brassard quand le ciel se retourne ?`, () => `La capitainerie est une pièce qui retombe sur une couleur. Laquelle ?`],
+          a: [(c) => `Donnez-le à ${c.upName} : ${c.upOwn} % le possèdent, ${c.upXp} xP. Pendant que tous prennent l'évident, un gros retour de sa part vous fait gagner mille places.`, (c) => `Le brassard courageux va à ${c.upName} (${c.upOwn} % de possession, ${c.upXp} xP). Prendre des risques, c'est ainsi qu'on monte, mortel.`],
+        },
+        riser: {
+          q: [() => `Les prix inspirent et expirent. Qui monte ensuite ?`, () => `Quel joueur est sur le point de gonfler en prix pendant que la foule inspire ?`],
+          a: [(c) => `${c.upName} est acheté par la marée. Entrez avant la hausse et vous gagnez de la valeur pendant que les autres paient plus.`, (c) => `Dites-le tout bas : ${c.upName}. Les transferts affluent et le prix suivra. Soyez en avance.`],
+        },
+        sellCold: {
+          q: [() => `Qu'est-ce qui tire votre aura vers le bas ?`, () => `Quel joueur de votre onze a cessé de briller ?`],
+          a: [(c) => `${c.cold}, forme ${c.coldForm}. Vendez la lumière qui faiblit et laissez entrer une plus chaude.`, (c) => `L'étoile la plus pâle est ${c.cold} (forme ${c.coldForm}). Pour monter, il faut lâcher prise.`],
+        },
+        breakTemplate: {
+          q: [() => `Combien de vos joueurs sont les mêmes que ceux de tout le monde ?`, () => `Votre équipe est-elle un miroir de la foule ?`],
+          a: [(c) => `${c.templateCount} de vos titulaires sont possédés par plus d'un tiers du monde. Pour monter, quittez le troupeau avec au moins un échange audacieux.`, (c) => `${c.templateCount} copies de la foule. Monter au classement demande une différence, pas un écho de plus.`],
+        },
+        benchBuy: {
+          q: [() => `Un fantôme occupe votre banc. Est-il temps de l'échanger contre un être vivant ?`, () => `À quoi sert un banc fait de brouillard ?`],
+          a: [(c) => `${c.benchFlagged} est ${c.benchFlaggedLabel}. Échangez-le contre quelqu'un qui a de vraies minutes et votre filet de sécurité cesse d'être un mirage.`, (c) => `Remplacez ${c.benchFlagged} (${c.benchFlaggedLabel}) par quelqu'un qui joue. Un vrai banc sauve une journée.`],
+        },
+        bankIdle: {
+          q: [() => `L'argent dort dans votre banque. De quoi devrait-il rêver ?`, (c) => `Que deviendraient ${c.bank} s'ils se réveillaient ?`],
+          a: [(c) => `Déployez ${c.bank} : financez une amélioration à votre poste le plus faible, ou un différentiel. L'argent oisif ne rapporte que des regrets.`, (c) => `Dépensez les ${c.bank}. L'upside aime la compagnie : une amélioration premium ou un nouveau pari.`],
+        },
+        ftRoll: {
+          q: [(c) => `Vous détenez ${c.freeTransfers} transferts gratuits. Les garder ou les brûler ?`, (c) => `Le temps se plie. Vos ${c.freeTransfers} transferts gratuits dorment-ils encore ?`],
+          a: [(c) => `Avec ${c.freeTransfers} en main, utilisez-en un sur le plus gros upside et gardez le reste. Le mouvement gratuit est un cadeau.`, (c) => `Utilisez les gratuits avant d'en payer un seul. ${c.freeTransfers} chances de changer votre destin sans frais.`],
+        },
+        easyRun: {
+          q: [() => `Quel royaume a la route la plus douce devant lui ?`, () => `Où le calendrier se couche-t-il pour vous laisser passer ?`],
+          a: [(c) => `Chargez-vous de ${c.easyClub}. Leur série est la plus clémente de toutes, et les points viennent des calendriers doux.`, (c) => `${c.easyClub} traverse un passage facile. Prenez deux de ses joueurs et laissez les matchs faire le travail.`],
+        },
+        worldClimb: {
+          q: [(c) => `Vous êtes numéro ${c.rankTo} mondial. Qu'est-ce qui vous élève ?`, () => `Comment tombe-t-on vers le haut ?`],
+          a: [(c) => `Vous battez déjà ${c.rankPct} % du monde. Pour monter, soyez différent : un différentiel, un capitaine audacieux, aucun malus de panique.`, () => `Le classement récompense les courageux et les précoces. Prenez ce que personne n'a, choisissez l'inattendu en capitaine et ignorez le troupeau.`],
+        },
+        hitMath: {
+          q: [(c) => `Vous avez payé −${c.hit}. L'avenir en valait-il la peine ?`, () => `Qu'a acheté le malus ?`],
+          a: [(c) => `Un malus ne paie que si le nouveau joueur rapporte plus de ${c.hit} points dans les prochaines semaines. Poursuivez l'upside, pas le confort.`, (c) => `Ne prenez un −${c.hit} que pour quelqu'un au vrai plafond, à un festin de matchs et à faible possession. Sinon, attendez.`],
+        },
+        chaos: {
+          q: [() => `La variance est-elle l'ennemie ?`, () => `Plus vous êtes bas, plus les dés résonnent. Que lancez-vous ?`],
+          a: [() => `Quand on poursuit, la variance est une amie. Le chemin sûr garde votre rang ; le chemin étrange le change.`, () => `Soyez étrange exprès. Le sommet du monde est plein de gens qui ont osé être différents au bon moment.`],
+        },
+      },
     },
   },
 

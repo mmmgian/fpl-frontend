@@ -57,7 +57,7 @@ export interface MascotImage {
 /** The mascot scenes drawn for each manager (a football action and a press-conference scene). */
 export interface MascotPort {
   /** Null if no scene has been drawn for this manager. */
-  scenes(entry: number): { action: MascotImage; press: MascotImage } | null;
+  scenes(entry: number): { action: MascotImage; press: MascotImage; trip: MascotImage | null } | null;
 }
 
 /** Written news about a club, from an outside publisher. */

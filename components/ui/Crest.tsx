@@ -1,4 +1,6 @@
 import { avatarFor } from "@/lib/domain/avatar";
+import { tripAvatar } from "@/lib/domain/trip";
+import { isTrip } from "./tripSlot";
 import styles from "./Crest.module.css";
 
 interface CrestProps {
@@ -27,7 +29,9 @@ function initials(name: string) {
  */
 export function Crest({ code, src, name, size = 24, decorative = true }: CrestProps) {
   const full = src || (code ? `https://resources.premierleague.com/premierleague/badges/70/t${code}.png` : null);
-  const url = full && avatarFor(full, size);
+  // In the altered view our avatars are their psychedelic versions.
+  const sized = full && avatarFor(full, size);
+  const url = sized && (isTrip() ? tripAvatar(sized) : sized);
 
   return (
     <span

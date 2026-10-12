@@ -79,6 +79,8 @@
 .table tbody tr:has(input[data-expand]:checked) + .detail { display: table-row; }
 .table tbody tr:has(input[data-expand]:checked) > * { border-bottom-color: transparent; }
 .detail > td { padding: 0 var(--space-3) var(--space-4); }
+/* A detail row spans the table, so it must never be what makes the table wider: it takes the width the columns give it. */
+.detail > td > * { width: 0; min-width: 100%; }
 
 /* ----- the manager page: a ruled table, shaded header, quiet zebra ----- */
 :global([data-ui="sheet"]) .region { border: 0; border-radius: 0; background: transparent; box-shadow: none; }

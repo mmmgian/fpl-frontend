@@ -66,9 +66,10 @@
 
 /* The full-width detail row */
 .panel { display: grid; gap: var(--space-4); padding: var(--space-3) var(--space-2); background: var(--surface-2); border-radius: var(--radius); }
-@media (min-width: 640px) { .panel { grid-template-columns: auto minmax(0, 1fr); align-items: start; padding: var(--space-4); } }
+/* The chart column is as wide as its chart but never wider than 26rem, so a long caption wraps instead of pushing the facts off the right edge. */
+@media (min-width: 640px) { .panel { grid-template-columns: fit-content(26rem) minmax(0, 1fr); align-items: start; padding: var(--space-4); } }
 .chart { display: grid; gap: var(--space-2); justify-items: start; min-width: 0; overflow-x: auto; padding-top: var(--space-1); }
-.legend { margin: 0; font-size: 0.6875rem; color: var(--text-muted); }
+.legend { margin: 0; max-width: 100%; font-size: 0.6875rem; color: var(--text-muted); overflow-wrap: anywhere; }
 .streak { margin: 0; font-size: 0.8125rem; font-weight: 600; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-3) var(--space-4); margin: 0; }
 .fact { display: grid; gap: 1px; }

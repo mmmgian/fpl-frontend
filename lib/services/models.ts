@@ -51,6 +51,8 @@ export interface TeamIdentity {
   lastName: string;
   /** "First Last", trimmed. */
   manager: string;
+  /** The manager's drawn avatar, if there is one; the initials show otherwise. */
+  avatar: string | null;
 }
 
 export interface TeamGameweek {

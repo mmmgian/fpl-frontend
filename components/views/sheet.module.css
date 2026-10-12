@@ -1,0 +1,68 @@
+/*
+ * The manager page, laid out as a data sheet: dense, ruled, with hierarchy from colour blocks, borders and weight
+ * rather than size, shadow or capital letters. The wrapper below sets the tokens the shared components read (radius,
+ * spacing, shadow), and those components restyle themselves under [data-ui="sheet"] in their own files.
+ */
+.sheet {
+  --radius: 2px;
+  --radius-lg: 2px;
+  --radius-pill: 2px;
+  --shadow: none;
+  --surface: var(--surface-solid);
+  --surface-head: var(--wash);
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 14px;
+  --space-6: 18px;
+  --rule: var(--border-strong);
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-solid);
+  border: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- header ----- */
+.head { display: grid; gap: 8px; }
+.back { margin: 0; font-size: 12px; }
+.identity { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+.names { flex: 1 1 14rem; display: grid; align-content: center; gap: 4px; min-width: 0; }
+.title { margin: 0; font-size: clamp(20px, 3.4vw, 28px); font-weight: 800; line-height: 1.12; letter-spacing: 0; overflow-wrap: anywhere; }
+.manager { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-muted); }
+.tag { padding: 0 6px; background: var(--text); color: var(--bg); font-size: 11px; font-weight: 700; line-height: 1.6; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; align-self: flex-end; }
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  margin: 1px 1px 0;
+}
+.facts > div {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) 1fr;
+  box-shadow: 0 0 0 1px var(--rule);
+}
+.facts dt { padding: 4px 8px; background: var(--wash); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 4px 8px; }
+
+@media (max-width: 639px) {
+  .sheet { padding: 6px; gap: 8px; border-left: 0; border-right: 0; }
+  .avatar { width: 64px; height: 64px; }
+  .actions { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
+/* Sections sit close to what they introduce. */
+.sheet :global(.stack) { gap: 6px; }

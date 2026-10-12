@@ -17,3 +17,6 @@
 .band3 { background: var(--fdr-3-bg); color: var(--fdr-3-fg); border-color: var(--fdr-3-bd); }
 .band4 { background: var(--fdr-4-bg); color: var(--fdr-4-fg); border-color: var(--fdr-4-bd); }
 .band5 { background: var(--fdr-5-bg); color: var(--fdr-5-fg); border-color: var(--fdr-5-bd); }
+
+:global([data-ui="sheet"]) .chip { border-radius: 1px; }
+:global([data-ui="sheet"]) .block { border-radius: 1px; }

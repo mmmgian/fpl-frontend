@@ -92,10 +92,31 @@ export function MatchdayInsights({ data, gameweek }: { data: GameweekInsights; g
           </Card>
         ) : null}
 
+        {flags.length ? (
+          <Card title={m.injuryReport} headingLevel={3}>
+            <ul className={styles.list}>
+              {flags.map((f) => (
+                <li key={f.name}>
+                  <strong>{f.name}</strong> <span className={styles.muted}>({f.club})</span>{" "}
+                  <Badge tone={f.label === "Doubtful" ? "warning" : "live"}>
+                    {t.team.flags[f.label] ?? f.label}
+                    {f.chance != null ? ` ${t.common.percent(String(f.chance))}` : ""}
+                  </Badge>
+                  {f.news ? (
+                    <span className={styles.news}>
+                      <English>{f.news}</English>
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+
         {defcon.length ? (
-          <Card title={m.defcon} headingLevel={3}>
+          <Card title={m.defcon} headingLevel={3} className={styles.full}>
             <Fact>{m.defconRule}</Fact>
-            <ul className={styles.bars}>
+            <ul className={`${styles.bars} ${styles.barsWide}`}>
               {defcon.slice(0, 5).map((d) => (
                 <li key={d.name}>
                   <span className={styles.barLabel}>
@@ -127,26 +148,6 @@ export function MatchdayInsights({ data, gameweek }: { data: GameweekInsights; g
           </Card>
         ) : null}
 
-        {flags.length ? (
-          <Card title={m.injuryReport} headingLevel={3}>
-            <ul className={styles.list}>
-              {flags.map((f) => (
-                <li key={f.name}>
-                  <strong>{f.name}</strong> <span className={styles.muted}>({f.club})</span>{" "}
-                  <Badge tone={f.label === "Doubtful" ? "warning" : "live"}>
-                    {t.team.flags[f.label] ?? f.label}
-                    {f.chance != null ? ` ${t.common.percent(String(f.chance))}` : ""}
-                  </Badge>
-                  {f.news ? (
-                    <span className={styles.news}>
-                      <English>{f.news}</English>
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
       </div>
     </section>
   );

@@ -21,7 +21,7 @@ const replaceBadges = process.env.AVATARS_REPLACE_BADGES !== "false";
 
 export const services = {
   league: createLeagueService(fplGateway, { avatars: avatarGateway, replaceBadges }),
-  team: createTeamService(fplGateway),
+  team: createTeamService(fplGateway, { avatars: avatarGateway }),
   bonus: createBonusService(fplGateway),
   fixtures: createFixturesService(fplGateway),
   club: createClubService(fplGateway, { europe: createFootballData(process.env.FOOTBALL_DATA_API_KEY), news: createBbcNews() }),

@@ -21,28 +21,28 @@ const captain = (over: object = {}) => ({
 describe("captaincy wording", () => {
   it("says what the better armband would have added, with the numbers, and 'so far' while the week is live", () => {
     matchday({ captain: captain() as never });
-    expect(screen.getByText(/De Cuyper has scored 15\. Hand them the armband and you'd have banked/)).toBeInTheDocument();
+    expect(screen.getByText(/De Cuyper: 15 pts\. Swapping the armband gains/)).toBeInTheDocument();
     expect(screen.getByText("28 pts")).toBeInTheDocument();
-    expect(screen.getByText(/more so far\./)).toBeInTheDocument();
+    expect(screen.getByText(/so far\./)).toBeInTheDocument();
   });
   it("uses the past tense and drops 'so far' once the week is over", () => {
     matchday({ captain: captain({ provisional: false }) as never });
-    expect(screen.getByText(/De Cuyper scored 15\./)).toBeInTheDocument();
+    expect(screen.getByText(/De Cuyper: 15 pts\. Swapping the armband would have gained/)).toBeInTheDocument();
     expect(screen.queryByText(/so far/)).toBeNull();
   });
   it("praises the best armband, and says 'so far' only while live", () => {
     const { unmount } = matchday({ captain: captain({ regret: 0 }) as never });
-    expect(screen.getByText("Spot on: the best armband in your XI so far.")).toBeInTheDocument();
+    expect(screen.getByText("Best armband in the XI so far.")).toBeInTheDocument();
     unmount();
     matchday({ captain: captain({ regret: 0, provisional: false }) as never });
-    expect(screen.getByText("Spot on: the best armband in your XI.")).toBeInTheDocument();
+    expect(screen.getByText("Best armband in the XI.")).toBeInTheDocument();
   });
   it("covers a captain who hasn't played and one who sat out", () => {
     const { unmount } = matchday({ captain: captain({ state: "waiting", regret: null }) as never });
-    expect(screen.getByText("Your skipper hasn't kicked a ball yet. Fingers crossed.")).toBeInTheDocument();
+    expect(screen.getByText("Captain has not played yet.")).toBeInTheDocument();
     unmount();
     matchday({ captain: captain({ state: "unused", regret: null }) as never });
-    expect(screen.getByText("Your captain sat this one out, so there's no armband verdict.")).toBeInTheDocument();
+    expect(screen.getByText("Captain did not play: no armband verdict.")).toBeInTheDocument();
   });
   it("shows the vice-captain with a score, or just the name when there isn't one yet", () => {
     const { unmount } = matchday({ captain: captain() as never });
@@ -56,40 +56,40 @@ describe("captaincy wording", () => {
 describe("chip, bench and matchday wording", () => {
   it("explains each chip in a sentence that is true of it", () => {
     const { unmount } = matchday({ chip: { chip: "bboost", points: 12 } });
-    expect(screen.getByText("Bench Boost is on, so your bench's points count too.")).toBeInTheDocument();
+    expect(screen.getByText("Bench Boost: bench points count.")).toBeInTheDocument();
     unmount();
     matchday({ chip: { chip: "3xc", points: 9 } });
-    expect(screen.getByText(/Triple Captain: your skipper counts three times instead of twice/)).toBeInTheDocument();
+    expect(screen.getByText("Triple Captain: the captain counts three times.")).toBeInTheDocument();
   });
   it("comments on a big bench and a perfect one, but not an ordinary one or a counted one", () => {
     const bench = (points: number, counted = false) => ({ bench: { points, players: [{ name: "Kinsky", points }], counted } });
     const { unmount } = matchday(bench(14));
-    expect(screen.getByText("That's a lot of points to leave on the pine.")).toBeInTheDocument();
+    expect(screen.getByText("A lot of points left on the bench.")).toBeInTheDocument();
     unmount();
     const { unmount: u2 } = matchday(bench(0));
-    expect(screen.getByText(/Nothing wasted/)).toBeInTheDocument();
+    expect(screen.getByText("Nothing left on the bench.")).toBeInTheDocument();
     u2();
     const { unmount: u3 } = matchday(bench(5));
-    expect(screen.queryByText(/pine|Nothing wasted/)).toBeNull();
+    expect(screen.queryByText(/A lot of points left|Nothing left on the bench/)).toBeNull();
     u3();
     matchday(bench(30, true));
-    expect(screen.queryByText(/pine/)).toBeNull();                                   // under Bench Boost those points are not wasted
+    expect(screen.queryByText(/A lot of points left/)).toBeNull();                    // under Bench Boost those points are not wasted
   });
   it("says how many are still to play, with the armband allowed for", () => {
     matchday({ remaining: { count: 1, effective: 1, played: 10 } });
-    expect(screen.getByText("10 of 11 have played. Allowing for the armband, that's 1 player's worth of points still on the way.")).toBeInTheDocument();
+    expect(screen.getByText("10 of 11 have played. 1 player's points still to come, armband included.")).toBeInTheDocument();
   });
   it("uses the plural for several, and says plainly when everyone has played", () => {
     const { unmount } = matchday({ remaining: { count: 3, effective: 4, played: 8 } });
-    expect(screen.getByText(/that's 4 players' worth of points still on the way/)).toBeInTheDocument();
+    expect(screen.getByText(/4 players' points still to come, armband included/)).toBeInTheDocument();
     unmount();
     matchday({ remaining: { count: 0, effective: 0, played: 11 } });
-    expect(screen.getByText("Every one of your 11 counting players has taken the field.")).toBeInTheDocument();
+    expect(screen.getByText("All 11 counting players have played.")).toBeInTheDocument();
     expect(screen.queryByText(/No more match points/)).toBeNull();                 // a player can be mid-match, or have a second fixture to come
   });
   it("states the DefCon rule as thresholds, matching the numbers the bars use", () => {
     matchday({ defcon: [{ name: "Saliba", value: 7, threshold: 10, reached: false, matches: 1 }] });
-    expect(screen.getByText(/10 defensive contributions as a defender, or 12 as a midfielder or forward/)).toBeInTheDocument();
+    expect(screen.getByText(/10 defensive contributions in a match for a defender, 12 for a midfielder or forward/)).toBeInTheDocument();
     expect(screen.getByText("7/10")).toBeInTheDocument();
   });
 });

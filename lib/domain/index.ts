@@ -10,6 +10,7 @@ export * from "./format";
 export * from "./i18n";
 export * from "./gameweek";
 export * from "./insights";
+export * from "./interview";
 export * from "./seasonCharts";
 export * from "./squadStats";
 export * from "./leagueStats";

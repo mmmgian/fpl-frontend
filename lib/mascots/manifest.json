@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "managers": {
+    "1554375": {
+      "action": {
+        "file": "1554375-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "5b978cb38ae57bca5bb1a906398d8b5ae3b1263ade19327f81d00729b6d6b71b"
+      },
+      "press": {
+        "file": "1554375-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "2cadf72eb4c2e9b21ee97386fce1d3fd8cdcbebce0581740d4fac7c42392c487"
+      }
+    },
+    "2379133": {
+      "action": {
+        "file": "2379133-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "f2c80c6f12177ec1d27c3928c1e96a0bee74d2882380fb1476bfe2ad23fa7efd"
+      },
+      "press": {
+        "file": "2379133-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "03a2998dbcc97c19d164ff72aa2eb7103262ee731a497b2fdf7ba9aa293b4490"
+      }
+    },
+    "2836224": {
+      "action": {
+        "file": "2836224-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "b5df1d37a88168e46191028e18413d645c278a3e6b5c9b66f797bbc67781cb27"
+      },
+      "press": {
+        "file": "2836224-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "648fdc198adf3d49391ce2b1875521095ea18ccac91c11b85a495c6d466d80d9"
+      }
+    },
+    "2994918": {
+      "action": {
+        "file": "2994918-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "f52ae6ae6604a4f902b5175e9b321db55b6153b2b186c2459b95448f9c43f91a"
+      },
+      "press": {
+        "file": "2994918-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "6abc4771ced748fcea28696674823a41e5ddeab20a649330023223be824bb18e"
+      }
+    },
+    "5266078": {
+      "action": {
+        "file": "5266078-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "58805e04f5089f497cfae4c9bf0c6aa35a4eb8b412a7f360590f4ab9c48a5aed"
+      },
+      "press": {
+        "file": "5266078-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "1697ed1d0b7df09ed2b98cd4300399c20cf5ed0c7b3ceb99ada0377e941c0fd7"
+      }
+    },
+    "5320072": {
+      "action": {
+        "file": "5320072-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "2af5de63ec07d6c70ab0ba47a7565ad5674df1558af2664dd08a02de1faa6607"
+      },
+      "press": {
+        "file": "5320072-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "93e5fb4a73407745b53f53331da5cfbd1498bdea0370ee283a754bb0952859d5"
+      }
+    },
+    "5790834": {
+      "action": {
+        "file": "5790834-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "c3466ff78a783d306d723e46ded151b468fc9d3dfe9dc3e6aca7b3a8171c9eb7"
+      },
+      "press": {
+        "file": "5790834-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "794a1ee75bb102d9d78a126d0a30e74db943f60d63279b5e68c0db852239c87a"
+      }
+    },
+    "5851395": {
+      "action": {
+        "file": "5851395-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "f1935513c789b4357542d3914bce2e8e5a1210226c8da6a61f526425990f5aab"
+      },
+      "press": {
+        "file": "5851395-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "73b0344e07d1aee24a15c007f76754d014b3528ee27787d55e2dbc63efbd1539"
+      }
+    },
+    "5926727": {
+      "action": {
+        "file": "5926727-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "b7292253e39795b92116ac75b63471ba45320b43fc666317ccfe901b33bcc9a2"
+      },
+      "press": {
+        "file": "5926727-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "a28c3541b92ff2df3cfb883fb98c5f5ee67182d2e88d611e09b73bd9b4db77e7"
+      }
+    },
+    "6220185": {
+      "action": {
+        "file": "6220185-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "e22ec7ae97a1d07a3a5c98b9c14f2f1c8d8308ef646007ac5e0a32c2e8b995fc"
+      },
+      "press": {
+        "file": "6220185-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "a76a1bcee1ba4530e7ca72d1f11bb0959e724b2d07e987e659b3db7467cb8e5b"
+      }
+    },
+    "6315036": {
+      "action": {
+        "file": "6315036-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "4a4e9e6fb89c0b896693547251337110904241deb366397af732061ad3dbfe3d"
+      },
+      "press": {
+        "file": "6315036-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "4f7d8d59dff8a46c51ccec932c18bfb6ab65df6d454041af6c0df98ea9c1d115"
+      }
+    },
+    "6535294": {
+      "action": {
+        "file": "6535294-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "d744d66f2da5c0ec8784d094c56f5318e5b40ebc58dc02c0d186ea393895c52a"
+      },
+      "press": {
+        "file": "6535294-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "985baefec907786eb9c2ee0850be51adfbb5137c6a0bd1c38a181607d2e0af47"
+      }
+    },
+    "6838812": {
+      "action": {
+        "file": "6838812-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "551cadddea1edada6c80928dc019c1499425dfe38dc02508c05b7ced7cc53c0e"
+      },
+      "press": {
+        "file": "6838812-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "4624c60eef37c90a08a066c2d93f532070ceb44bf1e163623e97eb376549e6b3"
+      }
+    },
+    "7073878": {
+      "action": {
+        "file": "7073878-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "73c6d4524c3b424155265e25c75c143d08474634e8ae13a2b700b5b9acdca4fa"
+      },
+      "press": {
+        "file": "7073878-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "cd31cf5f7d7f174f78d43199f726305d940303cd88d5238505eba023f9eefa44"
+      }
+    },
+    "7389045": {
+      "action": {
+        "file": "7389045-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "3d0ac340f541c8461a0b78d3683bcd175e8c82faa90b51c4300e8355928def5c"
+      },
+      "press": {
+        "file": "7389045-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "735f70d08d0cf8cbad93004d2d5bb47f75bddd2211fdd3b4b56bcd0ec880463c"
+      }
+    },
+    "7456185": {
+      "action": {
+        "file": "7456185-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "a2c813acbcdc715c31e578e67766794723cc347475ffa1d3ff713ae86cd95547"
+      },
+      "press": {
+        "file": "7456185-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "f6afa59a27d51c2c903ecce1e31869010aea6af5a9b3934c1d5bcc6a529ee426"
+      }
+    },
+    "7475777": {
+      "action": {
+        "file": "7475777-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "ff5bf13b13281eaf85b5974d7bff8979d405650d6e43d6df44f4d8cba06e643a"
+      },
+      "press": {
+        "file": "7475777-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "90211ef6e9b1986ebf478c982f31e758b8445032263037022c5c5a6248cf00e8"
+      }
+    },
+    "7533718": {
+      "action": {
+        "file": "7533718-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "94c54559125c7d8cc3ba441b5305fe88124955dabfb9fd32107965235eaa20af"
+      },
+      "press": {
+        "file": "7533718-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "4b166dd302c1cfbdaf6f3ef2c1556433b34f2140ee60f536d746fa236c1f4946"
+      }
+    },
+    "7555187": {
+      "action": {
+        "file": "7555187-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "f1d5a844918d904027addc2e37adca160b14cb4b400f0542e3a72a75c2011d4e"
+      },
+      "press": {
+        "file": "7555187-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "603a20ce0dcad245658eb741d5299fe39e9b1dbd853825b007ee892dd33f255c"
+      }
+    },
+    "8198675": {
+      "action": {
+        "file": "8198675-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "a6764b9eb56c51ff55de0e96f4b7b840e561d53128319c1761e2e66f765fe2bd"
+      },
+      "press": {
+        "file": "8198675-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "733a5d56cd10b49f6fd1a703a035b38e0a98a6ed5d36bfc0dc83be2d201960aa"
+      }
+    },
+    "10039558": {
+      "action": {
+        "file": "10039558-action.webp",
+        "width": 768,
+        "height": 768,
+        "sha256": "64790d4fe7b0518e1d998c8f04a969add69a670d8a03589834b8d11036f45d81"
+      },
+      "press": {
+        "file": "10039558-press.webp",
+        "width": 1200,
+        "height": 800,
+        "sha256": "70d53452a1dc71e805350e5843918c70316bc7e19c4a1e6990f840ddc338e8c5"
+      }
+    }
+  }
+}

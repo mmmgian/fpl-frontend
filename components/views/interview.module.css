@@ -1,0 +1,129 @@
+/*
+ * The press conference: a rounded, translucent card like the rest of the site (it sets its own radii, because the
+ * manager sheet around it squares the shared tokens). Questions are quiet speech bubbles on the left; the mascot's
+ * answers are tinted by who is answering and sit on the right.
+ */
+.panel {
+  --r: 20px;
+  --r-bubble: 18px;
+  --ink-genius: var(--accent-2);
+  --ink-snarky: var(--zone-bad);
+  --ink-egotist: var(--zone-warn);
+  --ink-dumb: var(--zone-warn);
+  --ink-satirical: var(--accent);
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 55%),
+    radial-gradient(120% 90% at 100% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    var(--surface);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.head { display: grid; gap: 2px; }
+.title { margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+.lede { margin: 0; color: var(--text-muted); }
+
+.body { display: grid; gap: 18px; min-width: 0; }
+@media (min-width: 880px) {
+  .body { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start; }
+  .figure { position: sticky; top: 72px; }
+}
+
+.figure { position: relative; margin: 0; min-width: 0; }
+.photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.caption {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, #000 62%, transparent);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--zone-bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--zone-bad) 35%, transparent); }
+
+.transcript { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.exchange { display: grid; gap: 8px; min-width: 0; }
+
+.ask, .reply { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.reply { justify-content: flex-end; padding-left: 8%; }
+.ask { padding-right: 8%; }
+.line { display: grid; gap: 3px; min-width: 0; }
+.reply .line { justify-items: end; }
+
+.who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--text-muted); font-size: 12px; }
+.who strong { color: var(--text); font-weight: 700; }
+.reply .who { justify-content: flex-end; }
+
+.bubble {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--r-bubble);
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.ask .bubble { border-top-left-radius: 6px; background: color-mix(in srgb, var(--surface-solid) 86%, transparent); }
+.reply .bubble { border-top-right-radius: 6px; text-align: left; }
+
+.glyph, .mascot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  overflow: hidden;
+}
+.glyph { background: color-mix(in srgb, var(--ink) 22%, var(--surface-solid)); border: 1px solid color-mix(in srgb, var(--ink) 55%, transparent); color: var(--text); }
+.ask[data-ask="genius"] { --ink: var(--ink-genius); }
+.ask[data-ask="dumb"] { --ink: var(--ink-dumb); }
+.ask[data-ask="satirical"] { --ink: var(--ink-satirical); }
+.ask .glyph { background: color-mix(in srgb, var(--ink) 22%, var(--surface-solid)); border-color: color-mix(in srgb, var(--ink) 60%, transparent); }
+
+.mascot { background: color-mix(in srgb, var(--ink) 18%, var(--surface-solid)); border: 2px solid color-mix(in srgb, var(--ink) 65%, transparent); }
+.reply[data-answer="genius"] { --ink: var(--ink-genius); }
+.reply[data-answer="snarky"] { --ink: var(--ink-snarky); }
+.reply[data-answer="egotist"] { --ink: var(--ink-egotist); }
+.reply .bubble { background: color-mix(in srgb, var(--ink) 16%, var(--surface-solid)); border-color: color-mix(in srgb, var(--ink) 50%, var(--border)); }
+.chip {
+  padding: 0 9px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--ink) 30%, var(--surface-solid));
+  border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent);
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.note { margin: 0; color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 520px) {
+  .panel { padding: 14px; border-radius: 22px; }
+  .ask { padding-right: 0; }
+  .reply { padding-left: 0; }
+}

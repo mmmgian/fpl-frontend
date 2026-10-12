@@ -1,22 +1,23 @@
 import type { Entry } from "../domain";
 import { buildTeamSheet, currentEvent, gameweekPoints, selectGameweek } from "../domain";
 import type { TeamGameweek, TeamIdentity, TeamModel } from "./models";
-import type { AvatarPort, FplPort, ServiceOptions } from "./ports";
+import type { AvatarPort, FplPort, MascotPort, ServiceOptions } from "./ports";
 import { buildInsights } from "./teamInsights";
 
-const identityOf = (entry: Entry, avatars?: AvatarPort): TeamIdentity => ({
+const identityOf = (entry: Entry, avatars?: AvatarPort, mascots?: MascotPort): TeamIdentity => ({
   entryId: entry.id,
   teamName: entry.name,
   firstName: entry.player_first_name,
   lastName: entry.player_last_name,
   manager: `${entry.player_first_name} ${entry.player_last_name}`.trim(),
   avatar: avatars?.src(entry.id) ?? null,
+  mascot: mascots?.scenes(entry.id) ?? null,
 });
 
 /** Use case: one manager's team sheet for a gameweek. */
 export function createTeamService(
   fpl: Pick<FplPort, "bootstrap" | "entry" | "picks" | "live" | "fixtures" | "allFixtures" | "history">,
-  { now = () => new Date(), avatars }: ServiceOptions = {},
+  { now = () => new Date(), avatars, mascots }: ServiceOptions = {},
 ) {
   /**
    * Picks (null = FPL has none for that GW), live points and match state (null = unavailable). The last two
@@ -34,7 +35,7 @@ export function createTeamService(
     async identify(entryId: number): Promise<TeamIdentity | null> {
       return fpl
         .entry(entryId)
-        .then((entry) => (entry ? identityOf(entry, avatars) : null))
+        .then((entry) => (entry ? identityOf(entry, avatars, mascots) : null))
         .catch(() => null);
     },
 
@@ -54,7 +55,7 @@ export function createTeamService(
 
       const [entry, bootstrap] = await Promise.all([fpl.entry(entryId), bootstrapRequest]);
       if (!entry) return { kind: "not-found" };
-      const team = identityOf(entry, avatars);
+      const team = identityOf(entry, avatars, mascots);
 
       const latest = currentEvent(bootstrap.events);
       if (!latest) return { kind: "no-season", team };

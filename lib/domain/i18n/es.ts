@@ -537,6 +537,68 @@ export const es: Messages = {
     },
   },
 
+  interview: {
+    heading: "Rueda de prensa",
+    lede: (first, gw) => `${first} da la cara ante la prensa tras la ${gw}.`,
+    note: "Inventada por diversión: en realidad nadie preguntó nada.",
+    pressAlt: (team) => `La mascota de ${team} en una rueda de prensa con periodistas.`,
+    transcript: "Transcripción",
+    askers: { genius: "El Profesor", dumb: "El Novato", satirical: "El Columnista" },
+    askerRole: { genius: "Pregunta con ingenio", dumb: "Pregunta sin pensar", satirical: "Pregunta con sorna" },
+    answerers: { genius: "CI 150+", snarky: "Sarcástico", egotist: "Egocéntrico" },
+    answerBy: (team) => `Responde ${team}`,
+    topics: {
+      variance: {
+        q: (c) => `${c.points} puntos en la ${c.gw}. ¿Cuánto de eso es señal y cuánto es varianza? ¿Qué intervalo de confianza tendría su proceso?`,
+        a: {
+          genius: () => "El resultado no es la calidad de la decisión. En 38 jornadas la varianza se diluye y la ventaja se acumula. Usted cita una sola extracción de una distribución larga.",
+          snarky: () => "Un intervalo de confianza necesita datos. Usted me dio una pregunta y ya lamento el tamaño de la muestra.",
+          egotist: () => "Muy estrecho, porque casi nunca me equivoco. La varianza es el resto de la liga.",
+        },
+      },
+      regret: {
+        q: () => "¿Su política de capitanes maximiza los puntos esperados o minimiza el arrepentimiento cuando la plantilla va para el otro lado?",
+        a: {
+          genius: () => "Puntos esperados, con una penalización por arrepentimiento solo por encima de un 40 % de propiedad. Pasado eso, diferenciarse es lo racional. Es minimax con sombrero.",
+          snarky: () => "Las dos. Ninguna. Doy el brazalete a quien sepa deletrear bajo presión.",
+          egotist: () => "Mi capitán lo elijo yo, así que es el correcto. Los puntos solo se ponen al día.",
+        },
+      },
+      pointsAim: {
+        q: (c) => `Entonces, ${c.team}, la idea es sacar más puntos que los otros managers, ¿verdad?`,
+        a: {
+          genius: () => "En primer orden, sí, aunque en rigor maximizamos puntos con una restricción de presupuesto y un costo por traspaso. Acaba de describir la función objetivo.",
+          snarky: () => "Sí. Muy bien. ¿Le leo también la siguiente pregunta?",
+          egotist: () => "La idea es que gano yo. Los puntos son un trámite que insisten en anotar.",
+        },
+      },
+      goalkeeper: {
+        q: (c) => `Una rápida, ${c.first}: ¿cuál de sus jugadores era el portero? ¿El alto?`,
+        a: {
+          genius: () => "Los porteros son el activo de menor varianza del equipo: vallas invictas y paradas, los menos puntos por millón. La estatura es incidental. Los guantes son diagnósticos.",
+          snarky: () => "El que lleva guantes. Es lo único que tengo claro en esta sala.",
+          egotist: () => "Mi portero es el mejor elegido de la liga. Sea cual sea.",
+        },
+      },
+      vibes: {
+        q: () => "Fuentes cercanas al plantel describen su estrategia de traspasos como 'puras vibras'. ¿Lo desmiente?",
+        a: {
+          genius: () => "Yo la llamaría bayesiana: un prior fuerte, actualización agresiva y una heurística afectiva que a veces le gana al modelo. 'Vibras' es el término popular.",
+          snarky: () => "¿Desmentirlo? Lo enmarcaría. 'Puras vibras' irá en el escudo del club.",
+          egotist: () => "Mis vibras son la investigación de los demás. Pueden seguirme si quieren.",
+        },
+      },
+      groupChat: {
+        q: (c) => `Los críticos dicen que ${c.team} es 'un grupo de chat al que le dieron presupuesto'. ¿Qué responde?`,
+        a: {
+          genius: () => "Un grupo de chat es una red de decisión descentralizada con un excelente intercambio de señales. Me halaga la comparación.",
+          snarky: () => "Al menos el grupo de chat es más gracioso que su columna. Y responde más rápido.",
+          egotist: () => "Un grupo de chat que yo administro, por cierto. Los permisos de admin no se negocian.",
+        },
+      },
+    },
+  },
+
   loading: {
     tools: "Cargando las herramientas",
     team: "Cargando el equipo",

@@ -3,6 +3,7 @@
  * and not translated fails the type check. Strings that need numbers or names are functions; each language decides
  * its own plural rules.
  */
+import type { AnswerKind, AskKind, InterviewTopic, TopicId } from "../interview";
 import { clientEn } from "./client/en";
 
 const gw = (n: number) => `GW${n}`;
@@ -554,6 +555,68 @@ export const en = {
       open: (team: string) => `Open ${team}'s team sheet`,
       points: (n: string) => `${n} pts`,
     },
+  },
+
+  interview: {
+    heading: "Press conference",
+    lede: (first: string, gw: string) => `${first} faces the press after ${gw}.`,
+    note: "Invented for fun: nobody was really asked anything.",
+    pressAlt: (team: string) => `${team}'s mascot at a press conference with journalists.`,
+    transcript: "Transcript",
+    askers: { genius: "The Professor", dumb: "The Rookie", satirical: "The Columnist" } as Record<AskKind, string>,
+    askerRole: { genius: "Asks cleverly", dumb: "Asks daftly", satirical: "Asks cheekily" } as Record<AskKind, string>,
+    answerers: { genius: "IQ 150+", snarky: "Snarky", egotist: "Egotist" } as Record<AnswerKind, string>,
+    answerBy: (team: string) => `${team} replies`,
+    topics: {
+      variance: {
+        q: (c) => `${c.points} points in ${c.gw}. How much of that is signal and how much is variance, and what would the confidence interval on your process look like?`,
+        a: {
+          genius: () => "Outcome is not decision quality. Over 38 gameweeks the variance washes out and the edge compounds. You are quoting one draw from a long distribution.",
+          snarky: () => "A confidence interval needs data. You've given me one question and I already regret the sample size.",
+          egotist: () => "Very narrow, because I am rarely wrong. The rest of the league is the variance.",
+        },
+      },
+      regret: {
+        q: () => "Does your captaincy policy maximise expected points, or minimise regret when the template goes the other way?",
+        a: {
+          genius: () => "Expected points, with a regret penalty only above roughly 40% ownership. Beyond that, differentiating is the rational play. It is minimax with a hat on.",
+          snarky: () => "Both. Neither. I hand the armband to whoever's name I can spell under pressure.",
+          egotist: () => "My captain is chosen by me, so he is correct. The points merely catch up.",
+        },
+      },
+      pointsAim: {
+        q: (c) => `So, ${c.team}, the idea is to get more points than the other managers. Is that right?`,
+        a: {
+          genius: () => "In the first-order sense, yes, though strictly we maximise points under a budget constraint and a transfer cost. You have just described the objective function.",
+          snarky: () => "Yes. Well done. Shall I read the next question to you as well?",
+          egotist: () => "The idea is that I win. The points are a formality they insist on recording.",
+        },
+      },
+      goalkeeper: {
+        q: (c) => `Quick one, ${c.first}: which of your players is the goalie again? The tall one?`,
+        a: {
+          genius: () => "Goalkeepers are the lowest-variance asset in the squad: clean sheets and saves, the fewest points per million. Height is incidental. The gloves are diagnostic.",
+          snarky: () => "The one wearing gloves. It's the only thing in this room I'm sure about.",
+          egotist: () => "My goalkeeper is the best-chosen goalkeeper in the league. Whichever one he is.",
+        },
+      },
+      vibes: {
+        q: () => "Sources close to the squad describe your transfer strategy as 'vibes, mostly'. Care to deny it?",
+        a: {
+          genius: () => "I would call it Bayesian: a strong prior, aggressive updating, and an affective heuristic that occasionally beats the model. 'Vibes' is the layman's term.",
+          snarky: () => "Deny it? I'd frame it. 'Vibes, mostly' is going on the club crest.",
+          egotist: () => "My vibes are other people's research. They are welcome to follow along.",
+        },
+      },
+      groupChat: {
+        q: (c) => `Critics call ${c.team} 'a group chat that was handed a budget'. Your response?`,
+        a: {
+          genius: () => "A group chat is a decentralised decision network with excellent signal sharing. I'm flattered by the comparison.",
+          snarky: () => "At least the group chat is funnier than your column. And it replies faster.",
+          egotist: () => "A group chat I run, I might add. Admin rights are non-negotiable.",
+        },
+      },
+    } as Record<TopicId, InterviewTopic>,
   },
 
   loading: {

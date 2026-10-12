@@ -311,7 +311,7 @@ describe("the frame around the pages", () => {
     const english = await frame("en");
     for (const locale of ["es", "fr"] as const) {
       const out = await frame(locale);
-      expect(englishLeaks(english, out, locale, { allow: ["The Lobster League", "The Lobster Times", "content", "Lobster"] }), locale).toEqual([]);
+      expect(englishLeaks(english, out, locale, { allow: ["The Lobster League", "The Lobster Times", "The Times", "content", "Lobster"] }), locale).toEqual([]);
       expect(visibleTexts(out).length).toBeGreaterThan(8);
     }
   });

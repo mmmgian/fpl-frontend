@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge, GameweekPager, LiveRefresh, StateMessage, StatList, gameweekName, getFormat, getT } from "@/components/ui";
 import type { TeamGameweek, TeamIdentity, TeamModel, TeamSummary } from "@/lib/services/models";
+import { InterviewPanel } from "./InterviewPanel";
 import { GwStatusBadge } from "./GwStatusBadge";
 import { MatchdayInsights, SeasonInsightsView } from "./TeamInsightsView";
 import { TeamHeader, type HeaderFact } from "./TeamHeader";
@@ -123,6 +124,8 @@ export function TeamView({ model }: { model: TeamState }) {
               <p>{tv.noLiveBody(gameweekName(gw.name))}</p>
             </StateMessage>
           ) : null}
+
+          <InterviewPanel team={team} gameweek={gw} summary={model.summary} />
 
           <MatchdayInsights data={model.insights.gameweek} gameweek={gameweekName(gw.name)} />
 

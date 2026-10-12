@@ -4,6 +4,7 @@
  * Every model is a discriminated union on `kind`, so a view must handle every state.
  */
 import type { Issue, IssueKind, IssueSummary } from "../domain";
+import type { MascotImage } from "./ports";
 import type {
   BestXI, Deadline, EoTier, PriceRow, PositionId,
   AutoSub, ClubMatch, ClubNewsItem, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
@@ -56,6 +57,8 @@ export interface TeamIdentity {
   manager: string;
   /** The manager's drawn avatar, if there is one; the initials show otherwise. */
   avatar: string | null;
+  /** The mascot's football action and press-conference scenes, if drawn. */
+  mascot: { action: MascotImage; press: MascotImage } | null;
 }
 
 export interface TeamGameweek {

@@ -47,6 +47,19 @@ export interface AvatarPort {
   src(entry: number): string | null;
 }
 
+/** One of a manager's mascot pictures. The picture is opaque; keep its shape rather than cropping it. */
+export interface MascotImage {
+  src: string;
+  width: number;
+  height: number;
+}
+
+/** The mascot scenes drawn for each manager (a football action and a press-conference scene). */
+export interface MascotPort {
+  /** Null if no scene has been drawn for this manager. */
+  scenes(entry: number): { action: MascotImage; press: MascotImage } | null;
+}
+
 /** Written news about a club, from an outside publisher. */
 export interface NewsPort {
   /** Null if the publisher has nothing for this club. Rejects if the publisher can't be reached. */
@@ -64,6 +77,8 @@ export interface ServiceOptions {
   now?: () => Date;
   /** If given, managers get their drawn avatar as their badge. */
   avatars?: AvatarPort;
+  /** If given, the manager page shows the mascot's action and press scenes. */
+  mascots?: MascotPort;
   /** Also replace badges managers uploaded themselves (a consistent look). Off unless asked for. */
   replaceBadges?: boolean;
 }

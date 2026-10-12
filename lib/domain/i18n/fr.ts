@@ -536,6 +536,68 @@ export const fr: Messages = {
     },
   },
 
+  interview: {
+    heading: "Conférence de presse",
+    lede: (first, gw) => `${first} affronte la presse après la ${gw}.`,
+    note: "Inventée pour le plaisir : personne n'a vraiment posé de question.",
+    pressAlt: (team) => `La mascotte de ${team} en conférence de presse devant des journalistes.`,
+    transcript: "Transcription",
+    askers: { genius: "Le Professeur", dumb: "Le Débutant", satirical: "Le Chroniqueur" },
+    askerRole: { genius: "Questionne avec brio", dumb: "Questionne sans réfléchir", satirical: "Questionne avec malice" },
+    answerers: { genius: "QI 150+", snarky: "Caustique", egotist: "Égocentrique" },
+    answerBy: (team) => `${team} répond`,
+    topics: {
+      variance: {
+        q: (c) => `${c.points} points lors de la ${c.gw}. Quelle part de signal, quelle part de variance, et quel serait l'intervalle de confiance de votre méthode ?`,
+        a: {
+          genius: () => "Le résultat n'est pas la qualité de la décision. Sur 38 journées, la variance se dilue et l'avantage s'accumule. Vous citez un seul tirage d'une longue distribution.",
+          snarky: () => "Un intervalle de confiance demande des données. Vous m'avez posé une question et je regrette déjà la taille de l'échantillon.",
+          egotist: () => "Très étroit, car je me trompe rarement. La variance, c'est le reste de la ligue.",
+        },
+      },
+      regret: {
+        q: () => "Votre politique de capitaine maximise-t-elle l'espérance de points, ou minimise-t-elle le regret quand la masse part de l'autre côté ?",
+        a: {
+          genius: () => "L'espérance de points, avec une pénalité de regret seulement au-delà de 40 % de possession. Ensuite, se différencier est rationnel. C'est du minimax avec un chapeau.",
+          snarky: () => "Les deux. Aucune. Je donne le brassard à celui dont je sais épeler le nom sous pression.",
+          egotist: () => "Mon capitaine, c'est moi qui le choisis, donc il est le bon. Les points n'ont qu'à suivre.",
+        },
+      },
+      pointsAim: {
+        q: (c) => `Alors, ${c.team}, l'idée est d'avoir plus de points que les autres managers, c'est bien ça ?`,
+        a: {
+          genius: () => "Au premier ordre, oui, même si l'on maximise en réalité les points sous contrainte de budget et de coût de transfert. Vous venez de décrire la fonction objectif.",
+          snarky: () => "Oui. Bravo. Je vous lis aussi la question suivante ?",
+          egotist: () => "L'idée, c'est que je gagne. Les points sont une formalité qu'ils tiennent à noter.",
+        },
+      },
+      goalkeeper: {
+        q: (c) => `Question rapide, ${c.first} : lequel de vos joueurs est le gardien, déjà ? Le grand ?`,
+        a: {
+          genius: () => "Les gardiens sont l'actif à plus faible variance de l'équipe : clean sheets et arrêts, le moins de points par million. La taille est accessoire. Les gants font foi.",
+          snarky: () => "Celui qui porte des gants. C'est la seule chose dont je suis sûr dans cette salle.",
+          egotist: () => "Mon gardien est le mieux choisi de la ligue. Quel qu'il soit.",
+        },
+      },
+      vibes: {
+        q: () => "Des sources proches de l'équipe décrivent votre stratégie de transferts comme « surtout au feeling ». Vous démentez ?",
+        a: {
+          genius: () => "Je dirais bayésienne : un a priori fort, une mise à jour agressive et une heuristique affective qui bat parfois le modèle. « Feeling » est le terme du profane.",
+          snarky: () => "Démentir ? Je l'encadrerais. « Surtout au feeling » ira sur l'écusson du club.",
+          egotist: () => "Mon feeling, c'est la recherche des autres. Libre à eux de me suivre.",
+        },
+      },
+      groupChat: {
+        q: (c) => `Les critiques disent que ${c.team} est « un groupe de discussion à qui l'on a donné un budget ». Votre réponse ?`,
+        a: {
+          genius: () => "Un groupe de discussion est un réseau de décision décentralisé au partage de signaux remarquable. La comparaison me flatte.",
+          snarky: () => "Au moins le groupe de discussion est plus drôle que votre chronique. Et il répond plus vite.",
+          egotist: () => "Un groupe que j'administre, d'ailleurs. Les droits d'admin ne se négocient pas.",
+        },
+      },
+    },
+  },
+
   loading: {
     tools: "Chargement des outils",
     team: "Chargement de l'équipe",

@@ -6,7 +6,7 @@ import { createTeamService } from "@/lib/services/team";
 import { fakeFpl } from "./support";
 import { expectNoAxeViolations } from "./axe";
 
-const team = (over: Partial<TeamIdentity> = {}): TeamIdentity => ({ entryId: 7, teamName: "Gaucho F.C.", firstName: "gian", lastName: "jaen", manager: "gian jaen", avatar: "/avatars/7.webp", ...over });
+const team = (over: Partial<TeamIdentity> = {}): TeamIdentity => ({ entryId: 7, teamName: "Gaucho F.C.", firstName: "gian", lastName: "jaen", manager: "gian jaen", avatar: "/avatars/7.webp", mascot: null, ...over });
 
 describe("TeamHeader", () => {
   it("names the team as the page's one h1, with the manager beside a Manager tag", () => {

@@ -1,5 +1,6 @@
-/* A rounded card: the title and gameweek on top, four tinted cells (the old Apple colours), the date underneath. */
+/* A rounded card: the title and gameweek on top, four muted shark-grey cells, the date underneath. */
 .timer {
+  --shark: #6e7a86; /* muted shark grey */
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);
@@ -14,17 +15,14 @@
 .gw { padding: 1px 10px; border-radius: var(--radius-pill); background: var(--wash); font-size: 13px; font-weight: 700; }
 .cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
 .cell {
-  --tint: #61bb46;
+  --tint: var(--shark);
   display: grid;
   justify-items: center;
   padding: 10px 4px 8px;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--tint) 16%, var(--surface-solid));
+  background: color-mix(in srgb, var(--tint) 22%, var(--surface-solid));
   border: 1px solid color-mix(in srgb, var(--tint) 45%, var(--border));
 }
-.cell:nth-child(2) { --tint: #fdb827; }
-.cell:nth-child(3) { --tint: #f5821f; }
-.cell:nth-child(4) { --tint: #e03a3e; }
 .value { font-size: clamp(26px, 6vw, 40px); font-weight: 800; line-height: 1.1; }
 .label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
 .passed { margin: 0; padding: 14px 12px; font-weight: 700; text-align: center; }

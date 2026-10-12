@@ -1,14 +1,5 @@
-/*
- * Tools: rounded cards like the rest of the site, with a nod to the old rainbow Apple: six soft colours that mark
- * the sections (jump pills, the title stripe, the pitch) and nothing else.
- */
-.rainbow { --c1: #61bb46; --c2: #fdb827; --c3: #f5821f; --c4: #e03a3e; --c5: #963d97; --c6: #009ddc; }
-.stripe {
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--c1) 0 16.66%, var(--c2) 0 33.33%, var(--c3) 0 50%, var(--c4) 0 66.66%, var(--c5) 0 83.33%, var(--c6) 0);
-  opacity: 0.85;
-}
+/* Tools: rounded cards like the rest of the site. The pitch is the only green. */
+.pitch { --green: #61bb46; }
 .jump { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .jump a {
   display: inline-flex;
@@ -22,12 +13,7 @@
   text-decoration: none;
   transition: background 150ms ease, border-color 150ms ease;
 }
-.jump a::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--dot-c, var(--c1)); }
-.jump li:nth-child(1) a { --dot-c: var(--c1); }
-.jump li:nth-child(2) a { --dot-c: var(--c3); }
-.jump li:nth-child(3) a { --dot-c: var(--c5); }
-.jump li:nth-child(4) a { --dot-c: var(--c6); }
-.jump a:hover { background: var(--hover-wash); border-color: var(--dot-c); }
+.jump a:hover { background: var(--hover-wash); border-color: var(--border-strong); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); align-items: start; }
 .full { grid-column: 1 / -1; }
@@ -42,9 +28,9 @@
   padding: 6px;
   border-radius: var(--radius);
   background:
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--c1) 22%, transparent) 0 44px, color-mix(in srgb, var(--c1) 12%, transparent) 44px 88px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--green) 22%, transparent) 0 44px, color-mix(in srgb, var(--green) 12%, transparent) 44px 88px),
     var(--surface);
-  border: 1px solid color-mix(in srgb, var(--c1) 40%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--green) 40%, var(--border));
 }
 .line { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; border-radius: 12px; }
 .lineName { padding: 4px 8px; font-size: 12px; font-weight: 700; color: var(--text); }

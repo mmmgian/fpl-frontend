@@ -81,10 +81,10 @@ describe("the Tools page", () => {
     expect(links[0]).toHaveTextContent("#1");
   });
 
-  it("sits on the rainbow-striped page wrapper, with no sharp data-sheet look left", async () => {
+  it("has no rainbow stripe and no sharp data-sheet look", async () => {
     const { container } = render(<ToolsView model={await model()} />);
     expect(container.querySelector('[data-ui="sheet"]')).toBeNull();
-    expect(container.querySelector('[class*="stripe"]')).not.toBeNull();
+    expect(container.querySelector('[class*="stripe"]')).toBeNull();
   });
 
   it("leaves out the tools it can't fill rather than showing empty boxes", async () => {

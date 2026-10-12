@@ -27,7 +27,7 @@ export function SiteHeader({ siteName }: { siteName: string }) {
       <div className={`container ${styles.inner}`}>
         <Link href="/" className={styles.brand} aria-label={`${siteName}: ${t.nav.home}`}>
           {/* eslint-disable-next-line @next/next/no-img-element -- a small fixed-size picture, already optimised */}
-          <img src="/brand/lobster-league.webp" alt="" width={72} height={48} className={styles.logo} decoding="async" />
+          <img src="/brand/lobster-league.webp" alt="" width={96} height={64} className={styles.logo} decoding="async" />
         </Link>
         <div className={styles.theme}>
           <ThemeToggle />

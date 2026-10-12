@@ -12,7 +12,7 @@ import styles from "./interview.module.css";
 type Ok = Extract<TeamModel, { kind: "ok" }>;
 
 const ASK_GLYPH: Record<AskKind, string> = { genius: "∑", dumb: "?", satirical: "“" };
-const TRIP_GLYPH = ["◉", "✺", "☾", "∞", "✧"];
+const TRIP_GLYPH = ["◉", "✺", "☾", "∞", "✧", "❂", "☄", "✦"];
 const DAY_MS = 86_400_000;
 
 /** One question and its answer, as the panel draws them. */
@@ -29,13 +29,13 @@ interface Item {
 }
 
 /**
- * A made-up press conference with the manager's mascot: the press-room picture beside five questions, each about
- * something that really happened to this team (blunders first, then its league position), put by journalists who say
- * the manager's and the team's names, and five answers in five different voices. While the gameweek is being played
+ * A made-up press conference with the manager's mascot: the press-room picture beside seven questions, each about
+ * something that really happened to this team (a headline first, the long view last), put by journalists who say
+ * the manager's and the team's names, and seven answers in seven different voices. While the gameweek is being played
  * the conference is redrawn each day; once it is over it is fixed.
  *
- * In the altered view (an easter egg) the mascot is the Upside Oracle instead, and every answer is a sneaky tip for
- * climbing the world leaderboard.
+ * In the altered view (an easter egg) the mascot is the Upside Oracle instead: most answers are in strange voices, and
+ * one to three are sneaky tips for climbing the world leaderboard.
  */
 export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: Date }) {
   const t = getT().interview;
@@ -66,7 +66,7 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
           glyph: TRIP_GLYPH[x.asker],
           askData: "trip",
           asker: tt.askers[x.asker],
-          role: tt.askerRole,
+          role: tt.askerRoles[x.asker],
           question: tt.openers[x.opener](c, tip.q[x.q](c)),
           answerData: "trip",
           chip: tt.chip,
@@ -80,7 +80,7 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
         glyph: TRIP_GLYPH[x.asker],
         askData: "trip",
         asker: tt.askers[x.asker],
-        role: tt.askerRole,
+        role: tt.askerRoles[x.asker],
         question: tt.openers[x.opener](ctx, ask(ctx)),
         answerData: x.voice,
         chip: tt.voiceNames[x.voice],

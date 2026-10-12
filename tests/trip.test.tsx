@@ -6,8 +6,8 @@ import { TripSwitch } from "@/components/ui/TripSwitch";
 import { InterviewPanel } from "@/components/views/InterviewPanel";
 import { MESSAGES } from "@/lib/domain/i18n";
 import { LOCALES } from "@/lib/domain/i18n/locales";
-import { pickTripConference } from "@/lib/domain/tripConference";
-import { ALL_TOPICS, TRIP_TIPS, TRIP_VOICES, TRIP_GENERAL_LINES, TRIP_VOICE_LINES, candidatesOf, interviewContext, pickTrip, tripContext, tripTips, type InterviewInput, type InterviewPlayer } from "@/lib/domain/interview";
+import { pickTripConference, type TripItem } from "@/lib/domain/tripConference";
+import { ALL_TOPICS, TRIP_ASKERS, TRIP_EXCHANGES, TRIP_OPENERS, TRIP_OPENER_VOICE, TRIP_TIPS, TRIP_VARIANTS, TRIP_VOICES, TRIP_GENERAL_LINES, TRIP_VOICE_LINES, candidatesOf, interviewContext, pickTrip, tripContext, tripTips, type InterviewInput, type InterviewPlayer } from "@/lib/domain/interview";
 import { isTripCookie, tripAvatar } from "@/lib/domain/trip";
 import { upsidePicks } from "@/lib/domain/upside";
 import { createMascotGateway } from "@/lib/mascots";
@@ -174,29 +174,79 @@ describe("pickTripConference", () => {
   const cands = candidatesOf(input({ league: { rank: 7, size: 21, points: 380, leader: { team: "L", points: 443 }, up: { team: "U", points: 385 }, down: { team: "D", points: 375 }, moved: 3 }, captain: { name: "C", base: 1, state: "played", bestName: "B", bestBase: 12, regret: 20 } }));
   const tips = tripTips(input(), 4);
   const run = (seed: number, slot = seed) => pickTripConference(seed, cands, tips, { slot, seed: 9 });
+  const tipCount = (xs: TripItem[]) => xs.filter((x) => x.kind === "tip").length;
 
-  it("is four questions about the week and one tip, in a mixed order, in distinct voices and openers", () => {
-    for (let seed = 0; seed < 200; seed++) {
+  it("is seven exchanges: four to six about the week and one to three tips, in distinct voices, journalists and openers", () => {
+    for (let seed = 0; seed < 300; seed++) {
       const xs = run(seed);
-      expect(xs).toHaveLength(5);
-      expect(xs.filter((x) => x.kind === "topic")).toHaveLength(4);
-      expect(xs.filter((x) => x.kind === "tip")).toHaveLength(1);
+      expect(xs, String(seed)).toHaveLength(TRIP_EXCHANGES);
+      expect(tipCount(xs), `tips ${seed}`).toBeGreaterThanOrEqual(1);
+      expect(tipCount(xs), `tips ${seed}`).toBeLessThanOrEqual(3);
       const voices = xs.flatMap((x) => (x.kind === "topic" ? [x.voice] : []));
-      expect(new Set(voices).size).toBe(4);
-      expect(new Set(xs.map((x) => x.opener)).size).toBe(5);
-      expect(xs.every((x) => x.opener >= 0 && x.opener < 10)).toBe(true);
+      expect(voices, `topics ${seed}`).toHaveLength(TRIP_EXCHANGES - tipCount(xs));
+      expect(new Set(voices).size, `voices ${seed}`).toBe(voices.length);
+      expect(new Set(xs.map((x) => x.opener)).size, `openers ${seed}`).toBe(TRIP_EXCHANGES);
+      expect(new Set(xs.map((x) => x.asker)).size, `journalists ${seed}`).toBe(TRIP_EXCHANGES);
+      expect(xs.every((x) => x.opener >= 0 && x.opener < TRIP_OPENERS && x.asker >= 0 && x.asker < TRIP_ASKERS), `ranges ${seed}`).toBe(true);
     }
+  });
+  it("starts with a question about the week, and never puts two tips side by side", () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const xs = run(seed);
+      expect(xs[0].kind, `first ${seed}`).toBe("topic");
+      for (let i = 1; i < xs.length; i++) expect(xs[i].kind === "tip" && xs[i - 1].kind === "tip", `adjacent ${seed}/${i}`).toBe(false);
+    }
+  });
+  it("mixes the shape: mostly two tips, sometimes one or three, landing anywhere after the first question", () => {
+    const counts = new Map<number, number>();
+    const places = new Set<number>();
+    for (let seed = 0; seed < 600; seed++) {
+      const xs = run(seed);
+      counts.set(tipCount(xs), (counts.get(tipCount(xs)) ?? 0) + 1);
+      xs.forEach((x, i) => { if (x.kind === "tip") places.add(i); });
+    }
+    expect([...counts.keys()].sort()).toEqual([1, 2, 3]);
+    expect(counts.get(2)!, "two tips").toBeGreaterThan(counts.get(1)!);
+    expect(counts.get(2)!, "two tips").toBeGreaterThan(counts.get(3)!);
+    expect([...places].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+  it("only pairs an introduction made for a voice with that voice, and gives tips only the all-purpose ones", () => {
+    let own = 0;
+    let all = 0;
+    for (let seed = 0; seed < 400; seed++) for (const x of run(seed)) {
+      const owner = TRIP_OPENER_VOICE[x.opener];
+      all++;
+      if (owner === null) continue;
+      expect(x.kind, `tip with a voiced opener ${seed}`).toBe("topic");
+      expect(owner, `opener ${x.opener} ${seed}`).toBe((x as Extract<TripItem, { kind: "topic" }>).voice);
+      own++;
+    }
+    expect(own / all, "voiced introductions do get used").toBeGreaterThan(0.2);
+    expect(own / all).toBeLessThan(0.5);
+  });
+  it("has an introduction made for every voice, and enough all-purpose ones for a whole conference", () => {
+    expect(TRIP_OPENER_VOICE).toHaveLength(TRIP_OPENERS);
+    for (const v of TRIP_VOICES) expect(TRIP_OPENER_VOICE.filter((o) => o === v).length, v).toBeGreaterThanOrEqual(1);
+    expect(TRIP_OPENER_VOICE.filter((o) => o === null).length).toBeGreaterThanOrEqual(TRIP_EXCHANGES + 1);
   });
   it("is deterministic, varies between managers, and moves the order around", () => {
     expect(run(5)).toEqual(run(5));
     expect(new Set(Array.from({ length: 100 }, (_, s) => JSON.stringify(run(s).map((x) => (x.kind === "tip" ? x.tip : x.topic))))).size).toBeGreaterThan(60);
-    expect(new Set(Array.from({ length: 60 }, (_, s) => run(s).map((x) => x.kind).join())).size).toBe(5); // the one tip lands anywhere
+    expect(new Set(Array.from({ length: 200 }, (_, s) => run(s).map((x) => x.kind).join())).size).toBeGreaterThan(10);
+    expect(new Set(Array.from({ length: 100 }, (_, s) => run(s).map((x) => x.asker).join())).size).toBeGreaterThan(80);
   });
   it("uses every voice, and every line of it, across enough managers", () => {
     const used = new Map<string, Set<number>>();
-    for (let slot = 0; slot < 400; slot++) for (const x of run(slot, slot)) if (x.kind === "topic") used.set(x.voice, (used.get(x.voice) ?? new Set()).add(x.line));
+    for (let slot = 0; slot < 600; slot++) for (const x of run(slot, slot)) if (x.kind === "topic") used.set(x.voice, (used.get(x.voice) ?? new Set()).add(x.line));
     expect([...used.keys()].sort()).toEqual([...TRIP_VOICES].sort());
     for (const lines of used.values()) expect(lines.size).toBe(TRIP_VOICE_LINES);
+  });
+  it("uses every journalist and every introduction across enough managers", () => {
+    const askers = new Set<number>();
+    const openers = new Set<number>();
+    for (let seed = 0; seed < 300; seed++) for (const x of run(seed)) { askers.add(x.asker); openers.add(x.opener); }
+    expect(askers.size).toBe(TRIP_ASKERS);
+    expect(openers.size).toBe(TRIP_OPENERS);
   });
   it("talks about what was asked most of the time", () => {
     let about = 0;
@@ -215,10 +265,13 @@ describe("pickTripConference", () => {
       seen.set(l, slot);
     }
   });
-  it("copes with nothing to ask about or to advise on", () => {
-    const xs = pickTripConference(1, [], [{ id: "chaos", weight: 1, subject: null }], { slot: 3, seed: 1 });
-    expect(xs.length).toBeGreaterThanOrEqual(1);
-    expect(xs.length).toBeLessThanOrEqual(5);
+  it("copes with nothing to ask about or to advise on: timeless questions and the one tip fill the seven", () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const xs = pickTripConference(seed, [], [{ id: "chaos", weight: 1, subject: null }], { slot: 3, seed: 1 });
+      expect(xs).toHaveLength(TRIP_EXCHANGES);
+      expect(tipCount(xs)).toBe(1);
+      expect(new Set(xs.map((x) => x.asker)).size).toBe(TRIP_EXCHANGES);
+    }
   });
 });
 
@@ -274,17 +327,17 @@ describe("pickTrip", () => {
   it("gives up to the number of different tips asked for, deterministically", () => {
     for (let seed = 0; seed < 100; seed++) {
       const xs = pickTrip(seed, tips, 10);
-      expect(xs).toHaveLength(5);
-      expect(new Set(xs.map((x) => x.tip)).size).toBe(5);
+      expect(xs).toHaveLength(TRIP_EXCHANGES);
+      expect(new Set(xs.map((x) => x.tip)).size).toBe(TRIP_EXCHANGES);
       expect(pickTrip(seed, tips, 10, 1)).toHaveLength(1);
-      expect(new Set(xs.map((x) => x.opener)).size).toBe(5);
+      expect(new Set(xs.map((x) => x.opener)).size).toBe(TRIP_EXCHANGES);
     }
     expect(pickTrip(9, tips, 10)).toEqual(pickTrip(9, tips, 10));
   });
   it("varies between managers and days", () => {
     expect(new Set(Array.from({ length: 60 }, (_, s) => pickTrip(s, tips, 10).map((x) => x.tip).join())).size).toBeGreaterThan(20);
   });
-  it("gives fewer than five when there is less to advise on", () => {
+  it("gives fewer when there is less to advise on", () => {
     expect(pickTrip(1, [{ id: "chaos", weight: 20, subject: null }], 10)).toHaveLength(1);
   });
 });
@@ -297,12 +350,19 @@ describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
     tripContext(interviewContext({ ...i, first: "Zed", manager: "Zed Qux", team: "Teamy FC" }), { ...subjectOf(pick), p10: 0.27, p15: 0.08, note: "2" });
   const BAD = /undefined|NaN|\[object|\$\{|\{|\}|null/;
 
-  it("has every tip in two wordings of question and answer, and three journalists", () => {
-    expect(t.trip.askers).toHaveLength(5);
+  it("has every tip in three wordings of question and answer, each different, and eight journalists with a role each", () => {
+    expect(t.trip.askers).toHaveLength(TRIP_ASKERS);
+    expect(new Set(t.trip.askers).size).toBe(TRIP_ASKERS);
+    expect(t.trip.askerRoles).toHaveLength(TRIP_ASKERS);
+    expect(new Set(t.trip.askerRoles).size).toBe(TRIP_ASKERS);
     expect(t.trip.flourishes).toHaveLength(8);
     for (const id of TRIP_TIPS) {
-      expect(t.trip.tips[id].q, id).toHaveLength(2);
-      expect(t.trip.tips[id].a, id).toHaveLength(2);
+      expect(t.trip.tips[id].q, id).toHaveLength(TRIP_VARIANTS);
+      expect(t.trip.tips[id].a, id).toHaveLength(TRIP_VARIANTS);
+      const sub = { name: "Zed", club: "ARS", ownership: 3.4, xp: 6.8, p10: 0.27, p15: 0.08, note: "2" };
+      const cx = tripContext(interviewContext(input()), sub);
+      expect(new Set(t.trip.tips[id].q.map((f) => f(cx))).size, `${id} questions`).toBe(TRIP_VARIANTS);
+      expect(new Set(t.trip.tips[id].a.map((f) => f(cx))).size, `${id} answers`).toBe(TRIP_VARIANTS);
     }
   });
   it("reads well: no leftover placeholders, double spaces, stray punctuation or doubled names", () => {
@@ -348,9 +408,9 @@ describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
     }
     expect(problems.slice(0, 5)).toEqual([]);
   });
-  it("has four voices of twenty-eight different lines, and ten different ways to introduce a question", () => {
+  it("has eight voices of thirty-two different lines, and nineteen different ways to introduce a question", () => {
     expect(Object.keys(t.trip.voiceNames).sort()).toEqual([...TRIP_VOICES].sort());
-    expect(t.trip.openers).toHaveLength(10);
+    expect(t.trip.openers).toHaveLength(TRIP_OPENERS);
     for (const v of TRIP_VOICES) {
       const lines = t.trip.voices[v].map((f) => f(c(), "a made-up gist"));
       expect(lines, v).toHaveLength(TRIP_VOICE_LINES);
@@ -361,8 +421,25 @@ describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
         expect(line.trim()).toBe(line);
       }
     }
-    expect(new Set(t.trip.openers.map((o) => o(c(), "Q?"))).size).toBe(10);
+    expect(new Set(t.trip.openers.map((o) => o(c(), "Q?"))).size).toBe(TRIP_OPENERS);
     for (const o of t.trip.openers) expect(/Zed|Teamy FC/.test(o(c(), "Q?"))).toBe(true);
+  });
+  it("starts a line with the gist in capitals, wherever a voice leads with it", () => {
+    for (const v of TRIP_VOICES) for (const f of t.trip.voices[v]) {
+      const line = f(c(), "zebra stripes");
+      if (line.toLowerCase().startsWith("zebra")) expect(line, `${v}: ${line}`).toMatch(/^Zebra/);
+    }
+  });
+  it("keeps each voice's own introductions at the index the code expects, in every language", () => {
+    const own: Record<string, RegExp[]> = {
+      en: [/Life Scientific/, /Bicycle Day/, /laboratory/, /reactor/, /satire/, /ripples/, /Dosed/, /walls/, /Geiger/, /problem child/, /undergrowth/, /forecast/, /stars/, /flight deck/],
+      es: [/Científico/, /Bicicleta/, /laboratorio/, /reactor/, /sátira/, /ondulaciones/, /Dosificado/, /paredes/, /Geiger/, /niño problema/, /espesura/, /pronóstico/, /estrellas/, /cabina/],
+      fr: [/Scientifique/, /Vélo/, /laboratoire/, /réacteur/, /satire/, /ondulations/, /Dosé/, /murs/, /Geiger/, /enfant problème/, /sous-bois/, /bulletin/, /étoiles/, /pilotage/],
+    };
+    own[locale].forEach((re, k) => expect(t.trip.openers[k](c(), "Q?"), `opener ${k}`).toMatch(re));
+    // ...and none of the all-purpose ones after them talks like a voice.
+    const voiced = /Scien|satir|Geiger|reactor|forecast|stars|flight|undergrowth|Científ|sátira|reactor|pronóstico|estrellas|cabina|espesura|Scientifique|réacteur|bulletin|étoiles|pilotage|sous-bois/i;
+    TRIP_OPENER_VOICE.forEach((owner, k) => { if (owner === null && k >= 14) expect(t.trip.openers[k](c(), "Q?"), `opener ${k}`).not.toMatch(voiced); });
   });
   it("is not a list of tips: the voices answer with the mood, using only the numbers every team has", () => {
     const names = ["upName", "upClub", "upOwn", "upXp", "upP10", "upP15", "upNote", "goalTop", "goalRank", "captain", "hit", "flagged"];
@@ -387,7 +464,7 @@ async function okModel(): Promise<Extract<TeamModel, { kind: "ok" }>> {
 }
 
 describe("InterviewPanel in the altered view", () => {
-  it("becomes the Acid Test: psychedelic picture, four questions about the week in strange voices, one sneaky tip", async () => {
+  it("becomes the Acid Test: psychedelic picture, seven exchanges: questions about the week in strange voices and one to three sneaky tips", async () => {
     setRequestTrip(true);
     const model = await okModel();
     model.insights.squad.upside = upside;
@@ -395,16 +472,20 @@ describe("InterviewPanel in the altered view", () => {
     expect(screen.getByRole("heading", { level: 2, name: "The Acid Test" })).toBeInTheDocument();
     expect(container.querySelector("img[src='/psychedelic/7-l.webp']")).not.toBeNull();
     const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(TRIP_EXCHANGES);
     const kinds = [...container.querySelectorAll("[data-answer]")].map((e) => e.getAttribute("data-answer"));
-    expect(kinds.filter((k) => k === "trip")).toHaveLength(1); // only one of five is a tip
+    const tipsGiven = kinds.filter((k) => k === "trip").length;
+    expect(tipsGiven).toBeGreaterThanOrEqual(1); // a few of the seven are tips, the rest are voices
+    expect(tipsGiven).toBeLessThanOrEqual(3);
+    expect(kinds[0]).not.toBe("trip");
     const voices = kinds.filter((k) => k !== "trip");
-    expect(voices).toHaveLength(4);
-    expect(new Set(voices).size).toBe(4);
-    for (const v of voices) expect(["onion", "hofmann", "atomic", "lifesci"]).toContain(v);
+    expect(voices).toHaveLength(TRIP_EXCHANGES - tipsGiven);
+    expect(new Set(voices).size).toBe(voices.length);
+    for (const v of voices) expect(TRIP_VOICES as readonly string[]).toContain(v);
+    const journalists = [...container.querySelectorAll("[data-ask] strong")].map((e) => e.textContent);
+    expect(new Set(journalists).size).toBe(TRIP_EXCHANGES); // seven different journalists
     expect(container.textContent).toContain("Sneaky upside");
     expect(container.textContent).not.toMatch(/IQ 150|Snarky|Egotist/);
-    expect(container.textContent).toMatch(/Satirical wire|The Chemist|The Physicist|The Life Scientist/);
   });
   it("is the ordinary conference when the view is off", async () => {
     const model = await okModel();

@@ -12,25 +12,35 @@ export const TRIP_TIPS = [
   "captainSim", "haulHunter", "penaltyTaker", "suspensionDanger", "defconBanker", "rotationPair", "rankTarget",
 ] as const;
 export type TripTipId = (typeof TRIP_TIPS)[number];
-export const TRIP_EXCHANGES = 5;
+export const TRIP_EXCHANGES = 7;
 
 /**
  * Who answers the altered conference's ordinary questions: a satirical newswire, the chemist from Basel, the atomic
- * physicist, and the radio scientist telling his life story. Each has a pool of lines that work for any question.
- * (The sneaky tips are only a couple of the five answers; the rest are for the mood.)
+ * physicist, the radio scientist telling his life story, a nature-documentary narrator, a shipping-forecast reader,
+ * a stargazer and the pilot on the intercom. Each has a pool of lines that work for any question. Every conference
+ * hears a different four to six of the eight. (The sneaky tips are only one to three of the seven answers; the rest
+ * are for the mood.)
  */
-export const TRIP_VOICES = ["onion", "hofmann", "atomic", "lifesci"] as const;
+export const TRIP_VOICES = ["onion", "hofmann", "atomic", "lifesci", "nature", "forecast", "stargazer", "pilot"] as const;
 export type TripVoice = (typeof TRIP_VOICES)[number];
-export const TRIP_VOICE_LINES = 28;
-/** The first twenty lines of a voice answer any question; the last eight talk about what was asked. */
-export const TRIP_GENERAL_LINES = 20;
+export const TRIP_VOICE_LINES = 32;
+/**
+ * The first twenty-four lines of a voice answer any question; the last eight talk about what was asked. Twenty-four, so
+ * that a league of twenty-one managers never hears the same all-purpose line twice from the same voice.
+ */
+export const TRIP_GENERAL_LINES = 24;
 /** Ways the altered conference's questions are introduced. */
-export const TRIP_OPENERS = 10;
-/** How many of the five exchanges are about the team's week (the rest are tips). */
-export const TRIP_TOPICS = 4;
-/** Ways the journalists are introduced, and ways a question or answer can be worded. */
-export const TRIP_ASKERS = 5;
-export const TRIP_VARIANTS = 2;
+export const TRIP_OPENERS = 19;
+/**
+ * Some of those introductions belong to one voice ("Tonight on The Life Scientific" only leads into the life
+ * scientist's answer); `null` ones suit any. Indexes are the same in every language.
+ */
+export const TRIP_OPENER_VOICE: readonly (TripVoice | null)[] = [
+  "lifesci", "hofmann", null, "atomic", "onion", null, null, null, "atomic", "hofmann", "nature", "forecast", "stargazer", "pilot", null, null, null, null, null,
+];
+/** Journalists (each with a role of their own), and ways a tip's question or answer can be worded. */
+export const TRIP_ASKERS = 8;
+export const TRIP_VARIANTS = 3;
 /** Closing flourishes the oracle may add to an answer. */
 export const TRIP_FLOURISHES = 8;
 

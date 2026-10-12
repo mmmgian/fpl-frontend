@@ -4,7 +4,7 @@ import { InterviewPanel } from "@/components/views/InterviewPanel";
 import { interviewInputOf } from "@/components/views/interviewInput";
 import { setRequestLocale } from "@/components/ui/i18n";
 import {
-  ALL_TOPICS, ANSWER_KINDS, ASK_KINDS, EXCHANGES, FILLER_TOPICS, FULL_TOPICS, GENERIC_ANSWERS, GROUP_TOPICS, OPENERS, SPECIFIC_ANSWERS, VOICE_LINES,
+  ALL_TOPICS, ANSWER_KINDS, ASK_KINDS, EXCHANGES, FILLER_TOPICS, FULL_TOPICS, GENERIC_ANSWERS, GROUP_TOPICS, OPENERS, OPENERS_AFTER_ANOTHER, OPENER_LAST, SAME_FACT, SPECIFIC_ANSWERS, VOICE_LINES,
   candidatesOf, interviewContext, interviewSeed, neatName, pickInterview, type Candidate, type InterviewInput, type InterviewPlayer, type TopicId,
 } from "@/lib/domain/interview";
 import { MESSAGES } from "@/lib/domain/i18n";
@@ -254,7 +254,7 @@ const sets: [string, Candidate[]][] = [
 ];
 
 describe("pickInterview", () => {
-  it.each(sets)("deals five distinct questions to five distinct voices, whatever there is to ask (%s)", (_name, cands) => {
+  it.each(sets)("deals seven distinct questions to seven distinct voices, whatever there is to ask (%s)", (_name, cands) => {
     for (let seed = 0; seed < 300; seed++) {
       const xs = pickInterview(seed, cands);
       expect(xs, String(seed)).toHaveLength(EXCHANGES);
@@ -285,11 +285,78 @@ describe("pickInterview", () => {
     }
   });
 
+  const wide = (): Candidate[] => Object.entries(GROUP_TOPICS).flatMap(([group, topics]) => topics.map((topic) => ({ topic, group: group as Candidate["group"], weight: 50 })));
+  const groupOf = (t: string) => Object.entries(GROUP_TOPICS).find(([, ts]) => (ts as readonly string[]).includes(t))?.[0];
+
+  it("runs like a conversation: a headline first, the long view or a light one last, no area or style twice in a row", () => {
+    let sameStyle = 0;
+    for (let seed = 0; seed < 400; seed++) {
+      const xs = pickInterview(seed, wide());
+      expect(["position", "blunder", "injury"], `first ${seed}`).toContain(groupOf(xs[0].topic));
+      expect(["season", "market"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
+      expect(new Set(xs.map((x) => groupOf(x.topic))).size, `seven areas ${seed}`).toBe(EXCHANGES);
+      for (let i = 1; i < xs.length; i++) if (xs[i].ask === xs[i - 1].ask) sameStyle++;
+    }
+    expect(sameStyle / 400, "style repeats per conference").toBeLessThan(0.05);
+  });
+
+  it("still keeps the same area from coming twice in a row when the team has fewer areas than questions", () => {
+    let repeats = 0;
+    let possible = 0;
+    for (let seed = 0; seed < 400; seed++) {
+      const xs = pickInterview(seed, rich());
+      expect(["position", "blunder", "injury"], `first ${seed}`).toContain(groupOf(xs[0].topic));
+      expect(["season", "market"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
+      for (let i = 1; i < xs.length; i++) { possible++; if (groupOf(xs[i].topic) === groupOf(xs[i - 1].topic)) repeats++; }
+    }
+    expect(repeats / possible).toBeLessThan(0.03);
+  });
+
+  it("never asks about the same fact twice in one conference (the gap to the leader and the gap to the team above, ...)", () => {
+    const all = [...sets.map(([, c]) => c), wide()];
+    for (const cands of all) for (let seed = 0; seed < 300; seed++) {
+      const topics = pickInterview(seed, cands).map((x) => x.topic as string);
+      for (const set of SAME_FACT) expect(topics.filter((t) => set.includes(t)).length, `${set[0]}… ${seed}`).toBeLessThanOrEqual(1);
+    }
+  });
+  it("asks one league question at most, however thin the rest of the team's week is", () => {
+    const positions = new Set<string>(GROUP_TOPICS.position);
+    for (const [, cands] of sets) for (let seed = 0; seed < 200; seed++) expect(pickInterview(seed, cands).filter((x) => positions.has(x.topic)).length).toBeLessThanOrEqual(1);
+  });
+
+  it("starts a thin conference with a headline too, and ends it on a timeless question", () => {
+    const cands = candidatesOf(base({ hit: 4, bank: 25 }));
+    const fillers = new Set<string>(Object.values(FILLER_TOPICS).flat());
+    for (let seed = 0; seed < 200; seed++) {
+      const xs = pickInterview(seed, cands);
+      expect(fillers.has(xs[0].topic), `first ${seed}`).toBe(false);
+      expect(new Set(xs.map((x) => x.topic)).size).toBe(EXCHANGES);
+    }
+  });
+
+  it("puts the introductions where they make sense: none that leans on a previous answer first, the winding-up one only last", () => {
+    let closing = 0;
+    for (let seed = 0; seed < 500; seed++) {
+      const xs = pickInterview(seed, rich());
+      expect(OPENERS_AFTER_ANOTHER, `first ${seed}`).not.toContain(xs[0].opener);
+      xs.forEach((x, i) => { if (x.opener === OPENER_LAST) { expect(i, `closing ${seed}`).toBe(xs.length - 1); closing++; } });
+    }
+    expect(closing / 500).toBeGreaterThan(0.35); // the winding-up one does get used, about half the time
+    expect(closing / 500).toBeLessThan(0.65);
+  });
+
+  it("can deal fewer questions on request, for the altered conference to mix its own in", () => {
+    for (let seed = 0; seed < 100; seed++) {
+      expect(pickInterview(seed, rich(), { slot: seed, seed: 0 }, 5)).toHaveLength(5);
+      expect(new Set(pickInterview(seed, rich(), { slot: seed, seed: 0 }, 4).map((x) => x.answer)).size).toBe(4);
+    }
+  });
+
   it("asks the biggest blunder most often", () => {
     const cands: Candidate[] = [{ topic: "captainBlank", group: "blunder", weight: 95 }, { topic: "idleBank", group: "blunder", weight: 30 }, { topic: "midtable", group: "position", weight: 40 }];
     let big = 0;
     for (let seed = 0; seed < 400; seed++) if (pickInterview(seed, cands).some((x) => x.topic === "captainBlank")) big++;
-    expect(big).toBe(400); // three candidates, five questions: all of them are asked, the fillers make up the rest
+    expect(big).toBe(400); // three candidates, seven questions: all of them are asked, the fillers make up the rest
     let first = 0;
     const pair: Candidate[] = [{ topic: "captainBlank", group: "blunder", weight: 95 }, { topic: "hitTaken", group: "blunder", weight: 56 }];
     for (let seed = 0; seed < 600; seed++) { const xs = pickInterview(seed, [...pair, { topic: "midtable", group: "position", weight: 40 }]); if (xs.length) first++; }
@@ -341,7 +408,7 @@ describe("pickInterview", () => {
     expect(new Set(firstQuestions).size).toBeGreaterThan(5);
     const whole = seeds.map((s) => JSON.stringify(pickInterview(s, rich())));
     expect(new Set(whole).size).toBe(21);
-    expect(questions.length).toBe(105);
+    expect(questions.length).toBe(21 * EXCHANGES);
   });
 });
 
@@ -407,21 +474,27 @@ describe.each(["live", "settled"] as const)("a whole league of twenty-one differ
   const managers = Array.from({ length: 21 }, (_, i) => randomManager(i, state === "settled"));
   it.each(LOCALES)("reads differently for each manager in %s", (locale) => {
     const all = managers.flatMap((m, i) => conference(m, 1000 + i * 977, locale));
-    expect(all).toHaveLength(105);
-    // Almost every question and answer on the page is different from every other manager's.
-    expect(new Set(all.map((x) => x.q)).size).toBeGreaterThanOrEqual(103);
-    expect(new Set(all.map((x) => x.a)).size).toBeGreaterThanOrEqual(98);
+    expect(all).toHaveLength(21 * EXCHANGES);
+    // Almost every question and answer on the page is different from every other manager's (the topic answers of the
+    // clever, snarky and egotist voices are written once per topic, so two managers asked the same topic can share one).
+    expect(new Set(all.map((x) => x.q)).size).toBeGreaterThanOrEqual(Math.ceil(all.length * 0.98));
+    expect(new Set(all.map((x) => x.a)).size).toBeGreaterThanOrEqual(Math.ceil(all.length * 0.9));
     // The questions are about many different things, none of which dominates.
     const byTopic = new Map<string, number>();
     for (const x of all) byTopic.set(x.topic, (byTopic.get(x.topic) ?? 0) + 1);
     expect(byTopic.size, [...byTopic.keys()].join()).toBeGreaterThanOrEqual(state === "settled" ? 38 : 30);
     expect(Math.max(...byTopic.values()), JSON.stringify([...byTopic])).toBeLessThanOrEqual(14);
-    // No manager gets mostly the same five topics as another.
+    // Two managers share few topics: a quarter on average, and never more than five of the seven.
     const sets = managers.map((m, i) => new Set(conference(m, 1000 + i * 977, locale).map((x) => x.topic)));
+    let total = 0;
+    let pairs = 0;
     for (let a = 0; a < sets.length; a++) for (let b = a + 1; b < sets.length; b++) {
       const shared = [...sets[a]].filter((t) => sets[b].has(t)).length;
-      expect(shared, `${a} and ${b}`).toBeLessThanOrEqual(3);
+      expect(shared, `${a} and ${b}`).toBeLessThanOrEqual(5);
+      total += shared;
+      pairs++;
     }
+    expect(total / pairs / EXCHANGES).toBeLessThan(0.3);
   });
 
   it("changes from day to day", () => {
@@ -520,6 +593,19 @@ describe.each(LOCALES)("the interview copy in %s", (locale) => {
     expect(Object.keys(t.answerers).sort()).toEqual([...ANSWER_KINDS].sort());
   });
 
+  it("keeps the introductions that depend on position at the indexes the code expects: follow-ups never first, the winding-up one last", () => {
+    const re: Record<string, Record<number, RegExp>> = {
+      en: { 2: /^Back to/, 11: /^Moving on/, 13: /^Before you go/ },
+      es: { 2: /^Volvamos a/, 11: /^Pasando a otro tema/, 13: /^Antes de que se vaya/ },
+      fr: { 2: /^Revenons à/, 11: /^Passons à autre chose/, 13: /^Avant de vous laisser filer/ },
+    };
+    expect(OPENERS_AFTER_ANOTHER).toEqual([2, 11]);
+    expect(OPENER_LAST).toBe(13);
+    for (const k of [...OPENERS_AFTER_ANOTHER, OPENER_LAST]) expect(t.openers[k](ctx(), "Q?"), `opener ${k}`).toMatch(re[locale][k]);
+    // None of the others leans on an earlier answer or winds up.
+    t.openers.forEach((o, k) => { if (![...OPENERS_AFTER_ANOTHER, OPENER_LAST].includes(k)) expect(o(ctx(), "Q?"), `opener ${k}`).not.toMatch(/^(Back to|Moving on|Before you go|Volvamos|Pasando a otro|Antes de que se vaya|Revenons|Passons à|Avant de vous laisser)/); });
+  });
+
   it("names the manager or the team in every opener, and no two openers read the same", () => {
     const outs = t.openers.map((o) => o(ctx(), "Q?"));
     for (const o of outs) expect(/Zed|Teamy FC/.test(o), o).toBe(true);
@@ -605,7 +691,7 @@ const withLeague = (m: Extract<TeamModel, { kind: "ok" }>): Extract<TeamModel, {
 const text = (el: Element) => Array.from(el.querySelectorAll("li")).map((li) => li.textContent).join("|");
 
 describe("InterviewPanel", () => {
-  it("shows the press picture at its own size, with five questions each followed by a reply", async () => {
+  it("shows the press picture at its own size, with seven questions each followed by a reply", async () => {
     const { container } = render(<InterviewPanel model={withLeague(withMascot(await okModel()))} />);
     const img = container.querySelector("img[src^='/mascots/7-press']")!;
     expect(img).toHaveAttribute("width", "1200");
@@ -614,7 +700,7 @@ describe("InterviewPanel", () => {
     expect(img.getAttribute("alt")).toMatch(/Gaucho F\.C\./);
     expect(screen.getByRole("heading", { level: 2, name: "Press conference" })).toBeInTheDocument();
     const items = within(screen.getByRole("list", { name: "Transcript" })).getAllByRole("listitem");
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(EXCHANGES);
     for (const li of items) expect(li.querySelectorAll("p[class*=bubble]")).toHaveLength(2);
   });
 
@@ -622,7 +708,7 @@ describe("InterviewPanel", () => {
     const { container } = render(<InterviewPanel model={withLeague(withMascot(await okModel()))} />);
     expect(screen.getByText(/Gian Jaen of Gaucho F\.C\. faces the press after Gameweek 6/)).toBeInTheDocument();
     const questions = Array.from(container.querySelectorAll("[data-ask] p[class*=bubble]")).map((p) => p.textContent!);
-    expect(questions).toHaveLength(5);
+    expect(questions).toHaveLength(EXCHANGES);
     for (const q of questions) expect(/Gian|Gaucho F\.C\./.test(q), q).toBe(true);
     expect(questions.some((q) => q.includes("Gian Jaen"))).toBe(true);
     expect(container.textContent).not.toMatch(/gian jaen|\bgian\b/); // capitalised, never as the raw data
@@ -662,7 +748,7 @@ describe("InterviewPanel", () => {
     const m = withMascot(await okModel(), false);
     const { container } = render(<InterviewPanel model={{ ...m, team: { ...m.team, league: null } }} />);
     expect(container.querySelector("img[src*='mascots']")).toBeNull();
-    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getAllByRole("listitem")).toHaveLength(EXCHANGES);
   });
 
   it("is accessible", async () => {

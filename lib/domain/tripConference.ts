@@ -1,12 +1,14 @@
 /**
- * The altered press conference as a whole: three questions about the team's week (the same facts as the ordinary
- * conference), answered by a satirical newswire, the chemist from Basel, an atomic physicist or a radio scientist, and
- * two sneaky upside tips from the Oracle. Pure and deterministic.
+ * The altered press conference as a whole: four to six questions about the team's week (the same facts as the
+ * ordinary conference, in the same conversational order), each answered by a different one of eight strange voices,
+ * and one to three sneaky upside tips from the Oracle slipped in between. Seven different journalists put the seven
+ * questions, and an introduction that belongs to one voice only ever leads into that voice's answer. Pure and
+ * deterministic.
  */
 import type { AskKind, TopicId } from "./interview";
 import { pickInterview } from "./interview";
 import type { Candidate } from "./interviewFacts";
-import { TRIP_ASKERS, TRIP_GENERAL_LINES, TRIP_OPENERS, TRIP_TOPICS, TRIP_VOICES, TRIP_VOICE_LINES, pickTrip, type TripExchange, type TripTip, type TripVoice } from "./tripInterview";
+import { TRIP_ASKERS, TRIP_EXCHANGES, TRIP_GENERAL_LINES, TRIP_OPENERS, TRIP_OPENER_VOICE, TRIP_VOICES, TRIP_VOICE_LINES, pickTrip, type TripExchange, type TripTip, type TripVoice } from "./tripInterview";
 
 export type TripItem =
   | { kind: "topic"; topic: TopicId; ask: AskKind; voice: TripVoice; line: number; asker: number; opener: number }
@@ -36,7 +38,10 @@ const shuffled = <T>(xs: readonly T[], next: () => number): T[] =>
 export function pickTripConference(seed: number, candidates: readonly Candidate[], tips: readonly TripTip[], league: { slot: number; seed: number }): TripItem[] {
   const next = rng(seed);
   const slot = Math.abs(Math.trunc(league.slot));
-  const topics = pickInterview(seed, candidates, league).slice(0, TRIP_TOPICS);
+  // Mostly two sneaky tips; sometimes one, sometimes three (if the team has that much to be advised on).
+  const r = next();
+  const tipItems = pickTrip(seed ^ 0x5bd1e995, tips, TRIP_OPENERS, r < 0.25 ? 1 : r < 0.8 ? 2 : 3);
+  const topics = pickInterview(seed, candidates, league, TRIP_EXCHANGES - tipItems.length);
   const voices = shuffled(TRIP_VOICES, next);
   const start = (voice: TripVoice) => Math.floor(rng(league.seed + Math.imul(TRIP_VOICES.indexOf(voice) + 7, 2654435761))() * TRIP_VOICE_LINES);
   // Six times in ten the voice talks about what was asked (the gist of the topic); otherwise it speaks to the mood.
@@ -45,19 +50,26 @@ export function pickTripConference(seed: number, candidates: readonly Candidate[
     return next() < 0.6 ? TRIP_GENERAL_LINES + (base % (TRIP_VOICE_LINES - TRIP_GENERAL_LINES)) : base % TRIP_GENERAL_LINES;
   };
 
-  const items: TripItem[] = [
-    ...topics.map((x, i): TripItem => ({
-      kind: "topic",
-      topic: x.topic,
-      ask: x.ask,
-      voice: voices[i % voices.length],
-      line: lineFor(voices[i % voices.length]),
-      asker: Math.floor(next() * TRIP_ASKERS),
-      opener: 0,
-    })),
-    ...pickTrip(seed ^ 0x5bd1e995, tips, TRIP_OPENERS, 5 - topics.length).map((t): TripItem => ({ kind: "tip", ...t })),
-  ];
-  const order = shuffled(items, next);
-  const openers = shuffled(Array.from({ length: TRIP_OPENERS }, (_, k) => k), next);
-  return order.map((it, i) => ({ ...it, opener: openers[i % openers.length] }));
+  const asked = topics.map((x, i): TripItem => ({ kind: "topic", topic: x.topic, ask: x.ask, voice: voices[i], line: lineFor(voices[i]), asker: 0, opener: 0 }));
+  // The tips are never the first thing said and never two in a row: pick their places among the later ones.
+  const total = asked.length + tipItems.length;
+  const room = total - 1;
+  const chosen = shuffled(Array.from({ length: room - tipItems.length + 1 }, (_, k) => k), next).slice(0, tipItems.length).sort((a, b) => a - b);
+  const places = new Set(chosen.map((c, k) => 1 + c + k));
+  const queue = [...asked];
+  const tipQueue = tipItems.map((t): TripItem => ({ kind: "tip", ...t }));
+  const order = Array.from({ length: total }, (_, at) => (places.has(at) ? tipQueue.shift()! : queue.shift()!));
+
+  // Different journalists throughout. Each introduction is used once, and a voice's own go only with that voice.
+  const askers = shuffled(Array.from({ length: TRIP_ASKERS }, (_, k) => k), next);
+  const free = new Set(Array.from({ length: TRIP_OPENERS }, (_, k) => k));
+  return order.map((it, i) => {
+    const voice = it.kind === "topic" ? it.voice : null;
+    const fits = shuffled([...free].filter((k) => TRIP_OPENER_VOICE[k] === null || TRIP_OPENER_VOICE[k] === voice), next);
+    // Half the time a voice gets the introduction made for it.
+    const own = voice !== null && next() < 0.5 ? fits.find((k) => TRIP_OPENER_VOICE[k] === voice) : undefined;
+    const opener = own ?? fits[0];
+    free.delete(opener);
+    return { ...it, asker: askers[i], opener };
+  });
 }

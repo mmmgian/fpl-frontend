@@ -33,8 +33,6 @@ export type LeagueModel =
       name: string;
       /** null before the season starts. */
       gameweek: GameweekInfo | null;
-      /** The next FPL deadline, null once the season is over. `now` is the clock the server used, so the first paint agrees with the browser's. */
-      deadline: (Deadline & { now: string }) | null;
       rows: StandingRow[];
       /** More pages exist than were fetched. */
       truncated: boolean;

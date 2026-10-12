@@ -1,4 +1,4 @@
-import { currentEvent, gwStatus, leagueStats, matchCounts, MAX_STATS_MANAGERS, nextDeadline, squadWeek, summarizeStandings } from "../domain";
+import { currentEvent, gwStatus, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, summarizeStandings } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
 import type { LeagueModel } from "./models";
@@ -77,10 +77,6 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
         leagueId,
         name: standings.league.name,
         gameweek: event ? { name: event.name, status: gwStatus(event, now()) } : null,
-        deadline: (() => {
-          const d = nextDeadline(events, now());
-          return d && { ...d, now: now().toISOString() };
-        })(),
         rows,
         truncated: Boolean(standings.standings.has_next),
         newEntries: standings.new_entries?.results.length ?? 0,

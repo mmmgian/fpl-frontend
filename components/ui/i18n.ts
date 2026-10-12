@@ -1,5 +1,6 @@
 import { cache } from "react";
-import { DEFAULT_LOCALE, INTL_LOCALE, decimal, formatMoney, formatNumber, formatRank, messagesFor, oneDecimal, type Locale, type Messages } from "@/lib/domain";
+import { isTrip } from "./tripSlot";
+import { DEFAULT_LOCALE, INTL_LOCALE, decimal, formatMoney, formatNumber, formatRank, messagesFor, oneDecimal, tripMessagesFor, type Locale, type Messages } from "@/lib/domain";
 
 /**
  * The language of the request being rendered, readable synchronously by any server component. `cache` gives each
@@ -14,8 +15,8 @@ export function setRequestLocale(locale: Locale): void {
 
 export const getLocale = (): Locale => slot().locale;
 
-/** The messages for this request. Call inside a server component: `const t = getT();`. */
-export const getT = (): Messages => messagesFor(getLocale());
+/** The messages for this request. Call inside a server component: `const t = getT();`. In the altered view, its stranger words. */
+export const getT = (): Messages => (isTrip() ? tripMessagesFor(getLocale()) : messagesFor(getLocale()));
 
 /** Locale for Intl in this request (dates, numbers). */
 export const getIntlLocale = (): string => INTL_LOCALE[getLocale()];

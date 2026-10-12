@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <I18nProvider locale={locale}>
+        <I18nProvider locale={locale} trip={trip}>
           {trip ? (
             // A slow warp for pictures only (see trip.css): a few small images is cheap, the whole page would not be.
             <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute" }}>

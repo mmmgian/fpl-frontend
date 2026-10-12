@@ -142,6 +142,7 @@
 
 /* The Stats pill becomes a soap bubble. */
 :root[data-trip="on"] .togglePillTrip {
+  white-space: nowrap;
   border-color: rgba(255, 255, 255, 0.5);
   color: var(--text);
   background: linear-gradient(120deg, rgba(255, 93, 224, 0.35), rgba(53, 232, 255, 0.3), rgba(255, 225, 74, 0.3), rgba(255, 93, 224, 0.35)) 0 0 / 300% 300%;

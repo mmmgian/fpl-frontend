@@ -247,12 +247,12 @@ describe("the Tools page in the altered view", () => {
     expect(m.upside).not.toBeNull();
     expect(m.lab).not.toBeNull();
     render(<ToolsView model={m} />);
-    const nav = screen.getByRole("navigation", { name: "Tools" });
+    const nav = screen.getByRole("navigation", { name: "The Lab" });
     expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#upside", "#captain", "#xi", "#prices", "#eo", "#teams"]);
-    for (const heading of ["Upside lab", "Captain simulator", "Rotation pairs", "Penalty takers", "Suspension watch", "DefCon bankers"]) {
+    for (const heading of ["The upside dimension", "A thousand timelines", "Twin souls", "Keepers of the spot", "On the edge of banishment", "The Wall's anchors"]) {
       expect(screen.getByRole("heading", { level: 2, name: heading }), heading).toBeInTheDocument();
     }
-    expect(screen.getByRole("heading", { level: 3, name: "Best chance of 15+ (Triple Captain punts)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Most timelines with 15+ (Third Eye punts)" })).toBeInTheDocument();
   });
   it("does not show any of it otherwise", async () => {
     render(<ToolsView model={await model()} />);

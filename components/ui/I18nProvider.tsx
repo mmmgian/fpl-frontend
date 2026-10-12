@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 // Deep imports on purpose: the barrel would pull the full server catalogs into the browser bundle.
 import { CLIENT_MESSAGES, type ClientMessages } from "@/lib/domain/i18n/client";
+import { clientTrip } from "@/lib/domain/i18n/client/trip";
 import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "@/lib/domain/i18n/locales";
 
 interface Value {
@@ -14,10 +15,11 @@ const Ctx = createContext<Value>({ locale: DEFAULT_LOCALE, t: CLIENT_MESSAGES[DE
 
 /**
  * Makes the page's language available to client components (server components use getT()). Only the small locale
- * code crosses from the server; the messages are looked up here from the client catalogs.
+ * code (and whether the altered view is on) crosses from the server; the messages are looked up here.
  */
-export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
-  return <Ctx.Provider value={{ locale, t: CLIENT_MESSAGES[locale] }}>{children}</Ctx.Provider>;
+export function I18nProvider({ locale, trip = false, children }: { locale: Locale; trip?: boolean; children: ReactNode }) {
+  const t = trip ? clientTrip(CLIENT_MESSAGES[locale], locale) : CLIENT_MESSAGES[locale];
+  return <Ctx.Provider value={{ locale, t }}>{children}</Ctx.Provider>;
 }
 
 /** Messages for client components. */

@@ -10,3 +10,40 @@
   .reference { stroke: CanvasText; }
 }
 .axisBig { fill: var(--text-muted); font-size: 10px; font-weight: 500; }
+
+/* The altered view: the bars breathe and dance through the rainbow, each a beat apart, and the average line wobbles.
+ * Global trip.css stops all of it for prefers-reduced-motion. */
+:global(:root[data-trip="on"]) .bar,
+:global(:root[data-trip="on"]) .latest {
+  opacity: 0.95;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: bars-breathe 2.8s ease-in-out infinite, bars-hue 9s linear infinite;
+}
+:global(:root[data-trip="on"]) .latest { filter: drop-shadow(0 0 4px #ffe14a); animation-duration: 2.2s, 9s; }
+:global(:root[data-trip="on"]) .svg g:nth-child(5n + 2) > rect { animation-delay: -0.55s, -1.8s; }
+:global(:root[data-trip="on"]) .svg g:nth-child(5n + 3) > rect { animation-delay: -1.1s, -3.6s; }
+:global(:root[data-trip="on"]) .svg g:nth-child(5n + 4) > rect { animation-delay: -1.65s, -5.4s; }
+:global(:root[data-trip="on"]) .svg g:nth-child(5n + 5) > rect { animation-delay: -2.2s, -7.2s; }
+:global(:root[data-trip="on"]) .reference {
+  stroke: #ffe14a;
+  stroke-width: 1.5;
+  opacity: 1;
+  animation: bars-march 1.6s linear infinite, bars-wobble 3.4s ease-in-out infinite;
+}
+:global(:root[data-trip="on"]) .valueBest { fill: #ffe14a; }
+@keyframes bars-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.84) scaleX(1.06); } }
+@keyframes bars-hue {
+  0%, 100% { fill: #ff5de0; }
+  20% { fill: #ffe14a; }
+  40% { fill: #8cff72; }
+  60% { fill: #35e8ff; }
+  80% { fill: #b48bff; }
+}
+@keyframes bars-march { to { stroke-dashoffset: -12; } }
+@keyframes bars-wobble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@media (forced-colors: active) {
+  :global(:root[data-trip="on"]) .bar,
+  :global(:root[data-trip="on"]) .latest { fill: CanvasText; animation: none; filter: none; }
+  :global(:root[data-trip="on"]) .reference { stroke: CanvasText; animation: none; }
+}

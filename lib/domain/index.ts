@@ -26,3 +26,4 @@ export * from "./tools";
 export * from "./trip";
 export * from "./upside";
 export type * from "./types";
+export * from "./dares";

@@ -1,6 +1,6 @@
-import { MiniBars, getFormat, getT } from "@/components/ui";
-import type { ManagerStats, SquadWeek } from "@/lib/domain";
-import { streakLabel } from "./leagueCopy";
+import { MiniBars, getFormat, getT, isTrip } from "@/components/ui";
+import { daresFor, type ManagerStats, type SquadWeek } from "@/lib/domain";
+import { dareLine, streakLabel } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
 
 /**
@@ -8,14 +8,15 @@ import styles from "./leagueExtras.module.css";
  * it reveals the full-width detail row under the team, which the table holds hidden until then.
  */
 export function StatsToggle({ teamName }: { teamName: string }) {
-  const t = getT().table;
+  const t = getT();
+  const trip = isTrip();
   return (
     <label className={styles.toggle}>
       <input type="checkbox" data-expand="" className={styles.toggleInput} />
-      <span className={styles.togglePill} aria-hidden="true">
-        {t.stats}
+      <span className={trip ? `${styles.togglePill} ${styles.togglePillTrip}` : styles.togglePill} aria-hidden="true">
+        {trip ? t.blotter.toggle : t.table.stats}
       </span>
-      <span className="sr-only">{t.showStats(teamName)}</span>
+      <span className="sr-only">{trip ? t.blotter.showStats(teamName) : t.table.showStats(teamName)}</span>
     </label>
   );
 }
@@ -32,14 +33,19 @@ function Fact({ label, children, keepCase = false }: { label: string; children: 
 /** One team's full breakdown: the weekly bars with every number, then the facts. */
 export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek }) {
   const t = getT();
-  const s = t.stats;
+  const trip = isTrip();
+  // The altered view relabels the facts (same figures, same order); everything not relabelled falls back to the plain words.
+  const s = trip ? { ...t.stats, ...t.blotter } : t.stats;
   const f = getFormat();
+  const latestGw = stats.formGws.at(-1) ?? 1;
+  const dares = trip && comparable ? daresFor(stats, latestGw) : [];
   const streak = comparable ? streakLabel(stats) : null;
   const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
   const chips = stats.chips.length ? stats.chips.map((c) => `${chipName(c.name)} (${t.common.gw(c.event)})`).join(", ") : s.noChips;
   const form = stats.form.map((v, i) => s.formEntry(t.common.gw(stats.formGws[i]), v)).join(", ");
   return (
-    <section className={styles.panel} aria-label={s.region(teamName)}>
+    <section className={trip ? `${styles.panel} ${styles.mind}` : styles.panel} aria-label={trip ? t.blotter.heading(teamName) : s.region(teamName)}>
+      {trip ? <h3 className={styles.mindTitle}>{t.blotter.heading(teamName)}</h3> : null}
       <div className={styles.chart}>
         <MiniBars
           values={stats.form}
@@ -94,6 +100,18 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }
         </Fact>
         <Fact label={s.chipsPlayed}>{chips}</Fact>
       </dl>
+      {dares.length ? (
+        <div className={styles.dares}>
+          <h4 className={styles.daresTitle}>{t.blotter.daresHeading}</h4>
+          <ol className={styles.dareList}>
+            {dares.map((d) => (
+              <li key={d.key} className={styles.dare}>
+                {dareLine(d)}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </section>
   );
 }

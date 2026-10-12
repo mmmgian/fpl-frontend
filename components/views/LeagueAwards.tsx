@@ -1,8 +1,20 @@
 import Link from "next/link";
-import { Crest, getT } from "@/components/ui";
-import { entrySlugs, type Award, type StandingRow } from "@/lib/domain";
+import { Crest, getT, isTrip } from "@/components/ui";
+import { entrySlugs, type Award, type AwardKey, type StandingRow } from "@/lib/domain";
 import { awardFigure, awardLine, awardTitle, tiedNote } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
+
+/** Each vision's sigil and hue in the altered view: decoration only, hidden from assistive technology. */
+const VISION: Record<AwardKey, { glyph: string; hue: number }> = {
+  weekWinner: { glyph: "✺", hue: 48 },
+  woodenSpoon: { glyph: "☾", hue: 250 },
+  hotStreak: { glyph: "✧", hue: 320 },
+  climber: { glyph: "⇡", hue: 160 },
+  rollercoaster: { glyph: "≋", hue: 195 },
+  benchDisaster: { glyph: "◌", hue: 280 },
+  hitMachine: { glyph: "⧖", hue: 12 },
+  deepPockets: { glyph: "◈", hue: 95 },
+};
 
 /** The league's superlatives: who won the week, who is on fire, who is wasting the bench. Handed out by the numbers. */
 export function LeagueAwards({ awards, rows, gw }: { awards: Award[]; rows: StandingRow[]; gw?: number }) {
@@ -13,15 +25,27 @@ export function LeagueAwards({ awards, rows, gw }: { awards: Award[]; rows: Stan
     return row ? [{ a, row }] : [];
   });
   if (items.length === 0) return null;
+  const trip = isTrip();
+  const t = getT();
 
   return (
-    <section aria-labelledby="awards-title" className={styles.awards}>
+    <section aria-labelledby="awards-title" className={trip ? `${styles.awards} ${styles.visions}` : styles.awards}>
       <h2 id="awards-title" className={styles.awardsTitle}>
-        {getT().league.awardsHeading}
+        {trip ? t.blotter.awardsHeading : t.league.awardsHeading}
       </h2>
+      {trip ? <p className={styles.visionsLede}>{t.blotter.awardsLede}</p> : null}
       <ul className={styles.awardList}>
-        {items.map(({ a, row }) => (
-          <li key={a.key} className={styles.award}>
+        {items.map(({ a, row }, i) => (
+          <li
+            key={a.key}
+            className={trip ? `${styles.award} ${styles.vision}` : styles.award}
+            style={trip ? ({ "--hue": VISION[a.key].hue, "--i": i } as React.CSSProperties) : undefined}
+          >
+            {trip ? (
+              <span className={styles.visionGlyph} aria-hidden="true">
+                {VISION[a.key].glyph}
+              </span>
+            ) : null}
             <p className={styles.awardName}>{awardTitle(a.key)}</p>
             <p className={styles.awardFigure}>{awardFigure(a)}</p>
             <p className={styles.awardWho}>

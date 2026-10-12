@@ -67,8 +67,9 @@
 }
 
 /* Cards and tables sway and glow. */
-/* Only real surfaces: bare wrappers (section, header, nav) would glow as square boxes behind titles and pills. */
-:root[data-trip="on"] main :is([class*="Card_card"], [class*="StatList_item"], [class*="DataTable_region"], [class*="DeadlineTimer_timer"], [class*="leagueExtras_award"], [class*="interview_panel"], [class*="sheet_identity"], [class*="fixtures_region"], [class*="fixtureFeed_gameweek"], [class*="times_hero"], [class*="times_card"]) {
+/* Only real surfaces: bare wrappers (section, header, nav) would glow as square boxes behind titles and pills. The
+ * trailing "__" (before the build's hash) keeps award from also matching awardName, awardLine and the rest. */
+:root[data-trip="on"] main :is([class*="Card_card__"], [class*="StatList_item__"], [class*="DataTable_region__"], [class*="DeadlineTimer_timer__"], [class*="leagueExtras_award__"], [class*="interview_panel__"], [class*="sheet_identity__"], [class*="fixtures_region__"], [class*="fixtureFeed_gameweek__"], [class*="times_hero__"], [class*="times_card__"]) {
   border-color: var(--border);
   animation: trip-glow 8s ease-in-out infinite;
 }

@@ -3,10 +3,18 @@
  * and not translated fails the type check. Strings that need numbers or names are functions; each language decides
  * its own plural rules.
  */
-import type { AnswerKind, AskKind, InterviewTopic, TopicId } from "../interview";
+import type { AnswerKind, AskKind, GenericAnswer, InterviewContext, InterviewTopic, InterviewVoice, TopicId } from "../interview";
 import { clientEn } from "./client/en";
 
 const gw = (n: number) => `GW${n}`;
+/** "point" or "points" for a count. */
+const pts = (n: number) => (Math.abs(n) === 1 ? "point" : "points");
+/** 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th, 21st. */
+const ord = (n: number) => {
+  const tens = n % 100;
+  const one = n % 10;
+  return `${n}${tens >= 11 && tens <= 13 ? "th" : one === 1 ? "st" : one === 2 ? "nd" : one === 3 ? "rd" : "th"}`;
+};
 
 export const en = {
   /** Words used everywhere. */
@@ -566,25 +574,294 @@ export const en = {
 
   interview: {
     heading: "Press conference",
-    lede: (first: string, gw: string) => `${first} faces the press after ${gw}.`,
-    note: "Invented for fun: nobody was really asked anything.",
+    lede: (manager: string, team: string, gw: string) => `${manager} of ${team} faces the press after ${gw}.`,
+    /** Shown while the gameweek is being played: the conference is redrawn each day. */
+    liveNote: "*Changes every day during the gameweek.",
+    /** Shown once the gameweek is over: the conference no longer changes. */
+    finalNote: (gw: string) => `Final for ${gw}: this press conference is fixed now that the gameweek is over.`,
+    /** Ways a journalist introduces a question; each names the manager or the team. */
+    openers: [
+      (c, q) => `${c.first}, a question for you: ${q}`,
+      (c, q) => `${c.manager}, ${c.team} supporters want to know: ${q}`,
+      (c, q) => `Back to ${c.team}, if I may: ${q}`,
+      (c, q) => `${c.first}, quick one: ${q}`,
+      (c, q) => `Let me put this to ${c.manager}: ${q}`,
+      (c, q) => `On behalf of the press pool, ${c.first}: ${q}`,
+    ] as ((c: InterviewContext, q: string) => string)[],
     pressAlt: (team: string) => `${team}'s mascot at a press conference with journalists.`,
     transcript: "Transcript",
     askers: { genius: "The Professor", dumb: "The Rookie", satirical: "The Columnist" } as Record<AskKind, string>,
     askerRole: { genius: "Asks cleverly", dumb: "Asks daftly", satirical: "Asks cheekily" } as Record<AskKind, string>,
-    answerers: { genius: "IQ 150+", snarky: "Snarky", egotist: "Egotist" } as Record<AnswerKind, string>,
+    answerers: {
+      genius: "IQ 150+", snarky: "Snarky", egotist: "Egotist", dim: "IQ under 40", chill: "Nonchalant", pr: "Spin doctor", conspiracy: "Conspiracy theorist", dramatic: "Drama queen",
+    } as Record<AnswerKind, string>,
     answerBy: (team: string) => `${team} replies`,
     topics: {
+      // ----- blunders -----
+      captainBlank: {
+        q: {
+          genius: (c) => `${c.captain} gave you ${c.captainPts} ${pts(c.captainPts)} as captain while ${c.best} had ${c.bestPts} in your own XI. A process failure, or variance in a trench coat?`,
+          dumb: (c) => `Your captain ${c.captain} got ${c.captainPts}. Isn't the captain meant to be the one who scores the most?`,
+          satirical: (c) => `${c.captainPts} ${pts(c.captainPts)} from the captain. Is the C on ${c.captain}'s arm for "captain" or for "cancelled"?`,
+        },
+        a: {
+          genius: (c) => `One draw from ${c.captain}'s distribution, not a verdict. The call was right in expectation and I would make it again. Outcomes are not arguments.`,
+          snarky: (c) => `${c.captain} looked captain-shaped at the deadline. Do share your picks before kick-off next time.`,
+          egotist: (c) => `The armband was flawless. ${c.captain} simply failed to rise to my judgement.`,
+        },
+      },
+      captainRegret: {
+        q: {
+          genius: (c) => `${c.best} scored ${c.bestPts} in your XI while the armband sat on ${c.captain}'s ${c.captainPts}. That is ${c.regret} ${pts(c.regret)} of regret. Do you track your armband error rate?`,
+          dumb: (c) => `${c.best} got ${c.bestPts} and you picked ${c.captain}. Did you mix up the names?`,
+          satirical: (c) => `Sources say ${c.best} scored ${c.bestPts} for you and not a single one was doubled. Is the armband decorative?`,
+        },
+        a: {
+          genius: (c) => `Regret is hindsight's tax. ${c.captain} had the higher expected points before kick-off, and that is the only number a captain can be judged on.`,
+          snarky: (c) => `${c.regret} ${pts(c.regret)} of regret is a hobby, really. I like to leave some room for improvement.`,
+          egotist: (c) => `I never doubted the pick. If ${c.best} wanted double points he should have asked me first.`,
+        },
+      },
+      captainUnused: {
+        q: {
+          genius: (c) => `${c.captain} didn't play a minute while wearing your armband. What was the failure mode in that selection?`,
+          dumb: (c) => `Your captain ${c.captain} didn't play. Does the armband still count if he watches from the stand?`,
+          satirical: (c) => `Captain ${c.captain}: on the team sheet, absent from the pitch. Is he your captain or your imaginary friend?`,
+        },
+        a: {
+          genius: () => `Minutes risk comes with any high-ownership asset. The vice-captain rule exists for exactly this, so the downside was bounded by design.`,
+          snarky: () => `He played in my heart. The vice-captain rule did the rest.`,
+          egotist: () => `Even my absent captain is better than your present one.`,
+        },
+      },
+      benchHaul: {
+        q: {
+          genius: (c) => `${c.bench} ${pts(c.bench)} on your bench, ${c.benchTop} alone with ${c.benchTopPts}. At what point does bench optimisation stop being a hobby and become an obligation?`,
+          dumb: (c) => `${c.bench} ${pts(c.bench)} sat on your bench this week. Is that where the players score all their points?`,
+          satirical: (c) => `${c.benchTop} scored ${c.benchTopPts} on your bench. Have you considered starting your players?`,
+        },
+        a: {
+          genius: () => `Bench points are an unobserved counterfactual with selection bias. Nobody knows in advance which of fifteen players will return.`,
+          snarky: (c) => `${c.benchTop} was keeping the seat warm. Very considerate of me, really.`,
+          egotist: () => `My bench outscores other people's starters. That is depth you cannot buy.`,
+        },
+      },
+      hitTaken: {
+        q: {
+          genius: (c) => `You paid −${c.hit} for transfers and finished on ${c.points} ${pts(c.points)}. Did the expected gain clear the cost?`,
+          dumb: (c) => `You gave away ${c.hit} ${pts(c.hit)} to make a transfer. Was it a special offer?`,
+          satirical: (c) => `${c.hit} ${pts(c.hit)} handed to FPL for the privilege of changing your mind. Is that a donation or a subscription?`,
+        },
+        a: {
+          genius: () => `A hit is an investment with a payback horizon, not a single week's profit and loss. Judge it over six gameweeks, not six minutes.`,
+          snarky: () => `Transfers aren't free, and neither is my patience for questions about them.`,
+          egotist: () => `I didn't take a hit. I paid a premium for greatness.`,
+        },
+      },
+      injuredStarter: {
+        q: {
+          genius: (c) => `${c.flagged} is listed as ${c.flaggedLabel} and still in your starting XI. What is the risk-adjusted case for that selection?`,
+          dumb: (c) => `${c.flagged} is ${c.flaggedLabel}. Is he still allowed to play?`,
+          satirical: (c) => `Your starting XI includes ${c.flagged}, who is ${c.flaggedLabel}. Is it a team sheet or a get-well card?`,
+        },
+        a: {
+          genius: () => `Flags are probabilities, not binaries. Chance-of-playing figures are noisy, I priced the downside, and the bench covers it.`,
+          snarky: () => `He's resting for tactical reasons, mostly mine. A get-well card is a nice touch though.`,
+          egotist: (c) => `Even half-fit, ${c.flagged} is better than anything you own.`,
+        },
+      },
+      autoSubbed: {
+        q: {
+          genius: (c) => `FPL had to bring on ${c.subIn} for ${c.subOut}. How do you justify starting a player who never took the field?`,
+          dumb: (c) => `${c.subOut} didn't play, so ${c.subIn} came on instead. Who is actually in charge of your team?`,
+          satirical: (c) => `${c.subOut} went missing and FPL's auto-sub robot called up ${c.subIn}. Is the robot the real manager?`,
+        },
+        a: {
+          genius: () => `Auto-subs are free insurance and the policy paid out as designed. That is the system working, not failing.`,
+          snarky: () => `The robot has better judgement than half this league. I simply let it work.`,
+          egotist: () => `I picked the stand-in in advance. That is called depth, and it is why I'm in charge.`,
+        },
+      },
+      chipFlop: {
+        q: {
+          genius: (c) => `${c.chip} added ${c.chipPts} ${pts(c.chipPts)}. What was its expected value when you played it?`,
+          dumb: (c) => `You played ${c.chip} and it gave you ${c.chipPts} ${pts(c.chipPts)}. Is that good for a chip?`,
+          satirical: (c) => `A chip you can only use once, and ${c.chip} returned ${c.chipPts} ${pts(c.chipPts)}. Was it a chip or a coin toss?`,
+        },
+        a: {
+          genius: () => `Chip value is path-dependent. Its worth is in the option, not one week's return, and the option was spent rationally.`,
+          snarky: () => `It's called a chip because that's what I got: a small, slightly burnt piece of something.`,
+          egotist: (c) => `${c.chip} was played to perfection. The points simply refused to be as good as me.`,
+        },
+      },
+      badWeek: {
+        q: {
+          genius: (c) => `${c.points} ${pts(c.points)} against a season average of ${c.avg}. A trough, or the new baseline?`,
+          dumb: (c) => `You scored ${c.points}. Isn't a normal week about ${c.avg} for you?`,
+          satirical: (c) => `${c.points} ${pts(c.points)} in ${c.gw}. Did the club ask for a refund, or did you request a recount?`,
+        },
+        a: {
+          genius: () => `A below-average week sits well inside normal variance. Mean reversion is not a belief, it's arithmetic.`,
+          snarky: (c) => `${c.points} ${pts(c.points)}. The average of ${c.avg} is made mostly of other people's good luck.`,
+          egotist: () => `A bad week by my standards is still a masterpiece by yours.`,
+        },
+      },
+      seasonBench: {
+        q: {
+          genius: (c) => `Your bench has absorbed ${c.seasonBench} ${pts(c.seasonBench)} this season. What is the opportunity cost of that squad structure?`,
+          dumb: (c) => `${c.seasonBench} ${pts(c.seasonBench)} have piled up on your bench this season. Have you tried putting those players onto the pitch?`,
+          satirical: (c) => `${c.seasonBench} ${pts(c.seasonBench)} have retired to your bench this season. Do they get a pension?`,
+        },
+        a: {
+          genius: () => `A deep bench is insurance, and insurance has a premium. The premium is the points I can never prove I'd have lost.`,
+          snarky: () => `They're saving themselves for when it matters. Very professional, unlike this question.`,
+          egotist: () => `Other managers' benches are empty. Mine is a trophy cabinet.`,
+        },
+      },
+      seasonHits: {
+        q: {
+          genius: (c) => `You've paid ${c.seasonHits} ${pts(c.seasonHits)} in hits this season. What return on churn are you modelling?`,
+          dumb: (c) => `${c.seasonHits} ${pts(c.seasonHits)} just for changing players? Isn't changing them free?`,
+          satirical: (c) => `${c.seasonHits} ${pts(c.seasonHits)} in transfer hits. Is it a strategy or a hobby with a fee?`,
+        },
+        a: {
+          genius: () => `Turnover costs are priced in. A manager who never takes a hit is merely running a pension fund.`,
+          snarky: () => `I treat FPL as a charity. Someone has to donate.`,
+          egotist: () => `I trade like a legend. The tax is the price of being right most of the time.`,
+        },
+      },
+      idleBank: {
+        q: {
+          genius: (c) => `You have ${c.bank} sitting in the bank. What is the opportunity cost of idle capital in a points market?`,
+          dumb: (c) => `You've got ${c.bank} in the bank, and it's only money. Why not spend it?`,
+          satirical: (c) => `${c.bank} unspent while the squad creaks. Is that a savings plan or a cry for a shopping trip?`,
+        },
+        a: {
+          genius: () => `Optionality has a price, and unspent funds are the cheapest option I hold. I deploy them when the edge is worth it.`,
+          snarky: () => `It's earning interest. Probably. Ask the bank.`,
+          egotist: () => `I could buy anyone I like. It's called restraint.`,
+        },
+      },
+      // ----- the league -----
+      leader: {
+        q: {
+          genius: (c) => `You lead by ${c.gapDown} ${pts(c.gapDown)} over ${c.downTeam}. How much of that is skill, and how much a kind fixture list?`,
+          dumb: () => `So you're first. Does that mean you've won, or is there more to it?`,
+          satirical: (c) => `Top of the league, ${c.gapDown} clear. Will the trophy be engraved before or after the collapse?`,
+        },
+        a: {
+          genius: (c) => `Mostly skill, with a modest luck term. A lead of ${c.gapDown} is a point estimate and I'm already managing the variance around it.`,
+          snarky: () => `Not won yet. But thanks for asking as if the others stand a chance.`,
+          egotist: () => `Obviously I'm first. The only questions are by how much and when the rest concede.`,
+        },
+      },
+      chasing: {
+        q: {
+          genius: (c) => `You are ${c.leaderGap} ${pts(c.leaderGap)} behind ${c.leader} in ${ord(c.rank)}. What would it take to close that gap?`,
+          dumb: (c) => `You're ${ord(c.rank)}. Is ${ord(c.rank)} the same as winning?`,
+          satirical: (c) => `${ord(c.rank)} in the table, ${c.leaderGap} behind ${c.leader}. A title challenge, or a very well-dressed runner-up campaign?`,
+        },
+        a: {
+          genius: (c) => `${c.leaderGap} ${pts(c.leaderGap)} is under two good gameweeks. A title is a hazard rate, and ${c.leader}'s is not zero.`,
+          snarky: () => `Close enough to see the trophy, far enough to be asked about it. Perfect.`,
+          egotist: (c) => `${c.leader} is just keeping the top seat warm for me.`,
+        },
+      },
+      midtable: {
+        q: {
+          genius: (c) => `You are ${ord(c.rank)} of ${c.size}, squarely in the middle. Is there a strategy here or only inertia?`,
+          dumb: (c) => `I can never tell with these things: is ${ord(c.rank)} out of ${c.size} good?`,
+          satirical: (c) => `${ord(c.rank)} of ${c.size}: not promoted, not relegated, merely present. Is that the plan?`,
+        },
+        a: {
+          genius: () => `The middle of the distribution is where variance cancels. I'm collecting information, and the tails are coming.`,
+          snarky: () => `Mid-table is a lifestyle choice. You wouldn't understand.`,
+          egotist: (c) => `${ord(c.rank)} is only my current address. I'm a top-of-the-table kind of person.`,
+        },
+      },
+      dropzone: {
+        q: {
+          genius: (c) => `You are ${ord(c.rank)} of ${c.size}, inside the bottom four. What is the probability of climbing out?`,
+          dumb: (c) => `You're ${ord(c.rank)}. Aren't the bottom four where the worst managers go?`,
+          satirical: (c) => `${ord(c.rank)} of ${c.size}. Are the bottom four a relegation zone or a gated community?`,
+        },
+        a: {
+          genius: () => `The bottom four is a transient state, and the Markov chain favours the patient. One good captaincy swing changes the arithmetic.`,
+          snarky: () => `Lovely view from down here. Great legroom.`,
+          egotist: () => `I'm not in the drop zone. The drop zone is visiting me.`,
+        },
+      },
+      lastPlace: {
+        q: {
+          genius: (c) => `Dead last of ${c.size}. At what point does a tail outcome become an estimate of true skill?`,
+          dumb: () => `Last place. Is that the one where you win the least?`,
+          satirical: (c) => `Last of ${c.size}: the wooden spoon is polished and waiting. Would you like to say a few words?`,
+        },
+        a: {
+          genius: () => `One draw from the bottom of the distribution proves nothing. I assure you the posterior is very wide.`,
+          snarky: () => `At least I'm easy to find.`,
+          egotist: () => `Last is just first from the other side. I have a unique perspective.`,
+        },
+      },
+      looksUp: {
+        q: {
+          genius: (c) => `${c.upTeam} is ${c.gapUp} ${pts(c.gapUp)} ahead of you. Which of their decisions are you modelling to overtake them?`,
+          dumb: (c) => `${c.upTeam} is ahead of you by ${c.gapUp}. Is that a lot?`,
+          satirical: (c) => `${c.gapUp} ${pts(c.gapUp)} separate you from ${c.upTeam}. A gap, or a polite distance?`,
+        },
+        a: {
+          genius: (c) => `${c.gapUp} ${pts(c.gapUp)} is one good captain pick. Overtaking ${c.upTeam} is a differential game, and I know the exits.`,
+          snarky: (c) => `${c.upTeam} can enjoy it while it lasts.`,
+          egotist: (c) => `${c.upTeam} is only ahead of me temporarily, like a pedestrian in front of a bus.`,
+        },
+      },
+      looksBack: {
+        q: {
+          genius: (c) => `${c.downTeam} trail you by only ${c.gapDown} ${pts(c.gapDown)}. How robust is your position to one bad gameweek?`,
+          dumb: (c) => `${c.downTeam} is right behind you. Shouldn't you run?`,
+          satirical: (c) => `${c.downTeam}, just ${c.gapDown} behind, is breathing down your neck. Flattering or terrifying?`,
+        },
+        a: {
+          genius: (c) => `${c.gapDown} ${pts(c.gapDown)} is inside one gameweek's noise, which is why I model the downside first.`,
+          snarky: () => `They can breathe all they like. I've got a window.`,
+          egotist: () => `They're not chasing me. They're following the leader's footsteps in awe.`,
+        },
+      },
+      climber: {
+        q: {
+          genius: (c) => `You climbed ${c.places} places to ${ord(c.rank)}. Which variable moved: the skill or the schedule?`,
+          dumb: (c) => `You went up ${c.places} places. Does that mean you're better, or did the others get worse?`,
+          satirical: (c) => `Up ${c.places} places to ${ord(c.rank)}. Did everyone else lose their login?`,
+        },
+        a: {
+          genius: () => `Both, in roughly the proportions you'd expect: the signal is the process, the rest is noise with good manners.`,
+          snarky: () => `Mostly the others getting worse. I just stood still.`,
+          egotist: (c) => `${c.places} places up and still climbing. They call it the ${c.first} effect.`,
+        },
+      },
+      faller: {
+        q: {
+          genius: (c) => `You fell ${c.places} places to ${ord(c.rank)}. Is that a regime change or a draw from the tail?`,
+          dumb: (c) => `You dropped ${c.places} places. Did you go down by accident?`,
+          satirical: (c) => `Down ${c.places} places to ${ord(c.rank)}. A slump, or a tactical descent?`,
+        },
+        a: {
+          genius: () => `A transient adjustment. The model is intact; the schedule was simply allowed to be cruel.`,
+          snarky: () => `I'm giving the others a chance to feel good about themselves.`,
+          egotist: () => `I'm not falling. I'm descending in order to ascend more theatrically.`,
+        },
+      },
+      // ----- timeless, for when there is too little to ask about -----
       variance: {
-        q: (c) => `${c.points} points in ${c.gw}. How much of that is signal and how much is variance, and what would the confidence interval on your process look like?`,
+        q: { genius: (c) => `${c.points} ${pts(c.points)} in ${c.gw}. How much of that is signal and how much is variance, and what would the confidence interval on your process look like?` },
         a: {
           genius: () => "Outcome is not decision quality. Over 38 gameweeks the variance washes out and the edge compounds. You are quoting one draw from a long distribution.",
           snarky: () => "A confidence interval needs data. You've given me one question and I already regret the sample size.",
           egotist: () => "Very narrow, because I am rarely wrong. The rest of the league is the variance.",
         },
       },
-      regret: {
-        q: () => "Does your captaincy policy maximise expected points, or minimise regret when the template goes the other way?",
+      armband: {
+        q: { genius: () => "Does your captaincy policy maximise expected points, or minimise regret when the template goes the other way?" },
         a: {
           genius: () => "Expected points, with a regret penalty only above roughly 40% ownership. Beyond that, differentiating is the rational play. It is minimax with a hat on.",
           snarky: () => "Both. Neither. I hand the armband to whoever's name I can spell under pressure.",
@@ -592,7 +869,7 @@ export const en = {
         },
       },
       pointsAim: {
-        q: (c) => `So, ${c.team}, the idea is to get more points than the other managers. Is that right?`,
+        q: { dumb: () => `So the idea is to get more points than the other managers. Is that right?` },
         a: {
           genius: () => "In the first-order sense, yes, though strictly we maximise points under a budget constraint and a transfer cost. You have just described the objective function.",
           snarky: () => "Yes. Well done. Shall I read the next question to you as well?",
@@ -600,7 +877,7 @@ export const en = {
         },
       },
       goalkeeper: {
-        q: (c) => `Quick one, ${c.first}: which of your players is the goalie again? The tall one?`,
+        q: { dumb: () => `Which of your players is the goalie again? The tall one?` },
         a: {
           genius: () => "Goalkeepers are the lowest-variance asset in the squad: clean sheets and saves, the fewest points per million. Height is incidental. The gloves are diagnostic.",
           snarky: () => "The one wearing gloves. It's the only thing in this room I'm sure about.",
@@ -608,7 +885,7 @@ export const en = {
         },
       },
       vibes: {
-        q: () => "Sources close to the squad describe your transfer strategy as 'vibes, mostly'. Care to deny it?",
+        q: { satirical: () => "Sources close to the squad describe your transfer strategy as 'vibes, mostly'. Care to deny it?" },
         a: {
           genius: () => "I would call it Bayesian: a strong prior, aggressive updating, and an affective heuristic that occasionally beats the model. 'Vibes' is the layman's term.",
           snarky: () => "Deny it? I'd frame it. 'Vibes, mostly' is going on the club crest.",
@@ -616,14 +893,111 @@ export const en = {
         },
       },
       groupChat: {
-        q: (c) => `Critics call ${c.team} 'a group chat that was handed a budget'. Your response?`,
+        q: { satirical: () => `Critics call your team 'a group chat that was handed a budget'. Your response?` },
         a: {
           genius: () => "A group chat is a decentralised decision network with excellent signal sharing. I'm flattered by the comparison.",
           snarky: () => "At least the group chat is funnier than your column. And it replies faster.",
           egotist: () => "A group chat I run, I might add. Admin rights are non-negotiable.",
         },
       },
+      luck: {
+        q: { genius: (c) => `${c.total} ${pts(c.total)} after ${c.gw}. If this league were replayed from scratch a thousand times, in how many would your team end up here?` },
+        a: {
+          genius: () => "Fewer than you'd think, and more than you'd like. Luck is a coefficient, not an excuse, and mine is positive.",
+          snarky: () => "In all of them, because I'm not replaying this for you.",
+          egotist: () => "In all thousand. Parallel universes know my name.",
+        },
+      },
+      chipWhat: {
+        q: { dumb: () => "Asking for a friend: is a wildcard a chip, or a type of card?" },
+        a: {
+          genius: () => "Both. It's a chip that resets the transfer ledger, and the card is an administrative analogy. Your friend should send a thank-you note.",
+          snarky: () => "It's a card that cards you for asking.",
+          egotist: () => "It's whatever I say it is when I play it.",
+        },
+      },
+      mascot: {
+        q: { satirical: () => `Our sources claim the real manager is the lime-green creature on the poster. Care to comment?` },
+        a: {
+          genius: () => "Delegation of authority to a lower-variance agent is a recognised governance strategy. He has not been wrong yet.",
+          snarky: () => "He's cheaper than a coach and he doesn't complain about the bench.",
+          egotist: () => "He works for me. Have you seen his captain picks? Mine.",
+        },
+      },
     } as Record<TopicId, InterviewTopic>,
+    /** Lines that answer any question, one pool per generic voice (eight each). */
+    voices: {
+      dim: [
+        () => "Is that the one with the ball?",
+        () => "I like points. They go up. Mostly.",
+        (c) => `${c.points}? That sounds like a lot. Is that a lot?`,
+        (c) => `Wait, which one is ${c.team} again? I think that's me.`,
+        () => "I picked my team by colour. The green ones seemed friendly.",
+        () => "My cousin does this, I think. Or he plays the lottery. Same thing.",
+        () => "Can I phone a friend? He's the one who picked my captain, though.",
+        () => "I thought a transfer was something at the airport.",
+        () => "Is it the weekend yet? I lose track.",
+        () => "I trusted the little arrows. Green is good, right?",
+        () => "Sorry, I was reading the back of the cereal box. What was the question?",
+        () => "I had a plan, but I left it on the bus.",
+      ],
+      chill: [
+        () => "Yeah. Fair enough. It is what it is.",
+        (c) => `I don't lose sleep over ${c.gw}.`,
+        () => "Cool. Cool cool cool. Next question.",
+        () => "Points come, points go. I'm having a sandwich.",
+        () => "Meh. I set the team on the bus, I think.",
+        () => "Look, it's a game. I'm vibing.",
+        () => "Whatever happens, happens. Is there coffee?",
+        () => "I'll check the table on Sunday. Maybe Monday.",
+        () => "Sure. I mean, what are you gonna do?",
+        () => "It's fine. It's all fine. Everything is fine.",
+        () => "I don't really check the app. The app checks me.",
+        () => "Honestly? I'd rather talk about lunch.",
+      ],
+      pr: [
+        () => "We are taking a data-led approach and remain fully committed to the process.",
+        (c) => `${c.team} will not be commenting on individual decisions at this stage.`,
+        () => "Lessons have been learned. We will be reviewing everything going forward.",
+        () => "We have full confidence in the squad and the people around it.",
+        (c) => `There were many positives to take from ${c.gw}, and we will build on them.`,
+        () => "I'd like to thank the fans for their continued support. All four of them.",
+        (c) => `This is a work in progress, and ${c.points} is a number we will be monitoring closely.`,
+        () => "We note the question. We also note that it is a question.",
+        () => "We will keep focusing on the next gameweek, one deadline at a time.",
+        () => "I can confirm there is a plan. I cannot confirm what it is.",
+        (c) => `These are exciting times for ${c.team}, and the board remains united.`,
+        () => "We appreciate the question, and we will issue a statement in due course.",
+      ],
+      conspiracy: [
+        (c) => `Ask yourself who benefits from ${c.points} ${pts(c.points)}. Wake up.`,
+        () => "The FPL servers rounded that against me. I have screenshots.",
+        () => "Why is the deadline at that exact time? Coincidence?",
+        () => "The bonus points are rigged. Follow the BPS.",
+        () => "They don't want you to know what the third-highest-owned player really does.",
+        () => "I'm not saying it was the referee. I'm saying nobody has seen the referee and my captain in the same room.",
+        (c) => `${c.team} didn't make a mistake. ${c.team} was made to make a mistake.`,
+        () => "Every deadline, the same people win. Coincidence? I have a corkboard.",
+        () => "Notice how the price changes always land right after I buy. Notice.",
+        () => "My mascot knows more than he's saying. Look at his eyes. The uneven ones.",
+        () => "I have a spreadsheet that proves it. It proves nothing, which is exactly the proof.",
+        () => "Big Fixture List doesn't want this conversation to happen.",
+      ],
+      dramatic: [
+        () => "To captain, or not to captain: that is the question. I chose the second. Alas.",
+        (c) => `Oh, cruel ${c.gw}! Fortune is a fickle mistress, and she has my number.`,
+        () => "I am but a humble manager, buffeted by the winds of fate and the bench.",
+        () => "You ask me this now, in my darkest hour? Very well. I weep, but I answer.",
+        (c) => `Behold: ${c.points} ${pts(c.points)}. A tragedy in one act.`,
+        (c) => `They laughed at ${c.team}. They were right, to be fair. But still.`,
+        () => "The stars aligned against me. Mostly Mars, which is red, like my bench.",
+        () => "*sighs into a handkerchief* Next question.",
+        () => "Hark! The bench weeps, and so do I.",
+        () => "Is this a pitch I see before me? No. It's the bench. As always.",
+        () => "I came, I saw, I overthought. Et tu, captain?",
+        (c) => `Curtain! Bring down the curtain on ${c.gw}, I beg you.`,
+      ],
+    } as Record<GenericAnswer, InterviewVoice>,
   },
 
   loading: {

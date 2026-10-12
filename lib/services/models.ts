@@ -67,12 +67,20 @@ export interface LeagueNeighbour {
   entryId: number;
   teamName: string;
   rank: number;
+  /** League points. */
+  points: number;
 }
 
 /** The team's place in the league table, with the managers just above and just below it. */
 export interface LeagueSpot {
   rank: number;
   size: number;
+  /** League points. */
+  points: number;
+  /** The team at the top of the table (this team, when it leads). */
+  leader: LeagueNeighbour;
+  /** Places climbed since the last gameweek (negative = fell); 0 when unknown. */
+  moved: number;
   /** The manager one place higher, if there is one. */
   prev: LeagueNeighbour | null;
   /** The manager one place lower, if there is one. */

@@ -109,6 +109,11 @@
 .reply[data-answer="genius"] { --ink: var(--ink-genius); }
 .reply[data-answer="snarky"] { --ink: var(--ink-snarky); }
 .reply[data-answer="egotist"] { --ink: var(--ink-egotist); }
+.reply[data-answer="dim"] { --ink: var(--zone-good); }
+.reply[data-answer="chill"] { --ink: #8b97a3; }
+.reply[data-answer="pr"] { --ink: #6f8cff; }
+.reply[data-answer="conspiracy"] { --ink: #a77bfa; }
+.reply[data-answer="dramatic"] { --ink: var(--accent); }
 .reply .bubble { background: color-mix(in srgb, var(--ink) 16%, var(--surface-solid)); border-color: color-mix(in srgb, var(--ink) 50%, var(--border)); }
 .chip {
   padding: 0 9px;

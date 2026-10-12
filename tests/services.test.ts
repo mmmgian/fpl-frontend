@@ -60,9 +60,10 @@ describe("league service", () => {
   });
 });
 
-describe("team service: neighbours in the league", () => {
-  const rows = [3, 1, 2].map((rank) => standing({ entry: rank === 1 ? 7 : rank * 100, entry_name: `Team ${rank}`, rank }));
-  const league = (over = {}) => ({ league: { id: 1, name: "L" }, standings: { has_next: false, results: rows }, ...over });
+describe("team service: place in the league", () => {
+  const row = (rank: number, entryId: number, total: number, last_rank = rank) => standing({ entry: entryId, entry_name: `Team ${rank}`, rank, total, last_rank });
+  const table = (me: number) => [row(3, me === 3 ? 7 : 300, 380, 5), row(1, me === 1 ? 7 : 100, 420, 1), row(2, me === 2 ? 7 : 200, 400, 2)];
+  const league = (results: ReturnType<typeof table>) => ({ league: { id: 1, name: "L" }, standings: { has_next: false, results } });
   const make = (standings: () => Promise<unknown>, id = 1) =>
     createTeamService(fakeFpl({ entry: async () => entry(), standings: standings as never }), { now: clock, leagueId: () => id });
   const identity = async (svc: ReturnType<typeof make>) => {
@@ -72,18 +73,31 @@ describe("team service: neighbours in the league", () => {
   };
 
   it("names the managers one place above and below, whatever order the league arrives in", async () => {
-    const team = await identity(make(async () => league()));
-    expect(team.league).toEqual({ rank: 1, size: 3, prev: null, next: { entryId: 200, teamName: "Team 2", rank: 2 } });
+    const team = await identity(make(async () => league(table(1))));
+    expect(team.league).toEqual({
+      rank: 1, size: 3, points: 420, moved: 0,
+      leader: { entryId: 7, teamName: "Team 1", rank: 1, points: 420 },
+      prev: null,
+      next: { entryId: 200, teamName: "Team 2", rank: 2, points: 400 },
+    });
   });
-  it("links both ways from the middle of the table", async () => {
-    const mid = [1, 2, 3].map((rank) => standing({ entry: rank === 2 ? 7 : rank * 100, entry_name: `Team ${rank}`, rank }));
-    const team = await identity(make(async () => league({ standings: { has_next: false, results: mid } })));
-    expect(team.league).toMatchObject({ rank: 2, prev: { entryId: 100, rank: 1 }, next: { entryId: 300, rank: 3 } });
+  it("links both ways from the middle, knows the leader and the points, and the places moved since last week", async () => {
+    const team = await identity(make(async () => league(table(3))));
+    expect(team.league).toMatchObject({
+      rank: 3, points: 380, moved: 2,
+      leader: { entryId: 100, teamName: "Team 1", points: 420 },
+      prev: { entryId: 200, rank: 2, points: 400 },
+      next: null,
+    });
   });
-  it("shows the team without neighbours if the league is unavailable, has no such team, or is not configured", async () => {
+  it("treats a team with no earlier rank as not having moved", async () => {
+    const rows = [row(1, 100, 420, 1), row(2, 7, 400, 0)];
+    expect((await identity(make(async () => league(rows as never)))).league?.moved).toBe(0);
+  });
+  it("shows the team without a place if the league is unavailable, has no such team, or is not configured", async () => {
     expect((await identity(make(() => Promise.reject(new Error("503"))))).league).toBeNull();
     expect((await identity(make(async () => null))).league).toBeNull();
-    expect((await identity(make(async () => league({ standings: { has_next: false, results: [standing({ entry: 5 })] } })))).league).toBeNull();
+    expect((await identity(make(async () => league([row(1, 5, 10)])))).league).toBeNull();
     const none = await createTeamService(fakeFpl({ entry: async () => entry() }), { now: clock }).load(7, undefined);
     expect(none.kind === "ok" && none.team.league).toBeNull();
   });

@@ -127,7 +127,7 @@ export function TeamView({ model }: { model: TeamState }) {
             </StateMessage>
           ) : null}
 
-          <InterviewPanel team={team} gameweek={gw} summary={model.summary} />
+          <InterviewPanel model={model} />
 
           <MatchdayInsights data={model.insights.gameweek} gameweek={gameweekName(gw.name)} />
 

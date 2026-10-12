@@ -37,8 +37,9 @@ export function createTeamService(
       const rows = [...((await fpl.standings(leagueId()))?.standings.results ?? [])].sort((a, b) => a.rank - b.rank);
       const i = rows.findIndex((r) => r.entry === entryId);
       if (i < 0) return null;
-      const at = (r: (typeof rows)[number] | undefined) => (r ? { entryId: r.entry, teamName: r.entry_name, rank: r.rank } : null);
-      return { rank: rows[i].rank, size: rows.length, prev: at(rows[i - 1]), next: at(rows[i + 1]) };
+      const at = (r: (typeof rows)[number] | undefined) => (r ? { entryId: r.entry, teamName: r.entry_name, rank: r.rank, points: r.total } : null);
+      const me = rows[i];
+      return { rank: me.rank, size: rows.length, points: me.total, leader: at(rows[0])!, moved: me.last_rank > 0 ? me.last_rank - me.rank : 0, prev: at(rows[i - 1]), next: at(rows[i + 1]) };
     } catch {
       return null;
     }

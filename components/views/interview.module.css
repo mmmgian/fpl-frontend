@@ -115,6 +115,10 @@
 .reply[data-answer="conspiracy"] { --ink: #a77bfa; }
 .reply[data-answer="dramatic"] { --ink: var(--accent); }
 .reply[data-answer="trip"] { --ink: #ff4fd8; }
+.reply[data-answer="onion"] { --ink: #ffe14a; }
+.reply[data-answer="hofmann"] { --ink: #c28bff; }
+.reply[data-answer="atomic"] { --ink: #8cff72; }
+.reply[data-answer="lifesci"] { --ink: #35e8ff; }
 .ask[data-ask="trip"] { --ink: #35e0ff; }
 .reply .bubble { background: color-mix(in srgb, var(--ink) 16%, var(--surface-solid)); border-color: color-mix(in srgb, var(--ink) 50%, var(--border)); }
 .chip {

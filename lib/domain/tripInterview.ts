@@ -13,6 +13,21 @@ export const TRIP_TIPS = [
 ] as const;
 export type TripTipId = (typeof TRIP_TIPS)[number];
 export const TRIP_EXCHANGES = 5;
+
+/**
+ * Who answers the altered conference's ordinary questions: a satirical newswire, the chemist from Basel, the atomic
+ * physicist, and the radio scientist telling his life story. Each has a pool of lines that work for any question.
+ * (The sneaky tips are only a couple of the five answers; the rest are for the mood.)
+ */
+export const TRIP_VOICES = ["onion", "hofmann", "atomic", "lifesci"] as const;
+export type TripVoice = (typeof TRIP_VOICES)[number];
+export const TRIP_VOICE_LINES = 28;
+/** The first twenty lines of a voice answer any question; the last eight talk about what was asked. */
+export const TRIP_GENERAL_LINES = 20;
+/** Ways the altered conference's questions are introduced. */
+export const TRIP_OPENERS = 10;
+/** How many of the five exchanges are about the team's week (the rest are tips). */
+export const TRIP_TOPICS = 4;
 /** Ways the journalists are introduced, and ways a question or answer can be worded. */
 export const TRIP_ASKERS = 5;
 export const TRIP_VARIANTS = 2;
@@ -93,7 +108,7 @@ export function tripTips(i: InterviewInput, templateCount: number): TripTip[] {
   if (i.bank >= 10) add("bankIdle", 50);
   if ((i.freeTransfers ?? 0) >= 2) add("ftRoll", 55);
   if (i.outlook?.easiest) add("easyRun", 60);
-  if (i.planet) add("worldClimb", 90);
+  if (i.planet) add("worldClimb", 35);
   if (i.hit >= 4) add("hitMath", 65);
   add("chaos", 20);
   return tips;
@@ -110,8 +125,8 @@ function rng(seed: number): () => number {
   };
 }
 
-/** Up to five tips in a seeded order: the world-rank one always, the rest by weight. */
-export function pickTrip(seed: number, tips: readonly TripTip[], openers: number): TripExchange[] {
+/** Up to `count` tips in a seeded order, the likelier ones the heavier their weight. */
+export function pickTrip(seed: number, tips: readonly TripTip[], openers: number, count = TRIP_EXCHANGES): TripExchange[] {
   const next = rng(seed);
   let pool = [...tips];
   const chosen: TripTip[] = [];
@@ -119,9 +134,7 @@ export function pickTrip(seed: number, tips: readonly TripTip[], openers: number
     chosen.push(t);
     pool = pool.filter((x) => x.id !== t.id);
   };
-  const climb = pool.find((t) => t.id === "worldClimb");
-  if (climb) take(climb);
-  while (chosen.length < TRIP_EXCHANGES && pool.length) {
+  while (chosen.length < count && pool.length) {
     let r = next() * pool.reduce((s, t) => s + t.weight, 0);
     take(pool.find((t) => (r -= t.weight) < 0) ?? pool[pool.length - 1]);
   }

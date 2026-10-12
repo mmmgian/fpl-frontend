@@ -5,9 +5,14 @@
   gap: var(--space-5);
   align-content: start;
   min-height: calc(100dvh - 140px);
-  padding-top: var(--space-5);
   padding-bottom: var(--space-6);
 }
+/*
+ * Room between the sticky header and the page. It has to out-rank the shared .container rule (which sets all of the
+ * padding to "0 gutter"), or the title sits on the header's edge: a class and the global class together win.
+ */
+.main:global(.container) { padding-top: var(--space-6); }
+@media (max-width: 599px) { .main:global(.container) { padding-top: var(--space-5); } }
 
 /* The ruled line sits inside the page gutters, level with the content above it. */
 .footer { margin-top: var(--space-5); font-size: 12px; color: var(--text-muted); }

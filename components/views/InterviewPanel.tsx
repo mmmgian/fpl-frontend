@@ -1,9 +1,10 @@
 import { Crest, getFormat, getLocale, getT, gameweekName, isTrip } from "@/components/ui";
 import {
-  GENERIC_ANSWERS, candidatesOf, interviewContext, interviewSeed, pickInterview, pickTrip, tripContext, tripTips,
+  GENERIC_ANSWERS, candidatesOf, interviewContext, interviewSeed, pickInterview, tripContext, tripTips,
   type AnswerKind, type AskKind, type GenericAnswer, type InterviewTopic,
 } from "@/lib/domain/interview";
 import { INTL_LOCALE } from "@/lib/domain";
+import { pickTripConference } from "@/lib/domain/tripConference";
 import type { TeamModel } from "@/lib/services/models";
 import { interviewInputOf } from "./interviewInput";
 import styles from "./interview.module.css";
@@ -55,19 +56,35 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
   let items: Item[];
   if (trip) {
     const tt = t.trip;
-    items = pickTrip(seed, tripTips(input, ctx.templateCount), t.openers.length).map((x, i) => {
-      const c = tripContext(ctx, x.subject, fmt);
-      const tip = tt.tips[x.tip];
+    const league = { slot, seed: interviewSeed(0, gameweek.gw, day) };
+    items = pickTripConference(seed, candidatesOf(input), tripTips(input, ctx.templateCount), league).map((x, i) => {
+      if (x.kind === "tip") {
+        const c = tripContext(ctx, x.subject, fmt);
+        const tip = tt.tips[x.tip];
+        return {
+          key: `${x.tip}-${i}`,
+          glyph: TRIP_GLYPH[x.asker],
+          askData: "trip",
+          asker: tt.askers[x.asker],
+          role: tt.askerRole,
+          question: tt.openers[x.opener](c, tip.q[x.q](c)),
+          answerData: "trip",
+          chip: tt.chip,
+          reply: x.flourish >= 0 ? `${tip.a[x.a](c)} ${tt.flourishes[x.flourish]}` : tip.a[x.a](c),
+        };
+      }
+      const topic: InterviewTopic = t.topics[x.topic];
+      const ask = topic.q[x.ask] ?? Object.values(topic.q)[0]!;
       return {
-        key: `${x.tip}-${i}`,
+        key: `${x.topic}-${i}`,
         glyph: TRIP_GLYPH[x.asker],
         askData: "trip",
         asker: tt.askers[x.asker],
         role: tt.askerRole,
-        question: t.openers[x.opener](c, tip.q[x.q](c)),
-        answerData: "trip",
-        chip: tt.chip,
-        reply: x.flourish >= 0 ? `${tip.a[x.a](c)} ${tt.flourishes[x.flourish]}` : tip.a[x.a](c),
+        question: tt.openers[x.opener](ctx, ask(ctx)),
+        answerData: x.voice,
+        chip: tt.voiceNames[x.voice],
+        reply: tt.voices[x.voice][x.line](ctx, tt.gist[x.topic](ctx)),
       };
     });
   } else {

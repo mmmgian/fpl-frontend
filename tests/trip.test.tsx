@@ -6,7 +6,8 @@ import { TripSwitch } from "@/components/ui/TripSwitch";
 import { InterviewPanel } from "@/components/views/InterviewPanel";
 import { MESSAGES } from "@/lib/domain/i18n";
 import { LOCALES } from "@/lib/domain/i18n/locales";
-import { TRIP_TIPS, interviewContext, pickTrip, tripContext, tripTips, type InterviewInput, type InterviewPlayer } from "@/lib/domain/interview";
+import { pickTripConference } from "@/lib/domain/tripConference";
+import { ALL_TOPICS, TRIP_TIPS, TRIP_VOICES, TRIP_GENERAL_LINES, TRIP_VOICE_LINES, candidatesOf, interviewContext, pickTrip, tripContext, tripTips, type InterviewInput, type InterviewPlayer } from "@/lib/domain/interview";
 import { isTripCookie, tripAvatar } from "@/lib/domain/trip";
 import { upsidePicks } from "@/lib/domain/upside";
 import { createMascotGateway } from "@/lib/mascots";
@@ -131,6 +132,26 @@ const upside = {
   captainGambles: [{ id: 2, name: "Gamble", teamId: 1, club: "ARS", clubCode: 3, positionId: 4 as const, ownership: 12, xp: 7.5, form: 7, price: 90, transfersIn: 100 }],
   risers: [{ id: 3, name: "Risey", teamId: 1, club: "CHE", clubCode: 8, positionId: 3 as const, ownership: 8, xp: 5.5, form: 6, price: 55, transfersIn: 150_000 }],
 };
+const richTrip = (): InterviewInput => ({
+  ...input(),
+  first: "Zed", manager: "Zed Qux", team: "Teamy FC",
+  league: { rank: 13, size: 21, points: 380, leader: { team: "Leady FC", points: 443 }, up: { team: "Upton FC", points: 388 }, down: { team: "Downe FC", points: 374 }, moved: -3 },
+  captain: { name: "Capt", base: 2, state: "played", bestName: "Besto", bestBase: 12, regret: 20 }, bench: { points: 14, top: { name: "Benchy", points: 6 }, counted: false },
+  chip: { code: "3xc", label: "Triple Captain", points: 3 }, flagged: { name: "Hurt", label: "injured" }, autoSub: { out: "Outy", in: "Inny", inPoints: 7, outPoints: 0 },
+  season: { average: 66, benchPoints: 52, hitPoints: 12 }, rotated: { name: "Rotato" }, rankMove: { from: 400_000, to: 800_000 }, value: { now: 1022, start: 1000 }, beat: { weeks: 1, of: 5 }, transfers: 3,
+  players: [
+    pl({ name: "Keepy", pos: 1, club: "Arsenal", points: 1, saves: 7, cleanSheet: true, conceded: 1 }),
+    pl({ name: "Defa", pos: 2, club: "Chelsea", points: 8, goals: 1, cleanSheet: true, defconReached: true, form: 6 }),
+    pl({ name: "Defb", pos: 2, club: "Chelsea", points: 0, yellow: 2, red: 1, ownGoals: 1, conceded: 4, defconNear: true }),
+    pl({ name: "Defc", pos: 2, club: "Chelsea", points: 2, cleanSheet: true, defconReached: true }),
+    pl({ name: "Mida", pos: 3, club: "Everton", points: 14, multiplier: 2, captain: true, goals: 3, assists: 2, xg: 1.4, flag: { kind: "doubt", label: "doubtful", chance: 50 }, ownership: 5 }),
+    pl({ name: "Midb", pos: 3, club: "Everton", points: 1, price: 130, xg: 1.2, penMissed: 1, ownership: 45, form: 1.5 }),
+    pl({ name: "Midc", pos: 3, club: "Brighton", points: 3, vice: true }),
+    pl({ name: "Fwda", pos: 4, club: "Spurs", points: 6, ownership: 8, flag: { kind: "out", label: "injured", chance: 0 }, minutes: 0 }),
+    pl({ name: "Gkb", pos: 1, started: false, counted: false, points: 0, minutes: 0 }),
+    pl({ name: "Benchy", pos: 3, started: false, counted: false, points: 6, form: 8, flag: { kind: "out", label: "injured", chance: 0 } }),
+  ],
+});
 const cand = (id: number, name: string, over: Record<string, unknown> = {}) => ({ id, name, teamId: 1, club: "ARS", clubCode: 3, positionId: 3 as const, ownership: 9, price: 70, opponents: [], mean: 6.4, p10: 0.27, p15: 0.08, differential: true, ...over });
 const lab = {
   gw: 7,
@@ -147,6 +168,58 @@ const input = (over: Partial<InterviewInput> = {}): InterviewInput => ({
   players: [pl({ name: "Cold", form: 1 }), pl({ name: "Ben", started: false, counted: false, flag: { kind: "out", label: "injured", chance: 0 } }), ...Array.from({ length: 4 }, (_, i) => pl({ name: `T${i}`, ownership: 50 }))],
   rotated: null, planet: { rank: 1_200_000, of: 10_000_000 }, rankMove: null, value: null, beat: null, freeTransfers: 3,
   outlook: { average: 2.5, hardest: "Hardton", easiest: "Easyton" }, upside, ...over,
+});
+
+describe("pickTripConference", () => {
+  const cands = candidatesOf(input({ league: { rank: 7, size: 21, points: 380, leader: { team: "L", points: 443 }, up: { team: "U", points: 385 }, down: { team: "D", points: 375 }, moved: 3 }, captain: { name: "C", base: 1, state: "played", bestName: "B", bestBase: 12, regret: 20 } }));
+  const tips = tripTips(input(), 4);
+  const run = (seed: number, slot = seed) => pickTripConference(seed, cands, tips, { slot, seed: 9 });
+
+  it("is four questions about the week and one tip, in a mixed order, in distinct voices and openers", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const xs = run(seed);
+      expect(xs).toHaveLength(5);
+      expect(xs.filter((x) => x.kind === "topic")).toHaveLength(4);
+      expect(xs.filter((x) => x.kind === "tip")).toHaveLength(1);
+      const voices = xs.flatMap((x) => (x.kind === "topic" ? [x.voice] : []));
+      expect(new Set(voices).size).toBe(4);
+      expect(new Set(xs.map((x) => x.opener)).size).toBe(5);
+      expect(xs.every((x) => x.opener >= 0 && x.opener < 10)).toBe(true);
+    }
+  });
+  it("is deterministic, varies between managers, and moves the order around", () => {
+    expect(run(5)).toEqual(run(5));
+    expect(new Set(Array.from({ length: 100 }, (_, s) => JSON.stringify(run(s).map((x) => (x.kind === "tip" ? x.tip : x.topic))))).size).toBeGreaterThan(60);
+    expect(new Set(Array.from({ length: 60 }, (_, s) => run(s).map((x) => x.kind).join())).size).toBe(5); // the one tip lands anywhere
+  });
+  it("uses every voice, and every line of it, across enough managers", () => {
+    const used = new Map<string, Set<number>>();
+    for (let slot = 0; slot < 400; slot++) for (const x of run(slot, slot)) if (x.kind === "topic") used.set(x.voice, (used.get(x.voice) ?? new Set()).add(x.line));
+    expect([...used.keys()].sort()).toEqual([...TRIP_VOICES].sort());
+    for (const lines of used.values()) expect(lines.size).toBe(TRIP_VOICE_LINES);
+  });
+  it("talks about what was asked most of the time", () => {
+    let about = 0;
+    let all = 0;
+    for (let slot = 0; slot < 300; slot++) for (const x of run(slot, slot)) if (x.kind === "topic") { all++; if (x.line >= TRIP_GENERAL_LINES) about++; }
+    expect(about / all).toBeGreaterThan(0.5);
+    expect(about / all).toBeLessThan(0.7);
+  });
+  it("gives managers of one league different lines from the same voice", () => {
+    const lineOf = (slot: number, voice: string) => run(slot * 3 + 1, slot).flatMap((x) => (x.kind === "topic" && x.voice === voice && x.line < TRIP_GENERAL_LINES ? [x.line] : []))[0];
+    const seen = new Map<number, number>();
+    for (let slot = 1; slot <= TRIP_GENERAL_LINES; slot++) {
+      const l = lineOf(slot, "onion");
+      if (l === undefined) continue;
+      expect(seen.has(l), `slot ${slot}`).toBe(false);
+      seen.set(l, slot);
+    }
+  });
+  it("copes with nothing to ask about or to advise on", () => {
+    const xs = pickTripConference(1, [], [{ id: "chaos", weight: 1, subject: null }], { slot: 3, seed: 1 });
+    expect(xs.length).toBeGreaterThanOrEqual(1);
+    expect(xs.length).toBeLessThanOrEqual(5);
+  });
 });
 
 describe("the tips", () => {
@@ -198,12 +271,12 @@ describe("the tips", () => {
 
 describe("pickTrip", () => {
   const tips = tripTips(input(), 4);
-  it("gives five different tips, the world-rank one among them, deterministically", () => {
+  it("gives up to the number of different tips asked for, deterministically", () => {
     for (let seed = 0; seed < 100; seed++) {
       const xs = pickTrip(seed, tips, 10);
       expect(xs).toHaveLength(5);
       expect(new Set(xs.map((x) => x.tip)).size).toBe(5);
-      expect(xs.map((x) => x.tip)).toContain("worldClimb");
+      expect(pickTrip(seed, tips, 10, 1)).toHaveLength(1);
       expect(new Set(xs.map((x) => x.opener)).size).toBe(5);
     }
     expect(pickTrip(9, tips, 10)).toEqual(pickTrip(9, tips, 10));
@@ -253,6 +326,49 @@ describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
     }
     expect(problems).toEqual([]);
   });
+  it("has a gist of every topic for the voices to talk about, written from the facts and reading well", () => {
+    const rich = interviewContext(richTrip());
+    const problems: string[] = [];
+    for (const id of ALL_TOPICS) {
+      const g = t.trip.gist[id]?.(rich);
+      if (!g) { problems.push(`${id}: no gist`); continue; }
+      if (BAD.test(g) || / {2}| ,|\(\)|(^|[^\d])\s%/.test(g) || g.trim() !== g) problems.push(`${id}: ${g}`);
+    }
+    expect(problems).toEqual([]);
+  });
+  it("reads well when a voice talks about each topic's gist", () => {
+    const rich = interviewContext(richTrip());
+    const problems: string[] = [];
+    for (const id of ALL_TOPICS) {
+      const g = t.trip.gist[id](rich);
+      for (const v of TRIP_VOICES) for (const f of t.trip.voices[v]) {
+        const line = f(rich, g);
+        if (/ {2}| ,|,,|\?\?|\(\)|(^|[^\d])\s%/.test(line)) problems.push(`${id}/${v}: ${line}`);
+      }
+    }
+    expect(problems.slice(0, 5)).toEqual([]);
+  });
+  it("has four voices of twenty-eight different lines, and ten different ways to introduce a question", () => {
+    expect(Object.keys(t.trip.voiceNames).sort()).toEqual([...TRIP_VOICES].sort());
+    expect(t.trip.openers).toHaveLength(10);
+    for (const v of TRIP_VOICES) {
+      const lines = t.trip.voices[v].map((f) => f(c(), "a made-up gist"));
+      expect(lines, v).toHaveLength(TRIP_VOICE_LINES);
+      expect(new Set(lines).size, v).toBe(TRIP_VOICE_LINES);
+      for (const line of lines) {
+        expect(line, `${v}: ${line}`).not.toMatch(BAD);
+        expect(line, `${v}: ${line}`).not.toMatch(/ {2}| ,| \.|,,|\?\?|\(\)/);
+        expect(line.trim()).toBe(line);
+      }
+    }
+    expect(new Set(t.trip.openers.map((o) => o(c(), "Q?"))).size).toBe(10);
+    for (const o of t.trip.openers) expect(/Zed|Teamy FC/.test(o(c(), "Q?"))).toBe(true);
+  });
+  it("is not a list of tips: the voices answer with the mood, using only the numbers every team has", () => {
+    const names = ["upName", "upClub", "upOwn", "upXp", "upP10", "upP15", "upNote", "goalTop", "goalRank", "captain", "hit", "flagged"];
+    const bare = { ...interviewContext(i), ...Object.fromEntries(names.map((n) => [n, "\u2205"])) };
+    for (const v of TRIP_VOICES) for (const f of t.trip.voices[v]) expect(f(bare, "a made-up gist"), v).not.toContain("\u2205");
+  });
   it("speaks of the player it was given", () => {
     expect(t.trip.tips.diffBuy.a.map((f) => f(c())).every((s) => s.includes("Diffy"))).toBe(true);
     expect(t.trip.tips.captainRoulette.a.map((f) => f(c(upside.captainGambles[0]))).every((s) => s.includes("Gamble"))).toBe(true);
@@ -271,27 +387,30 @@ async function okModel(): Promise<Extract<TeamModel, { kind: "ok" }>> {
 }
 
 describe("InterviewPanel in the altered view", () => {
-  it("becomes the Upside Oracle: psychedelic picture, tips instead of blunders, still named and accessible", async () => {
+  it("becomes the Acid Test: psychedelic picture, four questions about the week in strange voices, one sneaky tip", async () => {
     setRequestTrip(true);
     const model = await okModel();
     model.insights.squad.upside = upside;
     const { container } = render(<InterviewPanel model={model} />);
-    expect(screen.getByRole("heading", { level: 2, name: "The Upside Oracle" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "The Acid Test" })).toBeInTheDocument();
     expect(container.querySelector("img[src='/psychedelic/7-l.webp']")).not.toBeNull();
     const items = screen.getAllByRole("listitem");
-    expect(items.length).toBeGreaterThanOrEqual(3);
-    expect(items.length).toBeLessThanOrEqual(5);
-    for (const li of items) expect(li.textContent).toMatch(/Gian|Gaucho F\.C\.|[a-z]/);
+    expect(items).toHaveLength(5);
+    const kinds = [...container.querySelectorAll("[data-answer]")].map((e) => e.getAttribute("data-answer"));
+    expect(kinds.filter((k) => k === "trip")).toHaveLength(1); // only one of five is a tip
+    const voices = kinds.filter((k) => k !== "trip");
+    expect(voices).toHaveLength(4);
+    expect(new Set(voices).size).toBe(4);
+    for (const v of voices) expect(["onion", "hofmann", "atomic", "lifesci"]).toContain(v);
     expect(container.textContent).toContain("Sneaky upside");
     expect(container.textContent).not.toMatch(/IQ 150|Snarky|Egotist/);
-    expect(container.querySelectorAll("[data-answer='trip']").length).toBe(items.length);
-    expect(container.textContent).toMatch(/Diffy|Gamble|Risey/);
+    expect(container.textContent).toMatch(/Satirical wire|The Chemist|The Physicist|The Life Scientist/);
   });
   it("is the ordinary conference when the view is off", async () => {
     const model = await okModel();
     render(<InterviewPanel model={model} />);
     expect(screen.getByRole("heading", { level: 2, name: "Press conference" })).toBeInTheDocument();
-    expect(screen.queryByText("The Upside Oracle")).toBeNull();
+    expect(screen.queryByText("The Acid Test")).toBeNull();
   });
   it.each(["es", "fr"] as const)("speaks %s", async (locale) => {
     const { setRequestLocale } = await import("@/components/ui/i18n");

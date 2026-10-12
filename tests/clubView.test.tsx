@@ -86,7 +86,7 @@ describe("ClubView", () => {
       const card = screen.getByRole("heading", { name: "Team news" }).closest("section")!;
       expect(within(card).getByText("Doubt")).toBeInTheDocument();
       expect(within(card).getByText("Out")).toBeInTheDocument();
-      expect(within(card).getByText("Knock - 75% chance")).toBeInTheDocument();
+      expect(within(card).getByText("Knock \u2013 75% chance")).toBeInTheDocument();
       expect(within(card).getByText("75% to play")).toBeInTheDocument();
       expect(within(card).getByText("0% to play")).toBeInTheDocument();
     });

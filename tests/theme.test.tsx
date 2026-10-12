@@ -229,7 +229,7 @@ describe("palettes", () => {
   });
 
   it("every theme defines every colour token the regular theme does", () => {
-    const layout = new Set(["--font-sans", "--font-mono", "--radius", "--radius-lg", "--radius-pill", "--content-max", "--dot-gap", "--dot-size", "--glass-blur"]);
+    const layout = new Set(["--font-sans", "--font-mono", "--radius", "--radius-lg", "--radius-pill", "--radius-in", "--content-max", "--dot-gap", "--dot-size", "--glass-blur", "--frost"]);
     const wanted = Object.keys(palettes.light).filter((k) => !layout.has(k) && !k.startsWith("--space-"));
     for (const t of ["night", "dark"] as const) expect(wanted.filter((k) => !(k in palettes[t])), t).toEqual([]);
   });

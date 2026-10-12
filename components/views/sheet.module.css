@@ -28,6 +28,8 @@
   font-weight: 600;
   text-decoration: none;
   transition: background 150ms ease, border-color 150ms ease;
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .neighbour:hover { background: var(--hover-wash); border-color: var(--accent); color: inherit; }
 .rank { color: var(--accent); font-weight: 800; }
@@ -46,7 +48,8 @@
     radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, var(--accent-2) 20%, transparent), transparent 60%),
     radial-gradient(80% 140% at 100% 100%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
     var(--surface);
-  backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
   box-shadow: var(--shadow);
 }
 .avatar {
@@ -55,7 +58,7 @@
   place-items: center;
   width: 88px;
   height: 88px;
-  border-radius: 24px;
+  border-radius: var(--radius-in);
   background: color-mix(in srgb, var(--accent-2) 14%, var(--surface-solid));
   border: 1px solid var(--border);
   overflow: hidden;
@@ -86,6 +89,8 @@
   border-radius: var(--radius-pill);
   background: var(--surface);
   font-size: 13px;
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .facts dt { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
 .facts dd { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; min-width: 0; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--wash); font-weight: 700; }
@@ -96,5 +101,5 @@
   .actions { justify-content: flex-start; padding-top: var(--space-2); border-top: 1px solid var(--border); }
 }
 @media (max-width: 599px) {
-  .avatar { width: 68px; height: 68px; border-radius: 18px; }
+  .avatar { width: 68px; height: 68px; }
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
-import { entrySlugs, LAB_TRIALS, fdrBand, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
+import { entrySlugs, LAB_TRIALS, fdrBand, minus, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
 import type { PositionId } from "@/lib/domain/types";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
@@ -165,7 +165,7 @@ function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
       <section id="captain" className={styles.full}>
         <Card title={l.captainTitle} headingLevel={2} className={styles.full}>
           <p className={styles.note}>{l.captainNote(gwName, f.number(LAB_TRIALS))}</p>
-          <div className={styles.upsideGrid}>
+          <div className={styles.wideGrid}>
             {lists.map(([title, rows]) => (
               <div key={title}>
                 <h3 className={styles.upsideTitle}>{title}</h3>
@@ -262,7 +262,8 @@ function PriceChanges({ model }: { model: Tools }) {
   const p = t.tools.prices;
   const f = getFormat();
   const { filter, rows, matching, clubs } = model.prices;
-  const compact = new Intl.NumberFormat(f.intl, { notation: "compact", maximumFractionDigits: 1, signDisplay: "exceptZero" });
+  const compactIntl = new Intl.NumberFormat(f.intl, { notation: "compact", maximumFractionDigits: 1, signDisplay: "exceptZero" });
+  const compact = { format: (n: number) => minus(compactIntl.format(n)) };
   const columns: Column<PriceRow>[] = [
     {
       key: "player",
@@ -280,7 +281,7 @@ function PriceChanges({ model }: { model: Tools }) {
         </span>
       ),
     },
-    { key: "status", header: p.cols.status, cell: (r) => <Badge tone={TONE[r.status]}>{p.statuses[r.status]}</Badge> },
+    { key: "status", header: p.cols.status, cell: (r) => <span className={styles.status}><Badge tone={TONE[r.status]}>{p.statuses[r.status]}</Badge></span> },
     { key: "price", header: p.cols.price, align: "end", cell: (r) => <strong>{f.money(r.price)}</strong> },
     {
       key: "net",

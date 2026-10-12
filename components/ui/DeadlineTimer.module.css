@@ -8,6 +8,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
   font-variant-numeric: tabular-nums;
 }
 .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
@@ -19,7 +21,7 @@
   display: grid;
   justify-items: center;
   padding: 10px 4px 8px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-in);
   background: color-mix(in srgb, var(--tint) 22%, var(--surface-solid));
   border: 1px solid color-mix(in srgb, var(--tint) 45%, var(--border));
 }

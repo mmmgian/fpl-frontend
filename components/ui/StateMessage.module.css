@@ -5,6 +5,8 @@
   background: var(--surface);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .error { border-style: solid; border-color: var(--negative); }
 .icon {

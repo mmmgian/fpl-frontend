@@ -24,6 +24,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 @media (min-width: 900px) {
   .awardList { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; }

@@ -74,7 +74,10 @@
 @media (pointer: coarse), (max-width: 699px) { .link { min-height: 2.75rem; } }
 
 /* Text alternative. */
-.text { padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.text { padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
+}
 .text summary { min-height: 2.25rem; display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.875rem; }
 @media (pointer: coarse), (max-width: 699px) { .text summary { min-height: 2.75rem; } }
 .textPage { display: none; margin-top: var(--space-3); font-size: 0.875rem; }

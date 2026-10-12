@@ -4,7 +4,7 @@
  * answers are tinted by who is answering and sit on the right.
  */
 .panel {
-  --r: 20px;
+  --r: 10px; /* the panel's 28px corner minus its 18px padding */
   --r-bubble: 18px;
   --ink-genius: var(--accent-2);
   --ink-snarky: var(--zone-bad);
@@ -20,7 +20,8 @@
     radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 55%),
     radial-gradient(120% 90% at 100% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
     var(--surface);
-  backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
   box-shadow: var(--shadow);
   font-size: 14px;
   line-height: 1.5;
@@ -134,7 +135,7 @@
 .note { margin: 0; color: var(--text-muted); font-size: 12px; }
 
 @media (max-width: 520px) {
-  .panel { padding: 14px; border-radius: 22px; }
+  .panel { --r: 8px; padding: 14px; border-radius: 22px; }
   .ask { padding-right: 0; }
   .reply { padding-left: 0; }
 }

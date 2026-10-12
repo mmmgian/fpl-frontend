@@ -16,11 +16,11 @@
 .teamText { display: grid; min-width: 0; }
 .teamLink, .teamName {
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .teamLink { text-decoration: underline; text-decoration-color: var(--border); }
 .teamLink:hover { text-decoration-color: currentColor; }
-.manager { font-size: 13px; color: var(--text-muted); overflow-wrap: anywhere; }
+.manager { font-size: 13px; color: var(--text-muted); overflow-wrap: break-word; }
 
 /* ----- Team sheet ----- */
 .positionGrid {
@@ -32,7 +32,7 @@
 }
 .playerCell { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .playerCell > * { flex: none; }
-.playerCell > .playerName { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.playerCell > .playerName { flex: 0 1 auto; min-width: 6ch; overflow-wrap: break-word; }
 .playerName { font-weight: 600; }
 .benchSlot {
   display: inline-grid;
@@ -68,6 +68,8 @@
   border-radius: var(--radius);
   text-decoration: none;
   transition: border-color 150ms ease, background 150ms ease;
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .snapshotLink:hover { border-color: var(--accent); background: var(--hover-wash); color: inherit; }
 .snapshotGw { font-size: 22px; font-weight: 700; }

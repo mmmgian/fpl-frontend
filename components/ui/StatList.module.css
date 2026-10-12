@@ -1,6 +1,7 @@
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  /* Small enough that three fit across a phone: two plus an orphan on its own row looks unfinished. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 104px), 1fr));
   gap: var(--space-2);
   margin: 0;
 }
@@ -9,6 +10,8 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .label {
   font-size: 11px;

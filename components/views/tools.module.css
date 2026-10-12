@@ -12,12 +12,16 @@
   font-weight: 700;
   text-decoration: none;
   transition: background 150ms ease, border-color 150ms ease;
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
 }
 .jump a:hover { background: var(--hover-wash); border-color: var(--border-strong); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); align-items: start; }
 .full { grid-column: 1 / -1; }
-.upsideGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); margin-bottom: var(--space-3); }
+.upsideGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--space-4); margin-bottom: var(--space-3); }
+/* Seven-column tables (the captain simulator) need the whole card width; side by side they crush the names. */
+.wideGrid { display: grid; gap: var(--space-4); margin-bottom: var(--space-3); }
 .upsideTitle { margin: 0 0 var(--space-2); font-size: 14px; font-weight: 800; }
 .note { margin: 0 0 var(--space-3); font-size: 12px; color: var(--text-muted); }
 
@@ -28,13 +32,13 @@
   display: grid;
   gap: 2px;
   padding: 6px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-in);
   background:
     repeating-linear-gradient(0deg, color-mix(in srgb, var(--green) 22%, transparent) 0 44px, color-mix(in srgb, var(--green) 12%, transparent) 44px 88px),
     var(--surface);
   border: 1px solid color-mix(in srgb, var(--green) 40%, var(--border));
 }
-.line { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; border-radius: 12px; }
+.line { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; border-radius: calc(var(--radius-in) - 6px); }
 .lineName { padding: 4px 8px; font-size: 12px; font-weight: 700; color: var(--text); }
 .tiles { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 4px; }
 .tile { display: grid; justify-items: center; align-content: start; gap: 2px; flex: 0 1 8.5rem; padding: 8px 4px; border-radius: 12px; text-align: center; }
@@ -49,15 +53,20 @@
 /* ----- Price changes ----- */
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--space-3); align-items: end; margin-bottom: var(--space-3); }
 .field { display: grid; gap: 2px; font-size: 12px; font-weight: 700; }
-.input { min-height: 2.25rem; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-solid); color: var(--text); font: inherit; font-weight: 500; }
-.check { display: flex; align-items: center; gap: 6px; min-height: 2rem; font-weight: 600; }
+.input { min-height: 2.25rem; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-in); background: var(--surface-solid); color: var(--text); font: inherit; font-size: 14px; font-weight: 500; }
+.input::placeholder { color: var(--text-muted); opacity: 1; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 2.25rem; font-size: 14px; font-weight: 600; line-height: 1.2; cursor: pointer; }
+.check input { width: 1.05rem; height: 1.05rem; margin: 0; flex: none; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .myTeam { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; margin: 0 0 var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
 .count { margin: var(--space-2) 0 0; font-size: 12px; color: var(--text-muted); }
 .player { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .playerText { display: grid; min-width: 0; line-height: 1.2; }
-.playerName { font-weight: 700; overflow-wrap: anywhere; }
-.playerMeta { font-size: 11px; color: var(--text-muted); }
+/* Inside tables a name may only break between words: 'anywhere' lets the table squeeze the column to one letter. */
+.playerName { font-weight: 700; min-width: 7ch; overflow-wrap: break-word; }
+.playerMeta { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+/* On a phone a long status ("Proche de monter") may take two lines rather than push the table off the screen. */
+@media (max-width: 479px) { .status > span { white-space: normal; text-wrap: balance; max-width: 6.5rem; } }
 .up { color: var(--positive); font-weight: 700; }
 .down { color: var(--negative); font-weight: 700; }
 .small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 500; }

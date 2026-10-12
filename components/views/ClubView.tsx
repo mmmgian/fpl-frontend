@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge, Card, ClubLink, Crest, English, FdrChip, LocalTime, PageHeader, StateMessage, getFormat, getT } from "@/components/ui";
-import { scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
+import { dash, scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
 import type { ClubMatchView, ClubModel, Outside } from "@/lib/services/models";
 import styles from "./club.module.css";
 import insights from "./insights.module.css";
@@ -95,7 +95,7 @@ function TeamNews({ news }: { news: ClubNewsItem[] }) {
               <Badge tone={SEVERITY_TONE[severity]}>{c.severity[severity]}</Badge>
               <span className={styles.newsBody}>
                 <strong>{p.name}</strong>
-                <span className={styles.newsText}>{p.news ? <English>{p.news}</English> : c.newsNoDetail}</span>
+                <span className={styles.newsText}>{p.news ? <English>{dash(p.news)}</English> : c.newsNoDetail}</span>
               </span>
               <span className={styles.newsMeta}>
                 {p.chance !== null ? <span>{c.chance(p.chance)}</span> : null}

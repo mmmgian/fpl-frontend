@@ -10,8 +10,11 @@
   overflow-x: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  border-width: var(--nest-border, 1px);
+  border-radius: var(--nest-radius, var(--radius-lg));
+  box-shadow: var(--nest-shadow, var(--shadow));
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
   -webkit-overflow-scrolling: touch;
 }
 .region:focus-visible { outline-offset: -2px; }

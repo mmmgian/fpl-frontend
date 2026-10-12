@@ -29,6 +29,8 @@
   --hover-wash: rgba(0, 0, 0, 0.05);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --glass-blur: saturate(1.1) blur(4px);
+  /* Panels: frosted, so the dots behind them soften into a haze instead of cutting across borders and text. */
+  --frost: saturate(1.1) blur(10px);
 
   /* Fixture difficulty (FDR) 1 easy .. 5 hard: background, text, border. Text is >= 7:1 on its background. */
   --fdr-1-bg: #daf7d6; --fdr-1-fg: #0b3d0b; --fdr-1-bd: #b9e8b3;
@@ -45,6 +47,9 @@
 
   --radius: 16px;
   --radius-lg: 28px;
+  /* Something sitting inside a panel's padding is rounded by the panel's radius minus that padding, so the two
+     curves stay parallel (concentric) instead of the inner one bulging past the outer. */
+  --radius-in: calc(var(--radius-lg) - var(--space-4));
   --radius-pill: 9999px;
   --space-1: 4px;
   --space-2: 8px;
@@ -186,7 +191,13 @@ body {
 }
 img { max-width: 100%; }
 h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
 button { font: inherit; color: inherit; }
+/* Checkboxes, radios and range thumbs in the brand colour rather than the system blue. */
+:root { accent-color: var(--accent); }
+/* iOS zooms the whole page into any field whose text is under 16px; on touch screens fields are 16px. */
+@media (pointer: coarse) { input, select, textarea { font-size: max(16px, 1em) !important; } }
 
 /*
  * Polka-dot backdrop. Solid dots on a fixed layer, so they stay still while the page scrolls past
@@ -212,7 +223,7 @@ a:hover { color: var(--accent); }
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-  border-radius: 4px;
+  /* No border-radius here: the ring follows the element's own corners (a pill stays a pill when focused). */
 }
 /* Programmatic focus target (skip link) should not show a ring around the whole page */
 main:focus { outline: none; }
@@ -253,6 +264,7 @@ main:focus { outline: none; }
     --surface: var(--surface-solid);
     --surface-head: var(--surface-solid);
     --glass-blur: none;
+    --frost: none;
   }
 }
 

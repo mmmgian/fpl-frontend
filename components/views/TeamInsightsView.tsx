@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge, BarChart, Card, CaptainBadge, ChartKey, English, LineChart, getFormat, getLocale, getT } from "@/components/ui";
-import { compactNumber, outlookVerdict } from "@/lib/domain";
+import { compactNumber, dash, outlookVerdict } from "@/lib/domain";
 import type { SeasonCharts, SeasonForm } from "@/lib/domain";
 import type { GameweekInsights, SeasonInsights, SquadInsights } from "@/lib/services/models";
 import styles from "./insights.module.css";
@@ -104,7 +104,7 @@ export function MatchdayInsights({ data, gameweek }: { data: GameweekInsights; g
                   </Badge>
                   {f.news ? (
                     <span className={styles.news}>
-                      <English>{f.news}</English>
+                      <English>{dash(f.news)}</English>
                     </span>
                   ) : null}
                 </li>

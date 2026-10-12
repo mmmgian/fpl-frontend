@@ -26,6 +26,7 @@
   --hover-wash: rgba(255, 93, 224, 0.2);
   --shadow: 0 0 22px rgba(255, 93, 224, 0.28), inset 0 0 18px rgba(53, 232, 255, 0.12);
   --glass-blur: saturate(1.8) blur(5px);
+  --frost: saturate(1.6) blur(10px);
   --zone-strength: 30%;
 }
 
@@ -66,7 +67,8 @@
 }
 
 /* Cards and tables sway and glow. */
-:root[data-trip="on"] main :is(section, article, figure, dl > div, nav, header, [class*="Card_card"], [class*="StatList_item"], [class*="DataTable_region"]) {
+/* Only real surfaces: bare wrappers (section, header, nav) would glow as square boxes behind titles and pills. */
+:root[data-trip="on"] main :is([class*="Card_card"], [class*="StatList_item"], [class*="DataTable_region"], [class*="DeadlineTimer_timer"], [class*="leagueExtras_award"], [class*="interview_panel"], [class*="sheet_identity"], [class*="fixtures_region"], [class*="fixtureFeed_gameweek"], [class*="times_hero"], [class*="times_card"]) {
   border-color: var(--border);
   animation: trip-glow 8s ease-in-out infinite;
 }

@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "fantasy.premierleague.com", pathname: "/gcs/**" },
     ],
   },
+  async redirects() {
+    return [
+      {
+        // One address for the site: www.lobsterleague.fyi goes to lobsterleague.fyi, whatever the path and query.
+        source: "/:path*",
+        has: [{ type: "host", value: "www.lobsterleague.fyi" }],
+        destination: "https://lobsterleague.fyi/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

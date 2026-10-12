@@ -365,3 +365,12 @@ describe("the frame around the pages", () => {
     }
   });
 });
+
+describe("the site's address", () => {
+  it("sends www.lobsterleague.fyi to lobsterleague.fyi, keeping the path, and does nothing for any other host", async () => {
+    const config = (await import("../next.config")).default;
+    const rules = await config.redirects!();
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toMatchObject({ source: "/:path*", destination: "https://lobsterleague.fyi/:path*", permanent: true, has: [{ type: "host", value: "www.lobsterleague.fyi" }] });
+  });
+});

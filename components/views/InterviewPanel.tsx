@@ -11,7 +11,7 @@ import styles from "./interview.module.css";
 type Ok = Extract<TeamModel, { kind: "ok" }>;
 
 const ASK_GLYPH: Record<AskKind, string> = { genius: "∑", dumb: "?", satirical: "“" };
-const TRIP_GLYPH = ["◉", "✺", "☾"];
+const TRIP_GLYPH = ["◉", "✺", "☾", "∞", "✧"];
 const DAY_MS = 86_400_000;
 
 /** One question and its answer, as the panel draws them. */
@@ -56,7 +56,7 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
   if (trip) {
     const tt = t.trip;
     items = pickTrip(seed, tripTips(input, ctx.templateCount), t.openers.length).map((x, i) => {
-      const c = tripContext(ctx, x.pick, fmt);
+      const c = tripContext(ctx, x.subject, fmt);
       const tip = tt.tips[x.tip];
       return {
         key: `${x.tip}-${i}`,
@@ -67,7 +67,7 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
         question: t.openers[x.opener](c, tip.q[x.q](c)),
         answerData: "trip",
         chip: tt.chip,
-        reply: tip.a[x.a](c),
+        reply: x.flourish >= 0 ? `${tip.a[x.a](c)} ${tt.flourishes[x.flourish]}` : tip.a[x.a](c),
       };
     });
   } else {

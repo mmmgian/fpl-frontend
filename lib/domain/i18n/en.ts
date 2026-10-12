@@ -534,6 +534,24 @@ export const en = {
       none: "Nothing stands out yet.",
       tip: "Tip: one differential and one bold armband move you further than five safe swaps.",
     },
+    /** The altered view's heavier analyses (a port of the FPL skill's engines). */
+    lab: {
+      captainTitle: "Captain simulator",
+      captainNote: (gw: string, trials: string) => `For ${gw}: ${trials} simulated gameweeks per player from FPL's own numbers (minutes, expected goals and assists, fixture difficulty, clean sheets, DefCon, cards, bonus). Three questions, three answers: the best average, the best chance of a big haul, the best chance of a mega-haul. An armband doubles these; a Triple Captain triples them.`,
+      byMean: "Highest expected points",
+      byHaul: "Best chance of 10+",
+      byCeiling: "Best chance of 15+ (Triple Captain punts)",
+      cols: { player: "Player", owned: "Owned", sim: "Sim xP", double: "As captain", p10: "10+", p15: "15+", fixture: "Fixture", pair: "Pair", average: "Avg FDR", picks: "Play whoever has the easier game", yellows: "Yellows", toBan: "To a ban", per90: "Per 90", share: "Of the bonus" },
+      rotationTitle: "Rotation pairs",
+      rotationNote: (span: number) => `Two clubs whose defenders you can share: take the easier fixture each week. The next ${span} gameweeks, kindest first.`,
+      penaltiesTitle: "Penalty takers",
+      penaltiesNote: "First choice on penalties and fit to play. The spot kick is the cheapest upside in the game.",
+      suspensionsTitle: "Suspension watch",
+      suspensionsNote: "One or two yellow cards from a ban (5, 10, 15). Approximate: the exact cut-off dates are FPL's own, so check the news before you act.",
+      defconTitle: "DefCon bankers",
+      defconNote: "Defenders and midfielders who most often reach the threshold for the +2 defensive-contribution bonus.",
+      none: "Nothing to show yet.",
+    },
     xi: {
       title: (gw: string) => `Team of the Week · ${gw}`,
       note: "The best legal eleven by FPL's own expected points for the next gameweek. Players who are injured or unlikely to play are left out.",
@@ -1635,10 +1653,39 @@ export const en = {
       heading: "The Upside Oracle",
       lede: (manager: string, team: string, gw: string) => `${manager} of ${team} dissolves into the press room after ${gw}. The walls breathe.`,
       pressAlt: (team: string) => `${team}'s mascot, glowing, in a psychedelic sunshine scene.`,
-      askers: ["The Third Eye", "The Kaleidoscope", "The Stardust Reporter"],
+      askers: ["The Third Eye", "The Kaleidoscope", "The Stardust Reporter", "The Echo in the Wall", "The Melting Clock"],
+      flourishes: ["The walls hum in agreement.", "A rainbow nods slowly.", "Somewhere, a kaleidoscope sneezes.", "The carpet breathes out.", "Time ripples, politely.", "A small sun winks from the ceiling.", "The scoreboard melts a little, happily.", "Even the microphone is smiling."],
       askerRole: "Asks sideways",
       chip: "Sneaky upside",
       tips: {
+        captainSim: {
+          q: [() => `The oracle ran the dice thousands of times. Who in your squad deserves the armband?`, () => `Which of your players glows brightest when the dice are rolled?`],
+          a: [(c) => `Across the simulated gameweeks, ${c.upName} (${c.upClub}) averages ${c.upXp} points and reaches 10 or more in ${c.upP10}% of them. He is your best armband in the squad.`, (c) => `Roll the dice thousands of times: ${c.upName} wins your squad's armband, with ${c.upXp} expected points and a ${c.upP10}% chance of a double-digit haul.`],
+        },
+        haulHunter: {
+          q: [() => `Where does the mega-haul hide, the one that changes a rank in a single night?`, () => `If you wanted fifteen points from one player, whom would you ask?`],
+          a: [(c) => `${c.upName} (${c.upClub}) reaches 15 or more points in ${c.upP15}% of the simulations, and 10 or more in ${c.upP10}%. That is your Triple Captain punt, if the chip is in your pocket.`, (c) => `The ceiling belongs to ${c.upName}: ${c.upP15}% of simulated gameweeks end in 15 or more. Captain him when you need the leaderboard to blink.`],
+        },
+        penaltyTaker: {
+          q: [() => `Who stands alone on the spot while the whole stadium holds its breath?`, () => `Which penalty taker is quietly underpriced by the crowd?`],
+          a: [(c) => `${c.upName} (${c.upClub}) is first choice on penalties and owned by ${c.upOwn}%. Every foul in the box is a coin that lands in his favour.`, (c) => `Take ${c.upName}: first on penalties for ${c.upClub}, ${c.upXp} expected points, ${c.upOwn}% ownership. The spot is a doorway.`],
+        },
+        suspensionDanger: {
+          q: [() => `A yellow card hangs over your squad like a small yellow sun. Who stands in its shadow?`, () => `Which of your players is one tackle from a holiday he did not ask for?`],
+          a: [(c) => `${c.upName} is close to a ban. Yellow cards to go: ${c.upNote}. Have cover ready before the whistle, or lose a player for a week.`, (c) => `Watch ${c.upName}: the count to a suspension reads ${c.upNote}. Keep a playing substitute on the bench.`],
+        },
+        defconBanker: {
+          q: [() => `Where does the quiet work live, the tackles and interceptions nobody sings about?`, () => `Which defender collects the bonus that hides inside the boring bits?`],
+          a: [(c) => `${c.upName} (${c.upClub}) reaches ${c.upNote}% of the DefCon threshold per 90. The +2 bonus finds him again and again.`, (c) => `Own ${c.upName}: ${c.upNote}% of the way to the DefCon bonus every 90 minutes. Quiet work, loud points.`],
+        },
+        rotationPair: {
+          q: [() => `Two clubs, one pair of hands: which pairing makes the fixtures kind?`, () => `If a defence could be shared like a dream, which two clubs would you split it between?`],
+          a: [(c) => `Rotate ${c.upName} and ${c.upClub}: taking the easier fixture each week gives an average difficulty of ${c.upXp} over the next five.`, (c) => `Pair a defender from ${c.upName} with one from ${c.upClub}: whoever faces the softer opponent starts. Average difficulty ${c.upXp}.`],
+        },
+        rankTarget: {
+          q: [() => `What is the next door up the world ladder?`, () => `How far is the next glowing floor?`],
+          a: [(c) => `The next door is the top ${c.goalTop}%, around rank ${c.goalRank}. From rank ${c.rankTo} that is a few good weeks, not a miracle.`, (c) => `Aim for the top ${c.goalTop}% (about rank ${c.goalRank}). You already beat ${c.rankPct}% of the world; the rest is one bold week at a time.`],
+        },
         diffBuy: {
           q: [() => `The geometry of the rank ladder bends towards the unowned. Which door is open to your team?`, () => `If the world leaderboard is a spiral, who is the quiet doorway out of it?`],
           a: [(c) => `Behold ${c.upName} (${c.upClub}): owned by only ${c.upOwn}% and glowing at ${c.upXp} xP. Buy him before the crowd looks up.`, (c) => `The unowned shine brightest. ${c.upName}, ${c.upOwn}% ownership, ${c.upXp} expected points: a sneaky upside the template cannot see.`],

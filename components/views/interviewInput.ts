@@ -118,5 +118,6 @@ export function interviewInputOf(
     freeTransfers: insights.season?.freeTransfers.available ?? null,
     outlook: insights.squad.outlook ? { average: insights.squad.outlook.average, hardest: insights.squad.outlook.hardest.club, easiest: insights.squad.outlook.easiest.club } : null,
     upside: insights.squad.upside ?? null,
+    lab: insights.squad.lab ?? null,
   };
 }

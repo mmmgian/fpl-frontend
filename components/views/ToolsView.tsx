@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
-import { entrySlugs, fdrBand, type PriceRow, type PriceStatus, type UpsidePick } from "@/lib/domain";
+import { entrySlugs, LAB_TRIALS, fdrBand, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
+import type { PositionId } from "@/lib/domain/types";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
@@ -74,6 +75,129 @@ function TeamOfTheWeek({ xi }: { xi: NonNullable<Tools["xi"]> }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+const pct = (p: number) => Math.round(p * 100);
+
+/** The altered view's heavier tools, from the lab: the captaincy simulation, rotation pairs and the three trackers. */
+function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
+  const t = getT();
+  const l = t.tools.lab;
+  const f = getFormat();
+  const player = (r: { name: string; club: string; clubCode: number | null; positionId: PositionId }) => (
+    <span className={styles.player}>
+      <Crest code={r.clubCode} name={r.club} size={22} />
+      <span className={styles.playerText}>
+        <span className={styles.playerName}>{r.name}</span>
+        <span className={styles.playerMeta}>
+          {r.club} · {t.tools.positionShort[r.positionId]}
+        </span>
+      </span>
+    </span>
+  );
+  const captainCols: Column<CaptainCandidate>[] = [
+    { key: "player", header: l.cols.player, rowHeader: true, cell: (r) => player(r) },
+    { key: "owned", header: l.cols.owned, align: "end", hideBelow: "sm", cell: (r) => t.common.percent(f.oneDecimal(r.ownership)) },
+    { key: "sim", header: l.cols.sim, align: "end", cell: (r) => <strong>{f.oneDecimal(r.mean)}</strong> },
+    { key: "double", header: l.cols.double, align: "end", hideBelow: "sm", cell: (r) => f.oneDecimal(r.mean * 2) },
+    { key: "p10", header: l.cols.p10, align: "end", cell: (r) => t.common.percent(String(pct(r.p10))) },
+    { key: "p15", header: l.cols.p15, align: "end", cell: (r) => t.common.percent(String(pct(r.p15))) },
+    {
+      key: "fixture",
+      header: l.cols.fixture,
+      hideBelow: "sm",
+      cell: (r) => (
+        <span className={styles.tileMeta}>
+          {r.opponents.map((o, i) => (
+            <FdrChip key={i} band={fdrBand(o.difficulty)} label={t.client.fdr.difficulty(fdrBand(o.difficulty))}>
+              {o.short} ({o.home ? t.fixtures.homeShort : t.fixtures.awayShort})
+            </FdrChip>
+          ))}
+        </span>
+      ),
+    },
+  ];
+  const lists: [string, CaptainCandidate[]][] = [
+    [l.byMean, lab.captain.byMean],
+    [l.byHaul, lab.captain.byHaul],
+    [l.byCeiling, lab.captain.byCeiling],
+  ];
+  const pairCols: Column<RotationPair>[] = [
+    { key: "pair", header: l.cols.pair, rowHeader: true, cell: (r) => <strong>{r.clubs.join(" + ")}</strong> },
+    { key: "avg", header: l.cols.average, align: "end", cell: (r) => f.oneDecimal(r.average) },
+    {
+      key: "picks",
+      header: l.cols.picks,
+      hideBelow: "sm",
+      cell: (r) => (
+        <span className={styles.tileMeta}>
+          {r.perGw.map((p) => (
+            <FdrChip key={p.gw} band={fdrBand(p.difficulty)} label={t.client.fdr.difficulty(fdrBand(p.difficulty))}>
+              {t.common.gw(p.gw)} {p.club}
+            </FdrChip>
+          ))}
+        </span>
+      ),
+    },
+  ];
+  const lineCols: Column<PlayerLine>[] = [
+    { key: "player", header: l.cols.player, rowHeader: true, cell: (r) => player(r) },
+    { key: "owned", header: l.cols.owned, align: "end", cell: (r) => t.common.percent(f.oneDecimal(r.ownership)) },
+    { key: "xp", header: l.cols.sim, align: "end", hideBelow: "sm", cell: (r) => f.oneDecimal(r.xp) },
+    { key: "price", header: t.tools.upside.cols.price, align: "end", hideBelow: "sm", cell: (r) => f.money(r.price) },
+  ];
+  const banCols: Column<SuspensionRow>[] = [
+    { key: "player", header: l.cols.player, rowHeader: true, cell: (r) => player(r) },
+    { key: "yellows", header: l.cols.yellows, align: "end", cell: (r) => r.yellows },
+    { key: "toBan", header: l.cols.toBan, align: "end", cell: (r) => <strong>{r.toBan}</strong> },
+    { key: "owned", header: l.cols.owned, align: "end", hideBelow: "sm", cell: (r) => t.common.percent(f.oneDecimal(r.ownership)) },
+  ];
+  const defconCols: Column<DefconBanker>[] = [
+    { key: "player", header: l.cols.player, rowHeader: true, cell: (r) => player(r) },
+    { key: "per90", header: l.cols.per90, align: "end", cell: (r) => f.oneDecimal(r.per90) },
+    { key: "share", header: l.cols.share, align: "end", cell: (r) => <strong>{t.common.percent(String(pct(r.share)))}</strong> },
+    { key: "owned", header: l.cols.owned, align: "end", hideBelow: "sm", cell: (r) => t.common.percent(f.oneDecimal(r.ownership)) },
+  ];
+  const gwName = gameweekName(`Gameweek ${lab.gw}`);
+  return (
+    <>
+      <section id="captain" className={styles.full}>
+        <Card title={l.captainTitle} headingLevel={2} className={styles.full}>
+          <p className={styles.note}>{l.captainNote(gwName, f.number(LAB_TRIALS))}</p>
+          <div className={styles.upsideGrid}>
+            {lists.map(([title, rows]) => (
+              <div key={title}>
+                <h3 className={styles.upsideTitle}>{title}</h3>
+                <DataTable caption={title} hideCaption dense columns={captainCols} rows={rows} rowKey={(r) => r.id} empty={l.none} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+      <section id="rotation" className={styles.full}>
+        <Card title={l.rotationTitle} headingLevel={2} className={styles.full}>
+          <p className={styles.note}>{l.rotationNote(lab.rotation[0]?.perGw.length ?? 5)}</p>
+          <DataTable caption={l.rotationTitle} hideCaption dense columns={pairCols} rows={lab.rotation} rowKey={(r) => r.clubs.join("-")} empty={l.none} />
+        </Card>
+      </section>
+      <section id="trackers" className={styles.full}>
+        <div className={styles.upsideGrid}>
+          <Card title={l.penaltiesTitle} headingLevel={2}>
+            <p className={styles.note}>{l.penaltiesNote}</p>
+            <DataTable caption={l.penaltiesTitle} hideCaption dense columns={lineCols} rows={lab.penalties} rowKey={(r) => r.id} empty={l.none} />
+          </Card>
+          <Card title={l.suspensionsTitle} headingLevel={2}>
+            <p className={styles.note}>{l.suspensionsNote}</p>
+            <DataTable caption={l.suspensionsTitle} hideCaption dense columns={banCols} rows={lab.suspensions} rowKey={(r) => r.id} empty={l.none} />
+          </Card>
+          <Card title={l.defconTitle} headingLevel={2}>
+            <p className={styles.note}>{l.defconNote}</p>
+            <DataTable caption={l.defconTitle} hideCaption dense columns={defconCols} rows={lab.defcon} rowKey={(r) => r.id} empty={l.none} />
+          </Card>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -335,6 +459,11 @@ export function ToolsView({ model }: { model: Tools }) {
               <a href="#upside">{tt.upside.title}</a>
             </li>
           ) : null}
+          {trip && model.lab ? (
+            <li>
+              <a href="#captain">{tt.lab.captainTitle}</a>
+            </li>
+          ) : null}
           {model.xi ? (
             <li>
               <a href="#xi">{tt.xi.title(gameweekName(`Gameweek ${model.xi.gw}`)).split(" · ")[0]}</a>
@@ -359,6 +488,7 @@ export function ToolsView({ model }: { model: Tools }) {
             <UpsideLab upside={model.upside} />
           </section>
         ) : null}
+        {trip && model.lab ? <LabCards lab={model.lab} /> : null}
         {model.xi ? (
           <section id="xi" className={styles.full}>
             <TeamOfTheWeek xi={model.xi} />

@@ -28,7 +28,7 @@ const pl = (over: Partial<InterviewPlayer> = {}): InterviewPlayer => ({
 });
 const base = (over: Partial<InterviewInput> = {}): InterviewInput => ({
   team: "Gaucho F.C.", first: "Gian", manager: "Gian Jaen", gw: "Gameweek 6", gwNumber: 6, points: 60, total: 433, hit: 0, transfers: 1, bank: 5, bankText: "£0.5m", settled: true,
-  players: [], rotated: null, planet: null, rankMove: null, value: null, beat: null, freeTransfers: null, outlook: null, upside: null,
+  players: [], rotated: null, planet: null, rankMove: null, value: null, beat: null, freeTransfers: null, outlook: null, upside: null, lab: null,
   league: { rank: 8, size: 21, points: 380, leader: { team: "Bart's Team", points: 443 }, up: { team: "Up FC", points: 385 }, down: { team: "Down FC", points: 375 }, moved: 0 },
   captain: null, bench: null, chip: null, flagged: null, autoSub: null, season: null, ...over,
 });
@@ -210,7 +210,7 @@ describe("what the squad, season and league give a conference to ask about", () 
 
   it("fills every field of the context from a team where everything happened, and names the right player", () => {
     const c = interviewContext(richInput());
-    const tipOnly = new Set(["upName", "upClub", "upOwn", "upXp"]); // filled only for the altered conference's tip
+    const tipOnly = new Set(["upName", "upClub", "upOwn", "upXp", "upP10", "upP15", "upNote", "goalTop", "goalRank"]); // filled only for the altered conference's tip
     for (const [key, value] of Object.entries(c)) {
       if (tipOnly.has(key)) continue;
       expect(value === "" || value === 0, `${key} is empty`).toBe(false);

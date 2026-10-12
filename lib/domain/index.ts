@@ -21,6 +21,7 @@ export * from "./standings";
 export * from "./theme";
 export * from "./teamSheet";
 export * from "./times";
+export * from "./lab";
 export * from "./tools";
 export * from "./trip";
 export * from "./upside";

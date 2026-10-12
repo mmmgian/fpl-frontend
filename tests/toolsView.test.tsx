@@ -238,3 +238,43 @@ describe("the user interface", () => {
     expect(screen.getByPlaceholderText("Enter team ID")).toHaveValue("2379133");
   });
 });
+
+describe("the Tools page in the altered view", () => {
+  it("has the upside lab and the lab's tools first, and says what each is", async () => {
+    const { setRequestTrip } = await import("@/components/ui/tripSlot");
+    setRequestTrip(true);
+    const m = await model();
+    expect(m.upside).not.toBeNull();
+    expect(m.lab).not.toBeNull();
+    render(<ToolsView model={m} />);
+    const nav = screen.getByRole("navigation", { name: "Tools" });
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#upside", "#captain", "#xi", "#prices", "#eo", "#teams"]);
+    for (const heading of ["Upside lab", "Captain simulator", "Rotation pairs", "Penalty takers", "Suspension watch", "DefCon bankers"]) {
+      expect(screen.getByRole("heading", { level: 2, name: heading }), heading).toBeInTheDocument();
+    }
+    expect(screen.getByRole("heading", { level: 3, name: "Best chance of 15+ (Triple Captain punts)" })).toBeInTheDocument();
+  });
+  it("does not show any of it otherwise", async () => {
+    render(<ToolsView model={await model()} />);
+    expect(screen.queryByText("Captain simulator")).toBeNull();
+    expect(screen.queryByText("Upside lab")).toBeNull();
+  });
+  it("is accessible", async () => {
+    const { setRequestTrip } = await import("@/components/ui/tripSlot");
+    setRequestTrip(true);
+    const { container } = render(<ToolsView model={await model()} />);
+    await expectNoAxeViolations(container);
+  });
+  it("is in Spanish and French, with no English left", async () => {
+    const { setRequestTrip } = await import("@/components/ui/tripSlot");
+    setRequestTrip(true);
+    const m = await model();
+    const english = renderToStaticMarkup(<I18nProvider locale="en"><ToolsView model={m} /></I18nProvider>);
+    const { setRequestLocale } = await import("@/components/ui/i18n");
+    for (const locale of ["es", "fr"] as const) {
+      setRequestLocale(locale);
+      const out = renderToStaticMarkup(<I18nProvider locale={locale}><ToolsView model={m} /></I18nProvider>);
+      expect(englishLeaks(english, out, locale, { allow: ["DefCon", "xP", "FDR", "Triple", "Tools", "Injured"] }), locale).toEqual([]);
+    }
+  });
+});

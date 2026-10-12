@@ -509,6 +509,23 @@ export const es: Messages = {
       none: "Todavía no destaca nada.",
       tip: "Consejo: un diferencial y un brazalete audaz lo suben más que cinco cambios seguros.",
     },
+    lab: {
+      captainTitle: "Simulador de capitán",
+      captainNote: (gw, trials) => `Para la ${gw}: ${trials} jornadas simuladas por jugador con los propios números de la FPL (minutos, goles y asistencias esperados, dificultad del rival, vallas invictas, DefCon, tarjetas, bonus). Tres preguntas, tres respuestas: el mejor promedio, la mejor opción de una gran cosecha, la mejor opción de una mega-cosecha. El brazalete los duplica; el Triple Capitán los triplica.`,
+      byMean: "Más puntos esperados",
+      byHaul: "Mejor opción de 10+",
+      byCeiling: "Mejor opción de 15+ (apuestas de Triple Capitán)",
+      cols: { player: "Jugador", owned: "Elegido", sim: "xP sim.", double: "De capitán", p10: "10+", p15: "15+", fixture: "Partido", pair: "Pareja", average: "FDR medio", picks: "Juega el que tenga el partido más fácil", yellows: "Amarillas", toBan: "Para sanción", per90: "Por 90", share: "Del bonus" },
+      rotationTitle: "Parejas de rotación",
+      rotationNote: (span) => `Dos clubes cuyos defensas puede compartir: tome el partido más fácil cada semana. Las próximas ${span} jornadas, los más amables primero.`,
+      penaltiesTitle: "Lanzadores de penales",
+      penaltiesNote: "Primera opción en penales y aptos para jugar. El penal es el upside más barato del juego.",
+      suspensionsTitle: "Vigilancia de sanciones",
+      suspensionsNote: "A una o dos amarillas de una sanción (5, 10, 15). Aproximado: las fechas exactas de corte son de la propia FPL, así que revise las noticias antes de actuar.",
+      defconTitle: "Banqueros de DefCon",
+      defconNote: "Defensas y mediocampistas que más a menudo llegan al umbral del bonus de +2 por contribución defensiva.",
+      none: "Todavía no hay nada que mostrar.",
+    },
     xi: {
       title: (gw) => `Equipo de la semana · ${gw}`,
       note: "El mejor once válido según los puntos esperados de la propia FPL para la próxima jornada. Se dejan fuera los lesionados o con pocas opciones de jugar.",
@@ -1606,10 +1623,39 @@ export const es: Messages = {
       heading: "El Oráculo del Upside",
       lede: (manager, team, gw) => `${manager}, de ${team}, se disuelve en la sala de prensa tras la ${gw}. Las paredes respiran.`,
       pressAlt: (team) => `La mascota de ${team}, brillando, en una escena psicodélica de sol.`,
-      askers: ["El Tercer Ojo", "El Caleidoscopio", "El Reportero de Polvo de Estrellas"],
+      askers: ["El Tercer Ojo", "El Caleidoscopio", "El Reportero de Polvo de Estrellas", "El Eco de la Pared", "El Reloj Derretido"],
+      flourishes: ["Las paredes zumban de acuerdo.", "Un arcoíris asiente despacio.", "En algún lugar, un caleidoscopio estornuda.", "La alfombra exhala.", "El tiempo ondula, con educación.", "Un solcito guiña desde el techo.", "El marcador se derrite un poco, feliz.", "Hasta el micrófono sonríe."],
       askerRole: "Pregunta de lado",
       chip: "Upside furtivo",
       tips: {
+        captainSim: {
+          q: [() => `El oráculo tiró los dados miles de veces. ¿Quién de su plantilla merece el brazalete?`, () => `¿Cuál de sus jugadores brilla más cuando ruedan los dados?`],
+          a: [(c) => `En las jornadas simuladas, ${c.upName} (${c.upClub}) promedia ${c.upXp} puntos y llega a 10 o más en el ${c.upP10}% de ellas. Es su mejor brazalete en la plantilla.`, (c) => `Tire los dados miles de veces: ${c.upName} se lleva el brazalete de su plantilla, con ${c.upXp} puntos esperados y un ${c.upP10}% de probabilidad de una cosecha de dos dígitos.`],
+        },
+        haulHunter: {
+          q: [() => `¿Dónde se esconde la mega-cosecha, esa que cambia un ranking en una sola noche?`, () => `Si quisiera quince puntos de un solo jugador, ¿a quién se los pediría?`],
+          a: [(c) => `${c.upName} (${c.upClub}) llega a 15 o más puntos en el ${c.upP15}% de las simulaciones, y a 10 o más en el ${c.upP10}%. Esa es su apuesta de Triple Capitán, si tiene el chip en el bolsillo.`, (c) => `El techo es de ${c.upName}: el ${c.upP15}% de las jornadas simuladas terminan en 15 o más. Nómbrelo capitán cuando necesite que la tabla parpadee.`],
+        },
+        penaltyTaker: {
+          q: [() => `¿Quién se para solo en el punto penal mientras todo el estadio contiene el aliento?`, () => `¿Qué lanzador de penales está silenciosamente subvalorado por la multitud?`],
+          a: [(c) => `${c.upName} (${c.upClub}) es el primer lanzador de penales y lo tiene el ${c.upOwn}%. Cada falta en el área es una moneda que cae a su favor.`, (c) => `Lleve a ${c.upName}: primero en penales de ${c.upClub}, ${c.upXp} puntos esperados, ${c.upOwn}% de propiedad. El punto penal es una puerta.`],
+        },
+        suspensionDanger: {
+          q: [() => `Una tarjeta amarilla cuelga sobre su plantilla como un pequeño sol amarillo. ¿Quién está en su sombra?`, () => `¿Cuál de sus jugadores está a una entrada de unas vacaciones que no pidió?`],
+          a: [(c) => `${c.upName} está cerca de una sanción. Amarillas que faltan: ${c.upNote}. Tenga un reemplazo listo antes del pitazo, o perderá un jugador por una semana.`, (c) => `Vigile a ${c.upName}: la cuenta hacia la suspensión marca ${c.upNote}. Deje en la banca a un suplente que juegue.`],
+        },
+        defconBanker: {
+          q: [() => `¿Dónde vive el trabajo silencioso, las entradas e intercepciones que nadie canta?`, () => `¿Qué defensa cobra el bonus que se esconde en lo aburrido?`],
+          a: [(c) => `${c.upName} (${c.upClub}) llega al ${c.upNote}% del umbral de DefCon por cada 90 minutos. El bonus de +2 lo encuentra una y otra vez.`, (c) => `Tenga a ${c.upName}: va al ${c.upNote}% del camino al bonus de DefCon cada 90 minutos. Trabajo silencioso, puntos ruidosos.`],
+        },
+        rotationPair: {
+          q: [() => `Dos clubes, un par de manos: ¿qué pareja vuelve amable al calendario?`, () => `Si una defensa se pudiera compartir como un sueño, ¿entre qué dos clubes la repartiría?`],
+          a: [(c) => `Rote ${c.upName} y ${c.upClub}: tomar el partido más fácil cada semana da una dificultad media de ${c.upXp} en los próximos cinco.`, (c) => `Empareje a un defensa de ${c.upName} con uno de ${c.upClub}: juega el que enfrente al rival más blando. Dificultad media ${c.upXp}.`],
+        },
+        rankTarget: {
+          q: [() => `¿Cuál es la siguiente puerta en la escalera mundial?`, () => `¿A qué distancia está el siguiente piso luminoso?`],
+          a: [(c) => `La siguiente puerta es el top ${c.goalTop}%, hacia el puesto ${c.goalRank}. Desde el puesto ${c.rankTo} son unas buenas semanas, no un milagro.`, (c) => `Apunte al top ${c.goalTop}% (hacia el puesto ${c.goalRank}). Ya supera al ${c.rankPct}% del mundo; el resto es una semana audaz a la vez.`],
+        },
         diffBuy: {
           q: [() => `La geometría de la escalera de ranking se curva hacia lo que nadie tiene. ¿Qué puerta está abierta para su equipo?`, () => `Si la tabla mundial es una espiral, ¿quién es la puerta silenciosa de salida?`],
           a: [(c) => `Contemple a ${c.upName} (${c.upClub}): solo lo tiene el ${c.upOwn}% y brilla con ${c.upXp} xP. Cómprelo antes de que la multitud levante la vista.`, (c) => `Lo que nadie tiene brilla más. ${c.upName}, ${c.upOwn}% de propiedad, ${c.upXp} puntos esperados: un upside furtivo que la plantilla común no ve.`],

@@ -4,6 +4,7 @@
  * context those questions and answers may quote, and which topics apply and how much each is worth. Pure: no I/O.
  */
 import type { FullTopic } from "./interview";
+import type { Lab } from "./lab";
 import type { Upside } from "./upside";
 
 /** Where the topics come from. The conference takes one from the faults and one from the league, then spreads out. */
@@ -109,6 +110,8 @@ export interface InterviewInput {
   outlook: { average: number; hardest: string; easiest: string } | null;
   /** Little-owned players worth chasing, for the altered press conference. */
   upside: Upside | null;
+  /** The lab's simulations and trackers, for the altered press conference. */
+  lab: Lab | null;
 }
 
 /** What a question or answer may mention. Every field is always filled; a topic only uses what it was chosen for. */
@@ -218,6 +221,13 @@ export interface InterviewContext {
   upClub: string;
   upOwn: string;
   upXp: string;
+  /** Chance of 10+ and 15+ points in the simulation, whole percent; a note beside the player (e.g. DefCon share). */
+  upP10: string;
+  upP15: string;
+  upNote: string;
+  /** The next percentile door in the world rank (top N%), and roughly which rank that is. */
+  goalTop: number;
+  goalRank: string;
 }
 
 const best = <T>(items: T[], pick: (t: T) => number): T | undefined =>
@@ -257,6 +267,15 @@ function squadFacts(i: InterviewInput) {
   return { xi, goals, xg, scorer, defScorer, assister, waster, gk, back, expensive, template, diff, cold, hotBench, trio, gross, star, cap, vice, positions, flagged };
 }
 
+/** The next milestone up the world ranking: the largest "top N%" door the manager is not yet through. */
+export const RANK_DOORS = [50, 25, 10, 5, 1] as const;
+export function nextDoor(planet: InterviewInput["planet"]): { top: number; rank: number } | null {
+  if (!planet?.of || planet.rank <= 0) return null;
+  const share = (planet.rank / planet.of) * 100;
+  const top = RANK_DOORS.find((d) => d < share);
+  return top ? { top, rank: Math.round((planet.of * top) / 100) } : null;
+}
+
 const BAD_CAPTAIN_BASE = 3;
 const NEAR_POINTS = 15;
 const BIG_BENCH = 8;
@@ -278,6 +297,7 @@ export function interviewContext(i: InterviewInput, fmt: InterviewFormat = PLAIN
   const defconNear = starters(i).find((p) => p.defconNear);
   const delta = i.value ? i.value.now - i.value.start : 0;
   const planetPct = i.planet?.of ? Math.round((1 - i.planet.rank / i.planet.of) * 100) : 0;
+  const goal = nextDoor(i.planet);
   return {
     team: i.team,
     first: i.first,
@@ -376,6 +396,11 @@ export function interviewContext(i: InterviewInput, fmt: InterviewFormat = PLAIN
     upClub: "",
     upOwn: "",
     upXp: "",
+    upP10: "",
+    upP15: "",
+    upNote: "",
+    goalTop: goal?.top ?? 0,
+    goalRank: goal ? fmt.number(goal.rank) : "",
   };
 }
 

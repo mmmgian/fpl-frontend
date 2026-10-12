@@ -131,7 +131,17 @@ const upside = {
   captainGambles: [{ id: 2, name: "Gamble", teamId: 1, club: "ARS", clubCode: 3, positionId: 4 as const, ownership: 12, xp: 7.5, form: 7, price: 90, transfersIn: 100 }],
   risers: [{ id: 3, name: "Risey", teamId: 1, club: "CHE", clubCode: 8, positionId: 3 as const, ownership: 8, xp: 5.5, form: 6, price: 55, transfersIn: 150_000 }],
 };
+const cand = (id: number, name: string, over: Record<string, unknown> = {}) => ({ id, name, teamId: 1, club: "ARS", clubCode: 3, positionId: 3 as const, ownership: 9, price: 70, opponents: [], mean: 6.4, p10: 0.27, p15: 0.08, differential: true, ...over });
+const lab = {
+  gw: 7,
+  captain: { byMean: [cand(11, "Meany")], byHaul: [cand(12, "Hauly")], byCeiling: [cand(13, "Ceily", { p15: 0.12 })], inSquad: [cand(14, "Mine", { mean: 7.1, ownership: 30 })] },
+  rotation: [{ clubs: ["BRE", "WOL"] as [string, string], average: 2.2, perGw: [] }],
+  penalties: [{ id: 21, name: "Penny", teamId: 1, club: "CRY", clubCode: 31, positionId: 3 as const, ownership: 12, price: 65, xp: 5.4 }],
+  suspensions: [{ id: 22, name: "Cardy", teamId: 1, club: "BHA", clubCode: 36, positionId: 2 as const, ownership: 20, price: 50, xp: 4, yellows: 4, threshold: 5, toBan: 1 }],
+  defcon: [{ id: 23, name: "Tacky", teamId: 1, club: "AVL", clubCode: 7, positionId: 2 as const, ownership: 6, price: 48, xp: 4.1, per90: 9, share: 0.9 }],
+};
 const input = (over: Partial<InterviewInput> = {}): InterviewInput => ({
+  lab,
   team: "Teamy FC", first: "Zed", manager: "Zed Qux", gw: "Gameweek 6", gwNumber: 6, points: 50, total: 300, hit: 4, transfers: 1, bank: 20, bankText: "£2.0m", settled: true,
   league: null, captain: null, bench: null, chip: null, flagged: null, autoSub: null, season: null,
   players: [pl({ name: "Cold", form: 1 }), pl({ name: "Ben", started: false, counted: false, flag: { kind: "out", label: "injured", chance: 0 } }), ...Array.from({ length: 4 }, (_, i) => pl({ name: `T${i}`, ownership: 50 }))],
@@ -142,11 +152,37 @@ const input = (over: Partial<InterviewInput> = {}): InterviewInput => ({
 describe("the tips", () => {
   const ids = (i: InterviewInput) => tripTips(i, interviewContext(i).templateCount).map((t) => t.id);
 
-  it("always has a world-rank tip and a fallback, and the rest only when they apply", () => {
-    expect(ids(input({ planet: null, upside: null, hit: 0, bank: 0, freeTransfers: 0, players: [], outlook: null }))).toEqual(["chaos"]);
-    const all = ids(input());
-    for (const t of ["diffBuy", "captainRoulette", "riser", "sellCold", "breakTemplate", "benchBuy", "bankIdle", "ftRoll", "easyRun", "worldClimb", "hitMath", "chaos"]) expect(all, t).toContain(t);
+  it("always has a fallback, and the rest only when they apply", () => {
+    expect(ids(input({ planet: null, upside: null, lab: null, hit: 0, bank: 0, freeTransfers: 0, players: [], outlook: null }))).toEqual(["chaos"]);
+  });
+  it("has a tip for everything the lab and the season can say", () => {
+    const withCard = input({ players: [...input().players, pl({ name: "Cardy" })] });
+    const all = ids(withCard);
     expect([...TRIP_TIPS].sort()).toEqual([...new Set(all)].sort());
+  });
+  it("only warns about a suspension for a player the team owns, and never recommends back an owned player", () => {
+    expect(ids(input())).not.toContain("suspensionDanger");
+    expect(ids(input({ players: [pl({ name: "Cardy" })] }))).toContain("suspensionDanger");
+    const owns = ids(input({ players: ["Penny", "Tacky", "Ceily"].map((name) => pl({ name })) }));
+    for (const t of ["penaltyTaker", "defconBanker", "haulHunter"]) expect(owns, t).not.toContain(t);
+  });
+  it("offers a rank target only while there is a door above", () => {
+    expect(ids(input({ planet: { rank: 40_000, of: 10_000_000 } }))).not.toContain("rankTarget");
+    expect(ids(input({ planet: { rank: 6_000_000, of: 10_000_000 } }))).toContain("rankTarget");
+  });
+  it("quotes the simulation for the squad's best armband and the mega-haul pick", () => {
+    const tips = tripTips(input(), 4);
+    const sim = tips.find((t) => t.id === "captainSim")!.subject!;
+    expect(sim).toMatchObject({ name: "Mine", xp: 7.1, p10: 0.27 });
+    expect(tips.find((t) => t.id === "haulHunter")!.subject).toMatchObject({ name: "Ceily", p15: 0.12 });
+    expect(tripContext(interviewContext(input()), sim)).toMatchObject({ upName: "Mine", upXp: "7.1", upP10: "27", upP15: "8" });
+    expect(tips.find((t) => t.id === "rotationPair")!.subject).toMatchObject({ name: "BRE", club: "WOL", xp: 2.2 });
+    expect(tripContext(interviewContext(input()), tips.find((t) => t.id === "defconBanker")!.subject)).toMatchObject({ upNote: "90" });
+  });
+  it("knows the next percentile door", () => {
+    expect(interviewContext(input({ planet: { rank: 6_000_000, of: 10_000_000 } }))).toMatchObject({ goalTop: 50, goalRank: "5000000" });
+    expect(interviewContext(input({ planet: { rank: 1_200_000, of: 10_000_000 } }))).toMatchObject({ goalTop: 10, goalRank: "1000000" });
+    expect(interviewContext(input({ planet: { rank: 20_000, of: 10_000_000 } })).goalTop).toBe(0);
   });
   it("never recommends a player the team already owns", () => {
     const owns = input({ players: [pl({ name: "Diffy" }), pl({ name: "Gamble" }), pl({ name: "Risey" })] });
@@ -155,7 +191,7 @@ describe("the tips", () => {
   });
   it("names the player the tip is about in its words", () => {
     const tip = tripTips(input(), 4).find((t) => t.id === "diffBuy")!;
-    const c = tripContext(interviewContext(input()), tip.pick);
+    const c = tripContext(interviewContext(input()), tip.subject);
     expect(c).toMatchObject({ upName: "Diffy", upClub: "BRE", upOwn: "3.4", upXp: "6.8" });
   });
 });
@@ -176,18 +212,21 @@ describe("pickTrip", () => {
     expect(new Set(Array.from({ length: 60 }, (_, s) => pickTrip(s, tips, 10).map((x) => x.tip).join())).size).toBeGreaterThan(20);
   });
   it("gives fewer than five when there is less to advise on", () => {
-    expect(pickTrip(1, [{ id: "chaos", weight: 20, pick: null }], 10)).toHaveLength(1);
+    expect(pickTrip(1, [{ id: "chaos", weight: 20, subject: null }], 10)).toHaveLength(1);
   });
 });
 
 describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
   const t = MESSAGES[locale].interview;
   const i = input();
-  const c = (pick: (typeof upside.differentials)[number] | (typeof upside.captainGambles)[number] = upside.differentials[0]) => tripContext(interviewContext({ ...i, first: "Zed", manager: "Zed Qux", team: "Teamy FC" }), pick);
+  const subjectOf = (p: { name: string; club: string; ownership: number; xp: number }) => ({ name: p.name, club: p.club, ownership: p.ownership, xp: p.xp });
+  const c = (pick: (typeof upside.differentials)[number] | (typeof upside.captainGambles)[number] = upside.differentials[0]) =>
+    tripContext(interviewContext({ ...i, first: "Zed", manager: "Zed Qux", team: "Teamy FC" }), { ...subjectOf(pick), p10: 0.27, p15: 0.08, note: "2" });
   const BAD = /undefined|NaN|\[object|\$\{|\{|\}|null/;
 
   it("has every tip in two wordings of question and answer, and three journalists", () => {
-    expect(t.trip.askers).toHaveLength(3);
+    expect(t.trip.askers).toHaveLength(5);
+    expect(t.trip.flourishes).toHaveLength(8);
     for (const id of TRIP_TIPS) {
       expect(t.trip.tips[id].q, id).toHaveLength(2);
       expect(t.trip.tips[id].a, id).toHaveLength(2);
@@ -203,7 +242,7 @@ describe.each(LOCALES)("the altered conference's words in %s", (locale) => {
       for (const [k, f] of lines) {
         const text = f(c());
         if (BAD.test(text)) problems.push(`${id}/${k}: ${text}`);
-        if (/ {2}| ,| \.|,,|\?\?/.test(text)) problems.push(`${id}/${k} punctuation: ${text}`);
+        if (/ {2}| ,| \.|,,|\?\?|(^|[^\d])\s%|\(\)/.test(text)) problems.push(`${id}/${k} punctuation: ${text}`);
         if (k.startsWith("q") && !text.endsWith("?")) problems.push(`${id}/${k} not a question: ${text}`);
         if (k.startsWith("q") && locale === "es" && (text.match(/¿/g) ?? []).length !== (text.match(/\?/g) ?? []).length) problems.push(`${id}/${k} ¿?: ${text}`);
         if (k.startsWith("q")) for (const opener of t.openers) {

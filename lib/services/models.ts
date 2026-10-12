@@ -6,7 +6,7 @@
 import type { Issue, IssueKind, IssueSummary } from "../domain";
 import type { MascotImage } from "./ports";
 import type {
-  BestXI, Deadline, Upside, EoTier, PriceRow, PositionId,
+  BestXI, Deadline, Lab, Upside, EoTier, PriceRow, PositionId,
   AutoSub, ClubMatch, ClubNewsItem, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
   FreeTransfers, GwStatus, LeagueStats, Ownership, PlayersRemaining, RotationRisk, SeasonCharts, SeasonForm, SquadFlag, StandingRow, TeamSheet, Tenure,
 } from "../domain";
@@ -140,6 +140,8 @@ export interface GameweekInsights {
 export interface SquadInsights {
   /** Who little-owned and likely to score the manager could chase (for the altered press conference); null if unknown. */
   upside?: Upside | null;
+  /** The lab's simulations and trackers for the next gameweek, with this squad's own players included. */
+  lab?: Lab | null;
   ownership: Ownership | null;
   /** Only for the latest gameweek. */
   outlook: FixtureOutlook | null;
@@ -417,4 +419,6 @@ export type ToolsModel = {
   teams: ToolsTeam[];
   /** Little-owned players worth chasing, for the altered view. */
   upside: Upside | null;
+  /** The lab: captaincy simulation, rotation pairs and trackers, for the altered view. */
+  lab: Lab | null;
 };

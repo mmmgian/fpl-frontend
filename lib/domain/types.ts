@@ -51,6 +51,15 @@ export interface FplElement {
   transfers_out_event?: number;
   cost_change_event?: number;
   cost_change_start?: number;
+  /** Per 90 minutes, this season (numbers in the raw file). */
+  expected_goals_per_90?: number;
+  expected_assists_per_90?: number;
+  clean_sheets_per_90?: number;
+  defensive_contribution_per_90?: number;
+  yellow_cards?: number;
+  /** 1 = first-choice penalty taker, null/absent = not on penalties. */
+  penalties_order?: number | null;
+  points_per_game?: string;
 }
 
 /** One chip window from bootstrap: each chip can be played once inside [start_event, stop_event]. */

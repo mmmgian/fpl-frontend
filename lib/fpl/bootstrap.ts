@@ -37,6 +37,12 @@ export function slimBootstrap(raw: Bootstrap): Bootstrap {
       ...(e.transfers_out_event ? { transfers_out_event: e.transfers_out_event } : {}),
       ...(e.cost_change_event ? { cost_change_event: e.cost_change_event } : {}),
       ...(e.cost_change_start ? { cost_change_start: e.cost_change_start } : {}),
+      ...(e.expected_goals_per_90 ? { expected_goals_per_90: Number(e.expected_goals_per_90) } : {}),
+      ...(e.expected_assists_per_90 ? { expected_assists_per_90: Number(e.expected_assists_per_90) } : {}),
+      ...(e.clean_sheets_per_90 ? { clean_sheets_per_90: Number(e.clean_sheets_per_90) } : {}),
+      ...(e.defensive_contribution_per_90 ? { defensive_contribution_per_90: Number(e.defensive_contribution_per_90) } : {}),
+      ...(e.yellow_cards ? { yellow_cards: e.yellow_cards } : {}),
+      ...(e.penalties_order ? { penalties_order: e.penalties_order } : {}),
     })),
     chips: (raw.chips ?? []).map(({ name, start_event, stop_event }) => ({ name, start_event, stop_event })),
     ...(raw.total_players ? { total_players: raw.total_players } : {}),
@@ -51,7 +57,7 @@ const loadSlimBootstrap = async () =>
  * instead of downloading 1.8 MB from FPL. Failures throw and are never cached.
  */
 const BOOTSTRAP_SHARED_TTL_S = 240;
-const cachedSlimBootstrap = unstable_cache(loadSlimBootstrap, ["fpl-bootstrap-slim-v3"], {
+const cachedSlimBootstrap = unstable_cache(loadSlimBootstrap, ["fpl-bootstrap-slim-v4"], {
   revalidate: BOOTSTRAP_SHARED_TTL_S,
   tags: ["fpl-bootstrap"],
 });

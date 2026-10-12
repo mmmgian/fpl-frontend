@@ -32,8 +32,9 @@ function useToday() {
   return useSyncExternalStore(subscribe, () => ukToday.format(new Date()), () => null);
 }
 
-const clock: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-const deadlineFmt: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
+// Two-digit hours so "04:30" and "19:00" line up and are never mistaken for each other.
+const clock: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+const deadlineFmt: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
 
 function names(ids: number[], teams: Record<number, FeedTeamRef>) {
   return ids.map((id) => teams[id]?.short ?? "?").join(", ");
@@ -84,21 +85,25 @@ function Middle({ m }: { m: FeedMatch }) {
       return (
         <span className={styles.middle}>
           <span className={styles.score}>{score ?? "0–0"}</span>
-          <Badge tone="live">{t.live}</Badge>
+          <span className={`${styles.state} ${styles.stateLive}`}>{t.live}</span>
         </span>
       );
     case "provisional":
       return (
         <span className={styles.middle}>
           <span className={styles.score}>{score ?? "–"}</span>
-          <Badge tone="warning" title={t.provisionalTitle}>{t.provisional}</Badge>
+          <span className={`${styles.state} ${styles.stateProvisional}`} title={t.provisionalTitle}>
+            {t.provisional}
+          </span>
         </span>
       );
     case "finished":
       return (
         <span className={styles.middle}>
-          <span className={styles.score}>{score ?? "–"}</span>
-          <span className={styles.ft}>{t.fullTime}</span>
+          <span className={styles.score}>
+            {score ?? "–"}
+            <span className="sr-only"> {t.fullTime}</span>
+          </span>
         </span>
       );
     case "tbc":
@@ -251,9 +256,11 @@ export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) 
         ) : null}
       </div>
 
-      {shown.map((g) => (
-        <Gameweek key={g.gw ?? "tbc"} g={g} teams={teams} today={today} />
-      ))}
+      <div className={styles.weeks}>
+        {shown.map((g) => (
+          <Gameweek key={g.gw ?? "tbc"} g={g} teams={teams} today={today} />
+        ))}
+      </div>
 
       <div ref={sentinel} className={styles.end}>
         {to < gameweeks.length ? (

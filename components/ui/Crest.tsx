@@ -1,3 +1,4 @@
+import { avatarFor } from "@/lib/domain/avatar";
 import styles from "./Crest.module.css";
 
 interface CrestProps {
@@ -25,7 +26,8 @@ function initials(name: string) {
  * <CrestFallback /> listener (mounted once in the layout) flags the wrapper and CSS shows the initials.
  */
 export function Crest({ code, src, name, size = 24, decorative = true }: CrestProps) {
-  const url = src || (code ? `https://resources.premierleague.com/premierleague/badges/70/t${code}.png` : null);
+  const full = src || (code ? `https://resources.premierleague.com/premierleague/badges/70/t${code}.png` : null);
+  const url = full && avatarFor(full, size);
 
   return (
     <span

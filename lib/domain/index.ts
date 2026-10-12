@@ -2,6 +2,7 @@
  * The domain: pure rules about gameweeks, bonus points, team sheets and standings.
  * No I/O, no React, no Next.js. Everything else depends on this; this depends on nothing.
  */
+export * from "./avatar";
 export * from "./bonus";
 export * from "./club";
 export * from "./fdr";

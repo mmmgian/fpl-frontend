@@ -34,6 +34,24 @@ export function writeAvatar(file, bytes) {
   renameSync(join(OUT_DIR, `${file}.tmp`), join(OUT_DIR, file));
 }
 
+/** The small copy (96 px) the tables use: a 28 px badge should not download the 256 px picture. `2379133.webp` -> `2379133-s.webp`. */
+export const SMALL_SIZE = 96;
+export const smallName = (file) => file.replace(/\.webp$/, "-s.webp");
+
+export async function smallWebp(bytes) {
+  const { createCanvas, loadImage } = await import("@napi-rs/canvas");
+  const img = await loadImage(bytes);
+  const canvas = createCanvas(SMALL_SIZE, SMALL_SIZE);
+  const g = canvas.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  g.drawImage(img, 0, 0, SMALL_SIZE, SMALL_SIZE);
+  return canvas.toBuffer("image/webp", 82);
+}
+
+export async function writeAvatarSmall(file, bytes) {
+  writeAvatar(smallName(file), await smallWebp(bytes));
+}
+
 export async function leagueRows(league) {
   const rows = [];
   for (let page = 1; page <= 20; page++) {

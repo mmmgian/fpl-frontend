@@ -334,3 +334,33 @@ describe("removeBackground", () => {
     expect(at(0, 0)[3]).toBe(255);
   });
 });
+
+// ------------------------------------------------------------------------------------------- the small copies
+
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { SMALL_AVATAR_MAX, avatarFor } from "@/lib/domain/avatar";
+import { smallName } from "../scripts/avatars/io.mjs";
+
+describe("avatarFor", () => {
+  it("serves the small copy to badges up to 48 px and keeps the version in the address", () => {
+    expect(avatarFor("/avatars/2379133.webp?v=abc123", 28)).toBe("/avatars/2379133-s.webp?v=abc123");
+    expect(avatarFor("/avatars/2379133.webp", SMALL_AVATAR_MAX)).toBe("/avatars/2379133-s.webp");
+  });
+  it("serves the full picture to anything larger", () => {
+    expect(avatarFor("/avatars/2379133.webp?v=abc123", 64)).toBe("/avatars/2379133.webp?v=abc123");
+  });
+  it("leaves every other address alone, including odd ones", () => {
+    for (const src of ["https://example.com/badge.png", "/avatars/../etc.webp", "/avatars/12-s.webp", "/avatars/abc.webp", "/avatars/1.webp?v=<script>", "/mascots/1-press.webp"]) expect(avatarFor(src, 28)).toBe(src);
+  });
+  it("has a small file on disk for every avatar, far lighter than the full one", () => {
+    const dir = join(process.cwd(), "public", "avatars");
+    const full = readdirSync(dir).filter((f) => /^\d+\.webp$/.test(f));
+    expect(full.length).toBeGreaterThanOrEqual(21);
+    for (const f of full) {
+      const small = join(dir, smallName(f));
+      expect(existsSync(small), f).toBe(true);
+      expect(statSync(small).size, f).toBeLessThan(statSync(join(dir, f)).size / 2);
+    }
+  });
+});

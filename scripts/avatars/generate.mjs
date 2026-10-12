@@ -11,7 +11,7 @@
 // The key comes from GEMINI_API_KEY in the environment or in ../../.env.local (which git ignores). It is never printed.
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OUT_DIR, ROOT, leagueRows, readManifest, sha, toWebp, writeAvatar, writeManifest } from "./io.mjs";
+import { OUT_DIR, ROOT, leagueRows, readManifest, sha, toWebp, writeAvatar, writeAvatarSmall, writeManifest } from "./io.mjs";
 import { buildPrompt, buildRequest, DEFAULT_MODEL, explainNoImage, findImage, needsAvatar, parseArgs, parseEnv, redact } from "./lib.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -71,6 +71,7 @@ async function main() {
       const webp = await toWebp(image.bytes);
       const file = `${row.entry}.webp`;
       writeAvatar(file, webp);
+      await writeAvatarSmall(file, webp);
       manifest.avatars[row.entry] = { file, sha256: sha(webp), teamName: row.entry_name, model, api: opts.api, prompt, generatedAt: new Date().toISOString() };
       writeManifest(manifest);
       made++;

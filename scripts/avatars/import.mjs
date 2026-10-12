@@ -9,7 +9,7 @@
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { homedir, tmpdir } from "node:os";
-import { leagueRows, readManifest, sha, toWebp, writeAvatar, writeManifest } from "./io.mjs";
+import { leagueRows, readManifest, sha, toWebp, writeAvatar, writeAvatarSmall, writeManifest } from "./io.mjs";
 import { planImport } from "./lib.mjs";
 
 function args(argv) {
@@ -98,6 +98,7 @@ async function main() {
     if (manifest.avatars[it.entry] && !o.force) { skipped++; console.log(`- ${it.entry} "${it.teamName}": already has an avatar, kept (use --force to replace)`); continue; }
     const file = `${it.entry}.webp`;
     writeAvatar(file, it.webp);
+    await writeAvatarSmall(file, it.webp);
     manifest.avatars[it.entry] = { file, sha256: sha(it.webp), teamName: it.teamName, model: "imported", api: "manual", source: it.file, generatedAt: new Date().toISOString() };
     saved++;
   }

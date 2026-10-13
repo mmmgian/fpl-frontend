@@ -32,6 +32,8 @@ export interface HistoryPort {
   list(leagueId: number): Promise<SnapshotSummary[]>;
   /** null if no snapshot exists for that gameweek. */
   get(leagueId: number, gw: number): Promise<Snapshot | null>;
+  /** Optional nudge to wake a sleeping server; never throws. */
+  warm?(): Promise<void>;
 }
 
 export interface TimesPort {

@@ -3,6 +3,7 @@ import { LeagueExtrasFallback, LeagueView } from "@/components/views/LeagueView"
 import { leagueId } from "@/lib/config";
 import { services } from "@/lib/container";
 import { initLocale } from "@/app/locale";
+import { warmHistoryAfterResponse } from "./_warm";
 import { LeagueExtrasStream, ifAlreadyIn } from "./_league/Extras";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function LeaguePage() {
   await initLocale();
+  warmHistoryAfterResponse();
   const { model, extras, pending } = await services.league.loadStreaming(leagueId());
   if (model.kind !== "ok" || !pending) return <LeagueView model={model} />;
   const ready = await ifAlreadyIn(extras);

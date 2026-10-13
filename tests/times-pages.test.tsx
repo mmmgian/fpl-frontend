@@ -16,8 +16,16 @@ async function load(library = LIBRARY) {
   return { Library: library_, Issue: issue.default, generateMetadata: issue.generateMetadata };
 }
 
-beforeEach(() => vi.resetModules());
-afterEach(() => vi.doUnmock("@/lib/times"));
+// A fixed day: the pages pick their wording by the day, so snapshots must not depend on when the tests run.
+beforeEach(() => {
+  vi.resetModules();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-11T12:00:00Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.doUnmock("@/lib/times");
+});
 
 describe("/times", () => {
   it("front page: masthead, latest edition, filters, archive", async () => {

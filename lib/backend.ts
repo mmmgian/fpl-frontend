@@ -78,4 +78,23 @@ export async function getSnapshot(leagueId: number, gw: number): Promise<Snapsho
   }
 }
 
-export const historyGateway: HistoryPort = { list: listSnapshots, get: getSnapshot };
+const WARM_EVERY_MS = 5 * 60_000;
+let lastWarm = 0;
+
+/**
+ * Wake the history server (Render's free tier sleeps when idle, and the first request after that takes ~40s). Called
+ * after the front page has been sent, so the wake-up overlaps the visitor's reading and their next click on The Times
+ * finds it awake. At most one ping per WARM_EVERY_MS per instance; failures are ignored, this is only a nudge.
+ */
+export async function warmBackend(): Promise<void> {
+  const now = Date.now();
+  if (now - lastWarm < WARM_EVERY_MS) return;
+  lastWarm = now;
+  try {
+    await fetch(`${backendUrl()}/health`, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
+  } catch {
+    lastWarm = 0; // unreachable: let the next visitor try again
+  }
+}
+
+export const historyGateway: HistoryPort = { list: listSnapshots, get: getSnapshot, warm: warmBackend };

@@ -114,3 +114,39 @@ describe("navigation cache", () => {
     expect(cfg.experimental?.staleTimes?.dynamic).toBe(30);
   });
 });
+
+describe("history server warm-up", () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("pings /health once per window and never throws", async () => {
+    vi.stubEnv("API_BASE", "https://api.example");
+    const fetchMock = vi.fn().mockResolvedValue(json({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { warmBackend } = await import("@/lib/backend");
+    await warmBackend();
+    await warmBackend();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.example/health");
+  });
+
+  it("lets the next visitor retry when the server is unreachable", async () => {
+    vi.stubEnv("API_BASE", "https://api.example");
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError("down")).mockResolvedValue(json({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { warmBackend } = await import("@/lib/backend");
+    await expect(warmBackend()).resolves.toBeUndefined();
+    await warmBackend();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("the service swallows a failing or missing warm", async () => {
+    const { createHistoryService } = await import("@/lib/services/history");
+    const base = { list: async () => [], get: async () => null };
+    await expect(createHistoryService(base).warm()).resolves.toBeUndefined();
+    await expect(createHistoryService({ ...base, warm: async () => { throw new Error("x"); } }).warm()).resolves.toBeUndefined();
+  });
+});

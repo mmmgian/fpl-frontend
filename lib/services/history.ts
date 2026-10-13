@@ -36,6 +36,13 @@ export function createHistoryService(history: HistoryPort, avatars?: AvatarPort,
     return [...snapshots].reverse().map((s) => ({ gw: s.gw, takenAt: s.taken_at, rebuilt: s.rebuilt === true }));
   };
   return {
+    /** Wake the history server ahead of the visitor's next click. Best effort: never throws. */
+    async warm(): Promise<void> {
+      try {
+        await history.warm?.();
+      } catch {}
+    },
+
     /** Newest first. */
     list,
 

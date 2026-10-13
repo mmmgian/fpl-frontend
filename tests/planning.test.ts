@@ -53,10 +53,15 @@ describe("fixture swings", () => {
     expect(fixtureSwings(schedule, { ...bootstrap(), teams: [] }, 7)).toBeNull(); // no clubs at all
   });
 
-  it("leaves out a club with no match on one side rather than inventing a difficulty", () => {
+  it("counts a blank gameweek as the hardest (5), as the grid and rotation pairs do, so it never looks like an easing", () => {
+    // C5 plays nothing from GW9: three blank weeks on the "later" side
     const only = schedule.filter((f) => !(f.event !== null && f.event >= 9 && (f.team_h === 5 || f.team_a === 5)));
     const all = fixtureSwings(only, bootstrap(), 7, { limit: 99 })!;
-    expect([...all.easing, ...all.hardening].some((r) => r.club === "C5")).toBe(false);
+    const c5 = all.hardening.find((r) => r.club === "C5")!;
+    expect(c5.later).toBe(5);
+    expect(c5.laterMatches).toBe(0);
+    expect(c5.blanks).toEqual([9, 10, 11]);
+    expect(all.easing.some((r) => r.club === "C5")).toBe(false);
   });
 });
 

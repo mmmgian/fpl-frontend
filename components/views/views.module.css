@@ -19,7 +19,11 @@
   overflow-wrap: break-word;
 }
 .teamLink { text-decoration: underline; text-decoration-color: var(--border); }
-.teamLink:hover { text-decoration-color: currentColor; }
+@media (hover: hover) and (pointer: fine) { .teamLink:hover { text-decoration-color: currentColor; } }
+/* Inline links in table rows are one 20px line of text. An invisible overhang makes them a 44px target without moving
+   anything; controls later in the row (the Stats toggle) still sit on top of it. */
+.teamLink, a.clubCell { position: relative; }
+.teamLink::before, a.clubCell::before { content: ""; position: absolute; inset: -0.75rem -0.25rem; }
 .manager { font-size: 13px; color: var(--text-muted); overflow-wrap: break-word; }
 
 /* ----- Team sheet ----- */
@@ -48,7 +52,8 @@
 .clubCell { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; white-space: nowrap; }
 
 /* ----- History ----- */
-.tables { display: grid; gap: var(--space-3); scroll-margin-top: 72px; }
+/* /times#tables lands under the pinned header through the page's scroll-padding (app/globals.css). */
+.tables { display: grid; gap: var(--space-3); }
 .tablesTitle { margin: var(--space-4) 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
 .tablesIntro { margin: 0; color: var(--text-muted); }
 .snapshotList {
@@ -71,10 +76,13 @@
   backdrop-filter: var(--frost);
   -webkit-backdrop-filter: var(--frost);
 }
-.snapshotLink:hover { border-color: var(--accent); background: var(--hover-wash); color: inherit; }
+@media (hover: hover) and (pointer: fine) { .snapshotLink:hover { border-color: var(--accent); background: var(--hover-wash); color: inherit; } }
 .snapshotGw { font-size: 22px; font-weight: 700; }
 .snapshotDate { font-size: 12px; color: var(--text-muted); }
 .snapshotSummary { margin: 0 0 var(--space-4); color: var(--text-muted); text-wrap: pretty; }
+/* Not-found team page: the league's teams to pick from (reuses the snapshot tiles). */
+.notFound { display: grid; gap: var(--space-5); }
+.pickName { font-weight: 700; overflow-wrap: anywhere; }
 
 /* ----- Subtotals and grand total ----- */
 .subtotal {

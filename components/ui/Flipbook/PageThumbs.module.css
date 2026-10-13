@@ -23,7 +23,7 @@
   overflow: hidden;
   transition: transform 120ms ease, border-color 120ms ease;
 }
-.thumb:hover { transform: translateY(-2px); }
+@media (hover: hover) and (pointer: fine) { .thumb:hover { transform: translateY(-2px); } }
 .thumb[aria-current="true"] { border-color: var(--accent); }
 .thumb img { display: block; width: 100%; height: auto; }
 .number {
@@ -48,3 +48,5 @@
   .thumb[aria-current="true"] { border-color: Highlight; outline: 2px solid Highlight; outline-offset: 1px; }
   .number { border: 1px solid ButtonText; background: ButtonFace; color: ButtonText; }
 }
+
+@media print { .nav { display: none; } }

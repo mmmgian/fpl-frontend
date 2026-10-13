@@ -29,7 +29,7 @@ export const tripFr: TripOverlay = {
   },
 
   footer: {
-    disclaimer: "Chiffres captés depuis l'API officielle de Fantasy Premier League. La Premier League n'a aucune idée de ce qui se passe ici.",
+    disclaimer: "Chiffres captés depuis l'API officielle de Fantasy Premier League ; murmures des clubs de BBC Sport et football-data.org. La Premier League n'a aucune idée de ce qui se passe ici.",
     credit: "Rêvé par un homard · Depuis 2025 · Rien n'est réel, sauf les points",
   },
 
@@ -274,7 +274,7 @@ export const tripFr: TripOverlay = {
       (gw) => `Prochaine à être mémorisée : la journée ${gw}, une fois sa lueur confirmée.`,
     ],
     pending: [
-      (gw) => `La journée ${gw} est terminée. Elle est capturée lors du passage quotidien de 06:00 UTC, une fois le bonus posé par la FPL.`,
+      (gw) => `La journée ${gw} est terminée. Elle est capturée le lendemain matin du bonus posé par la FPL.`,
       (gw) => `La journée ${gw} est finie ; son souvenir se forme avec la capture du lendemain matin.`,
       (gw) => `Le coup de sifflet final de la journée ${gw} s'est estompé. Le souvenir arrive dès que la FPL scelle les points.`,
     ],
@@ -313,7 +313,7 @@ export const tripFr: TripOverlay = {
   },
 
   team: {
-    header: { manager: "Pilote", gameweek: "Cette orbite", chip: "Porte ouverte", experience: "Temps dans le vide", league: "Place dans l'essaim" },
+    header: { manager: "Pilote", gameweek: "Cette orbite", chip: "Porte ouverte", experience: "Temps dans le vide", league: "Place dans l'essaim", deadline: "Prochain portail" },
     positions: { 1: "Gardiens du seuil", 2: "Le Mur", 3: "Les Rêveurs", 4: "Les Comètes" },
     flags: { Doubtful: "Vacillant", Injured: "Brisé", Suspended: "Banni", Unavailable: "Ailleurs" },
     experience: (year: string, n: number) => `En voyage depuis ${year} · ${n} ${n >= 2 ? "saisons précédentes" : "saison précédente"}`,
@@ -327,7 +327,7 @@ export const tripFr: TripOverlay = {
     transfers: "Métamorphoses",
     noHit: "aucune obole versée",
     teamValue: "Masse de l'effectif",
-    inBank: (bank: string) => `${bank} de poussière d'étoiles`,
+    inBank: (bank: string) => `dont ${bank} de poussière d'étoiles`,
     noSeasonTitle: "La saison n'est pas encore née",
     noSeasonBody: "Les compositions se matérialisent après la date limite de la Journée 1.",
     notStartedTitle: (team: string, n: number) => `${team} atterrit à la Journée ${n}`,
@@ -341,11 +341,11 @@ export const tripFr: TripOverlay = {
       final: ["scellée dans l'ambre par FPL", "gravée dans la pierre : FPL a vérifié", "définitive, l'oracle a parlé"],
       leagueSpot: [
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `Le soleil de ${size} âmes, ${gap} de lumière d'avance` : `Orbite ${rank} sur ${size}, à ${gap} du soleil`}${moved > 0 ? ` · +${moved}` : moved < 0 ? ` · −${-moved}` : ""}`,
+          `${rank === 1 ? (gap ? `Le soleil de ${size} âmes, ${gap} de lumière d'avance` : `Le soleil de ${size} âmes, lumière partagée avec le 2e`) : gap ? `Orbite ${rank} sur ${size}, à ${gap} du soleil` : `Orbite ${rank} sur ${size}, à égalité avec le soleil`}${moved > 0 ? ` · +${moved}` : moved < 0 ? ` · −${-moved}` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `Flotte ${gap} au-dessus de ${size - 1} autres` : `À ${gap} du plus brillant, à la dérive au rang ${rank} sur ${size}`}${moved ? `, ${moved > 0 ? "soulevé" : "entraîné"} de ${Math.abs(moved)} cette semaine` : ""}`,
+          `${rank === 1 ? (gap ? `Flotte ${gap} au-dessus de ${size - 1} autres` : `Flotte à égalité avec le suivant de ${size - 1} autres`) : gap ? `À ${gap} du plus brillant, à la dérive au rang ${rank} sur ${size}` : `À égalité avec le plus brillant, à la dérive au rang ${rank} sur ${size}`}${moved ? `, ${moved > 0 ? "soulevé" : "entraîné"} de ${Math.abs(moved)} cette semaine` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `#${rank} dans un essaim de ${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} de ciel dégagé` : `, ${gap} de ciel à gravir`}`,
+          `#${rank} dans un essaim de ${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? (gap ? `, ${gap} de ciel dégagé` : ", ciel partagé en tête") : gap ? `, ${gap} de ciel à gravir` : ", à égalité avec le plus brillant"}`,
       ],
     },
   },
@@ -548,6 +548,7 @@ export const tripFr: TripOverlay = {
     eyebrow: "Tribu de Premier League",
     result: { W: "Ascension", D: "Lévitation", L: "Chute" },
     next: (home: boolean, opponent: string) => `Prochaine collision : ${home ? "" : "chez "}${opponent}, `,
+    playingNow: (home: boolean, opponent: string) => `Collision en cours : ${home ? "" : "chez "}${opponent}`,
     noFixture: "Aucune collision prévue",
     upNext: "En approche",
     recent: "Échos",
@@ -573,8 +574,9 @@ export const tripFr: TripOverlay = {
     noRegular: "aucun titulaire entier pour le combler",
     xiEmpty: "Pas encore de vision : il faut quelques matchs et assez de joueurs entiers pour voir presque tout un onze.",
     unavailable: "Cette vision ne passe pas pour le moment. Le reste de la page va bien ; réessayez dans quelques minutes.",
+    championsLeague: "Voyages en Ligue des champions",
     europe: "Au-delà des mers",
-    europeEmpty: "Aucun voyage européen à l'horizon. (Cette source ne voit que la Ligue des champions ; les voyages en Ligue Europa et en Ligue Conférence lui sont invisibles.)",
+    europeEmpty: "Aucun voyage en Ligue des champions à l'horizon. La Ligue Europa et la Ligue Conférence sont invisibles d'ici.",
     dateTbc: "Date encore tourbillonnante",
     headlines: "Transmissions",
     headlinesEmpty: "Aucune transmission de BBC Sport pour cette tribu en ce moment.",
@@ -645,6 +647,7 @@ export const tripFr: TripOverlay = {
       confirmed: { label: "Gravé dans la pierre", help: "Bonus officiel, ajouté aux scores." },
       provisional: { label: "En train de se poser", help: "Bonus provisoire de FPL ; peut encore bouger jusqu'à confirmation." },
       projected: { label: "Pressenti", help: "Deviné d'après le BPS en direct ; il bougera au fil du match." },
+      projectedFt: { label: "Pressenti", help: "Deviné d'après le BPS final ; FPL grave la lueur officielle peu après le coup de sifflet." },
     },
     noBonusYet: "Pas encore de lueur.",
     noBonus: "Pas de lueur :",
@@ -717,7 +720,7 @@ export const tripFr: TripOverlay = {
 
   notFound: {
     title: "Cette page s'est dissoute",
-    body: "Vous êtes sorti de la carte : cette page, cette équipe ou ce club n'existe pas sur ce plan. Les liens d'équipe utilisent l'identifiant numérique FPL, par exemple /team/2379133.",
+    body: "Vous êtes sorti de la carte : il n'y a rien à cette adresse sur ce plan. Le lien est peut-être mal saisi, ou vient d'une autre ligne temporelle.",
   },
 
   captainBadge: { captain: "L'élu (capitaine)", vice: "La doublure (vice-capitaine)", triple: "Le troisième œil (capitaine triple)" },
@@ -900,7 +903,8 @@ export const tripFr: TripOverlay = {
       },
     },
     xi: {
-      title: (g: string) => `Les Onze Élus · ${g}`,
+      title: (g: string) => `Les Onze Pressentis · ${g}`,
+      captainDiffers: (xi: string, safe: string) => `Pourquoi pas ${safe} ? Ce onze ne suit que les visions de la FPL, qui couronnent ${xi}. Mille lignes temporelles désignent ${safe} comme l'élu le plus sûr, en pesant aussi les minutes, les clean sheets et le bonus.`,
       note: [
         (captain, formation, total) => `${captain} porte le brassard dans ce ${formation}, le onze valide le plus lumineux d'après les points attendus de la FPL pour la prochaine journée (${total}, élu doublé). Les brisés et les improbables restent dans l'ombre.`,
         (captain, formation, total) => `Les points pressentis de la FPL invoquent un ${formation} qui vaut ${total} élu doublé, ${captain} en tête. Seuls ceux qui joueront probablement sont appelés.`,

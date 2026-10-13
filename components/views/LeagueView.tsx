@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { LiveRefresh, PageHeader, Skeleton, StateMessage, StatList, gameweekName, gameweekShort, getFormat, getT } from "@/components/ui";
+import { LiveRefresh, LocalTime, PageHeader, Skeleton, StateMessage, StatList, gameweekName, gameweekShort, getFormat, getT } from "@/components/ui";
 import { isolateName, refreshIntervalMs } from "@/lib/domain";
 import type { LeagueModel, LeagueTable } from "@/lib/services/models";
 import { GwStatusBadge } from "./GwStatusBadge";
 import { LeagueAwards } from "./LeagueAwards";
 import { StandingsTable } from "./StandingsTable";
-import { phaseLine, storyLines, vary } from "./leagueCopy";
+import { phaseOf, storyLines, vary } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
 
 /**
@@ -40,20 +40,28 @@ export function LeagueView({ model, extras }: { model: LeagueModel; extras?: Rea
               <span>{gameweekName(gameweek.name)}</span>
               <GwStatusBadge status={gameweek.status} />
             </>
-          ) : model.gameweekUnavailable ? undefined : (
+          ) : model.gameweekUnavailable ? (
+            // FPL's game file failing, usually while the game updates around a deadline: say so rather than go blank.
+            <span>{t.updating}</span>
+          ) : (
             <span>{t.preSeason}</span>
           )
         }
-        // An unreadable gameweek (FPL's game file failing while the game updates) is retried slowly, like provisional.
-        actions={refreshFor(model.gameweekUnavailable ? "provisional" : gameweek?.status)}
+        actions={refreshFor(model)}
       />
-
 
       {!summary ? (
         <StateMessage title={t.emptyTitle}>
           <p>
-            {vary(t.emptyBodies, variety)}
+            {/* Pre-season wording only before the season; a new league mid-season fills in with FPL's next update. */}
+            {gameweek ? vary(t.emptyInSeason, variety) : vary(t.emptyBodies, variety)}
             {model.newEntries ? t.joined(model.newEntries) : ""}
+            {!gameweek && model.nextDeadline ? (
+              <>
+                {" "}
+                <DeadlineSentence deadline={model.nextDeadline} />
+              </>
+            ) : null}
           </p>
         </StateMessage>
       ) : (
@@ -68,7 +76,7 @@ export function LeagueView({ model, extras }: { model: LeagueModel; extras?: Rea
                 hint: gap?.kind === "titleRace" ? vary(t.leaderHint, variety, 1)(isolateName(summary.leader.entryName), getT().common.points(gap.gap)) : summary.leader.entryName,
               },
               ...(summary.best && gameweek
-                ? [{ label: t.best(gameweekShort(gameweek.name)), value: summary.best.total, hint: gameweek.status === "live" ? t.bestLive(isolateName(summary.best.entryName)) : summary.best.entryName }]
+                ? [{ label: t.best(gameweekShort(gameweek.name)), value: f.number(summary.best.total), hint: gameweek.status === "live" ? t.bestLive(isolateName(summary.best.entryName)) : summary.best.entryName }]
                 : []),
               { label: t.managers, value: summary.managers, hint: model.truncated ? t.truncated : undefined },
             ]}
@@ -88,16 +96,41 @@ export function LeagueExtrasSections({ model }: { model: LeagueTable }) {
   const t = getT().league;
   const { gameweek, summary, rows, variety } = model;
   const names = new Map(rows.map((r) => [r.entry, r.entry_name]));
-  const stories = summary ? storyLines(model.headlines, (entry) => names.get(entry) ?? "", variety) : [];
+  const stories = summary ? storyLines(model.headlines, (entry) => names.get(entry) ?? "", variety, model.seasonOver) : [];
+  const phase = gameweek && model.currentGw ? phaseOf(gameweek.status, model.currentGw, { pulse: model.pulse, seasonOver: model.seasonOver, variety }) : null;
   // LeagueAwards renders (with its h2) only when an award goes to a manager in the table; otherwise the panels' headings
   // sit straight under the page title.
   const awardsShown = Boolean(model.stats?.awards.some((a) => names.has(a.entry)));
   return (
     <>
-      {stories.length || (gameweek && model.currentGw) ? (
+      {stories.length || phase || model.nextDeadline ? (
         <section aria-label={t.storyLabel}>
           <p className={styles.story}>
-            {gameweek && model.currentGw ? <span className={styles.storyPhase}>{phaseLine(gameweek.status, model.currentGw, variety)}</span> : null}
+            {/* Before the season there is no gameweek to describe, only the first deadline. */}
+            {!phase && model.nextDeadline ? (
+              <span className={styles.storyPhase}>
+                <DeadlineSentence deadline={model.nextDeadline} />
+              </span>
+            ) : null}
+            {phase ? (
+              <span className={styles.storyPhase}>
+                {phase.at ? (
+                  <>
+                    {phase.text}
+                    <LocalTime iso={phase.at} options={WHEN} />
+                    {phase.after}
+                  </>
+                ) : (
+                  phase.text
+                )}
+                {model.nextDeadline ? (
+                  <>
+                    {" "}
+                    <DeadlineSentence deadline={model.nextDeadline} />
+                  </>
+                ) : null}
+              </span>
+            ) : null}
             {stories.map((line) => ` ${line}`).join("")}
           </p>
         </section>
@@ -146,8 +179,29 @@ export function LeagueExtrasFallback({ model }: { model: LeagueTable }) {
   );
 }
 
-/** Poll every minute while live, and slowly while provisional so the table flips to final once FPL confirms it. */
-function refreshFor(status: Parameters<typeof refreshIntervalMs>[0] | undefined) {
-  const every = status ? refreshIntervalMs(status) : null;
+/** A kick-off or deadline in the reader's own time: weekday and time, with the date once it is further off. */
+const WHEN: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+
+/** "GW7 deadline: Sat 11 Oct, 11:30." in the reader's time; the service only sets it once the latest week is played. */
+function DeadlineSentence({ deadline }: { deadline: { gw: number; at: string } }) {
+  const d = getT().league.deadline;
+  return (
+    <>
+      {d.before(deadline.gw)}
+      <LocalTime iso={deadline.at} options={WHEN} />
+      {d.after}
+    </>
+  );
+}
+
+/**
+ * How often the page reloads itself. The service plans it from the fixtures (refreshPlan: every minute while a match is
+ * on, asleep through quiet gaps, slowly while FPL signs the week off, never once it is final). Without a plan (hand-built
+ * models) every minute while live and slowly while provisional; an unreadable gameweek (FPL's game file failing while
+ * the game updates) is retried slowly, like provisional.
+ */
+function refreshFor(model: LeagueTable) {
+  const status = model.gameweekUnavailable ? "provisional" : model.gameweek?.status;
+  const every = model.refreshMs !== undefined ? model.refreshMs : status ? refreshIntervalMs(status) : null;
   return every ? <LiveRefresh enabled intervalMs={every} /> : undefined;
 }

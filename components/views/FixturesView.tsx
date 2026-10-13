@@ -40,6 +40,7 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                 </FdrChip>
               ))}
             </span>
+            <span className={styles.blankNote}>{f.blankNote}</span>
           </>
         }
         actions={

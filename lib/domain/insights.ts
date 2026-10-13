@@ -126,7 +126,7 @@ export interface SeasonForm {
   firstRank: number | null;
   latestRank: number | null;
   bestRank: { gw: number; rank: number } | null;
-  /** Squad value now and after the first gameweek, in tenths of a million. */
+  /** Team value (squad and bank, as FPL reports it) now and after the first gameweek, in tenths of a million. */
   value: { start: number; now: number };
 }
 
@@ -161,7 +161,7 @@ export function seasonForm(current: HistoryGameweek[], settledThrough: number = 
     firstRank: first.overall_rank,
     latestRank: last.overall_rank,
     bestRank: bestRank ? { gw: bestRank.gw, rank: bestRank.overallRank } : null,
-    value: { start: first.value + first.bank, now: last.value + last.bank },
+    value: { start: first.value, now: last.value }, // FPL's value already includes the bank
   };
 }
 

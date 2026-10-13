@@ -172,8 +172,13 @@ describe("league page", () => {
     await expect(await show(render)).toMatchFileSnapshot(golden("home-live"));
   });
   it("shows the final-GW table", async () => {
-    stubFetch(world([], { events: [event({ id: 5, name: "Gameweek 5", is_current: true, finished: true, data_checked: true })] }));
+    const next = event({ id: 6, name: "Gameweek 6", is_current: false, is_next: true, finished: false, data_checked: false, deadline_time: "2026-10-17T10:00:00Z" });
+    stubFetch(world([], { events: [event({ id: 5, name: "Gameweek 5", is_current: true, finished: true, data_checked: true }), next] }));
     await expect(await show(render)).toMatchFileSnapshot(golden("home-final"));
+  });
+  it("says the season is over after the last gameweek", async () => {
+    stubFetch(world([], { events: [event({ id: 38, name: "Gameweek 38", is_current: true, finished: true, data_checked: true })] }));
+    await expect(await show(render)).toMatchFileSnapshot(golden("home-season-over"));
   });
   it("explains an unknown league", async () => {
     stubFetch(world([[has("/leagues-classic/"), () => new Response("x", { status: 404 })]]));

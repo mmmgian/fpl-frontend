@@ -6,6 +6,7 @@
  * What is left out on purpose: the skill also reads each player's career history, which needs one request per player;
  * here a player's own season is shrunk toward a positional baseline instead, and says so.
  */
+import { BLANK_DIFFICULTY } from "./fdr";
 import { expectedPoints, likelyToPlay, type NextOpponent } from "./tools";
 import type { Bootstrap, FplElement, PositionId, ScheduledFixture } from "./types";
 
@@ -251,7 +252,7 @@ export function rotationPairs(
         const da = diff.get(a)?.get(gw) ?? 5;
         const db = diff.get(b)?.get(gw) ?? 5;
         // A club without a fixture is never the one to start; a week where neither plays is marked as a blank.
-        if (!pa && !pb) return { gw, club: short.get(a) ?? "?", difficulty: 5, blank: true };
+        if (!pa && !pb) return { gw, club: short.get(a) ?? "?", difficulty: BLANK_DIFFICULTY, blank: true };
         return pa && (!pb || da <= db) ? { gw, club: short.get(a) ?? "?", difficulty: da } : { gw, club: short.get(b) ?? "?", difficulty: db };
       });
       pairs.push({ clubs: [short.get(a) ?? "?", short.get(b) ?? "?"], average: Math.round((perGw.reduce((s, p) => s + p.difficulty, 0) / span) * 100) / 100, perGw });

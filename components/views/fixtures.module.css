@@ -1,4 +1,5 @@
 .legend { display: inline-flex; gap: 0.25rem; }
+.blankNote { font-size: 12px; color: var(--text-muted); }
 .windows { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
 /* What the stretch ahead means for FPL: the deadline, doubles and blanks, and the runs worth knowing. */
 .lede { margin: 0 0 var(--space-4); max-width: 75ch; color: var(--text-muted); text-wrap: pretty; }
@@ -25,7 +26,7 @@
 .table th, .table td { padding: 0.35rem 0.3rem; vertical-align: middle; text-align: center; }
 .table thead th { background: var(--surface-head); border-bottom: 1px solid var(--border); }
 .table tbody tr + tr > * { border-top: 1px solid var(--border); }
-.table tbody tr:hover > * { background: var(--hover-wash); }
+@media (hover: hover) and (pointer: fine) { .table tbody tr:hover > * { background: var(--hover-wash); } }
 
 .table .team {
   position: sticky;
@@ -57,7 +58,7 @@
 .cell { min-width: 5.75rem; }
 .cell > * + * { margin-top: 0.2rem; }
 .venue { font-weight: 500; opacity: 0.85; }
-.diff { font-size: 0.625rem; font-weight: 500; opacity: 0.85; }
+.diff { font-size: 0.6875rem; font-weight: 500; }
 .blank { color: var(--text-muted); }
 
 @media (max-width: 599px) {

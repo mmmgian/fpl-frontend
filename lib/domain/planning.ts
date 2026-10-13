@@ -12,6 +12,7 @@
  */
 import type { CaptainCandidate, CaptainLab } from "./lab";
 import { rotationPairs } from "./lab";
+import { BLANK_DIFFICULTY } from "./fdr";
 import type { Bootstrap, FplElement, FplEvent, FplTeam, Pick as FplPick, PositionId, ScheduledFixture, StandingRow } from "./types";
 
 // ---------- guards ----------
@@ -148,9 +149,15 @@ function cellsFor(schedule: ScheduledFixture[], teams: Pick<FplTeam, "id" | "sho
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-const meanPerMatch = (cells: PlanCell[]): { average: number | null; matches: number } => {
-  const all = cells.flatMap((c) => c.matches.map((m) => m.difficulty));
-  return { average: all.length ? round2(all.reduce((s, d) => s + d, 0) / all.length) : null, matches: all.length };
+/**
+ * Average difficulty per match over some gameweeks: a double adds both matches, and a blank adds one week at the hardest
+ * rating (as in the fixtures grid and rotation pairs) so it never makes a run look easier. Gameweeks nobody is scheduled
+ * in yet (`scheduled`) are left out. `matches` counts real matches only.
+ */
+const meanPerMatch = (cells: PlanCell[], scheduled: Set<number>): { average: number | null; matches: number } => {
+  const all = cells.flatMap((c) => (c.matches.length ? c.matches.map((m) => m.difficulty) : scheduled.has(c.gw) ? [BLANK_DIFFICULTY] : []));
+  const matches = cells.reduce((n, c) => n + c.matches.length, 0);
+  return { average: all.length ? round2(all.reduce((s, d) => s + d, 0) / all.length) : null, matches };
 };
 
 // ---------- fixture swings ----------
@@ -200,10 +207,11 @@ export function fixtureSwings(
   const laterGws = gws.slice(SWING_SOON);
   const cells = cellsFor(schedule, bootstrap.teams, gws);
   if (![...cells.values()].some((cs) => cs.some((c) => c.matches.length > 0))) return null;
+  const scheduled = new Set(gws.filter((gw) => [...cells.values()].some((cs) => cs.some((c) => c.gw === gw && c.matches.length > 0))));
   const rows: SwingRow[] = bootstrap.teams.flatMap((t) => {
     const cs = cells.get(t.id) ?? [];
-    const soon = meanPerMatch(cs.slice(0, SWING_SOON));
-    const later = meanPerMatch(cs.slice(SWING_SOON));
+    const soon = meanPerMatch(cs.slice(0, SWING_SOON), scheduled);
+    const later = meanPerMatch(cs.slice(SWING_SOON), scheduled);
     if (soon.average === null || later.average === null) return [];
     return [{
       teamId: t.id,

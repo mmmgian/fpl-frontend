@@ -3,7 +3,7 @@
  * Views render these and nothing else, so they need no domain logic and no data access.
  * Every model is a discriminated union on `kind`, so a view must handle every state.
  */
-import type { GwPhase, Issue, IssueKind, IssueSummary, ShelfStatus, SnapshotFacts, TransferPulse } from "../domain";
+import type { GwPhase, Issue, IssueKind, IssueSummary, MatchPulse, ShelfStatus, SnapshotFacts, TransferPulse } from "../domain";
 import type { MascotImage } from "./ports";
 import type { LeagueTools } from "../domain/leagueTools";
 import type { Planning } from "../domain/planning";
@@ -54,6 +54,17 @@ export type LeagueModel =
       headlines: LeagueHeadline[];
       /** Seeds the wording, never the facts: new every UTC day and whenever FPL moves the gameweek on (see varietyKey). */
       variety: number;
+      /**
+       * How often the page refreshes itself (ms), or null for never (see refreshPlan): every minute while a match is on,
+       * asleep through quiet gaps. Absent in hand-built models: the view falls back to refreshIntervalMs(status).
+       */
+      refreshMs?: number | null;
+      /** Whether anything is being played in the live gameweek (null when not live, or the schedule is unknown). */
+      pulse?: MatchPulse | null;
+      /** The next deadline still ahead (null once the season is over, or FPL is unreadable). */
+      nextDeadline?: { gw: number; at: string } | null;
+      /** The season's last gameweek is final: nothing is ahead. */
+      seasonOver?: boolean;
     };
 
 /** The league page for a league FPL knows (LeagueModel's "ok" state). */
@@ -133,6 +144,17 @@ export interface TeamGameweek {
    * final, so copy is redrawn then. Wording only; facts never depend on it. Absent in hand-built models.
    */
   variety?: number;
+  /**
+   * How often the page refreshes itself (ms), or null for never (see refreshPlan); only the latest gameweek moves.
+   * Absent in hand-built models: the view falls back to the status alone.
+   */
+  refreshMs?: number | null;
+  /** Whether anything is being played in the live latest gameweek (null otherwise, or when the schedule is unknown). */
+  pulse?: MatchPulse | null;
+  /** The next deadline still ahead, for the latest gameweek once it has been played (null otherwise). */
+  nextDeadline?: { gw: number; at: string } | null;
+  /** The season's last gameweek is final: nothing is ahead. */
+  seasonOver?: boolean;
 }
 
 export interface TeamSummary {
@@ -398,6 +420,10 @@ export type BonusModel =
       fixtures: FixtureCard[];
       finished: number;
       anyLive: boolean;
+      /** How long until the page should refresh itself (see refreshPlan); null when nothing on it can change. */
+      refreshMs: number | null;
+      /** While the week is live: is a match on, is it a quiet gap until the next kick-off, or is everything played. */
+      pulse: { state: MatchPulse["state"]; nextKickoff: string | null } | null;
       /** Matches by state, for the summary line. */
       counts: { live: number; finished: number; upcoming: number };
       /** The gameweek's top BPS and the club collecting the most bonus; null before anyone has BPS. */
@@ -536,6 +562,8 @@ export type ToolsModel = {
   planning: Planning | null;
   /** Where the season stands (gameweek, phase, next deadline), carrying the salt for this visit's wording. */
   phase: GwPhase;
+  /** While the gameweek is live: is a match on, or is it a quiet gap until the next kick-off; null otherwise or unknown. */
+  matches: { state: MatchPulse["state"]; nextKickoff: string | null } | null;
   /** The crowd's week: most bought and sold, and the price pressure (all of FPL, not just the filtered rows). */
   pulse: TransferPulse;
 };

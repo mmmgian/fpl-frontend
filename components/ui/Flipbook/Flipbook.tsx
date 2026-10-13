@@ -63,6 +63,10 @@ const WIDE_QUERY = "(min-width: 960px)";
 /** Matches the CSS: a spread's page is at most 540px wide; a single page is at most 560px, less the stage's padding. */
 const SIZES = "(min-width: 960px) 540px, min(560px, calc(100vw - 48px))";
 
+/** Elements that use the arrow keys themselves (text fields, sliders, radio groups, tabs, menus). */
+const ARROW_OWNERS = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="radiogroup"], [role="radio"], [role="tablist"], [role="tab"], [role="slider"], [role="listbox"], [role="menu"], [role="menubar"], [role="grid"], [role="tree"]';
+export const ownsArrows = (el: Element): boolean => el.closest(ARROW_OWNERS) !== null;
+
 const cx = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(" ");
 
 type TextState = { status: "loading" } | { status: "ready"; text: string } | { status: "error" };
@@ -166,6 +170,23 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
     action();
   };
 
+  // ← and → turn the page from anywhere on the page, not only once the pages have focus, as in any reader.
+  // Keys meant for something else are left alone: typing, a control that uses arrows itself, or a modifier.
+  const turnRef = useRef(turn);
+  turnRef.current = turn;
+  useEffect(() => {
+    if (count < 2) return;
+    const onDocKey = (e: globalThis.KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      if (!(e.target instanceof Element) || ownsArrows(e.target)) return;
+      e.preventDefault();
+      turnRef.current(e.key === "ArrowRight" ? 1 : -1);
+    };
+    document.addEventListener("keydown", onDocKey);
+    return () => document.removeEventListener("keydown", onDocKey);
+  }, [count]);
+
   const submitJump = (e: FormEvent) => {
     e.preventDefault();
     const n = Number(jump);
@@ -222,7 +243,7 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
   if (count === 0) {
     return (
       <p className={styles.empty} role="status">
-        There are no pages to show.
+        {t.noPages}
       </p>
     );
   }
@@ -335,7 +356,7 @@ export function Flipbook({ pages, label, page, defaultPage = 1, onPageChange, la
             const loaded = staticText !== undefined ? ({ status: "ready", text: staticText } as const) : texts[n];
             return (
               <div key={n} className={styles.textPage} data-current={n === current || undefined}>
-                <h3>{t.pageHeading(n)}</h3>
+                <h2>{t.pageHeading(n)}</h2>
                 {!loaded || loaded.status === "loading" ? (
                   <p role="status">{t.loadingText}</p>
                 ) : loaded.status === "error" ? (

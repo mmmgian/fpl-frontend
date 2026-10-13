@@ -15,7 +15,9 @@
   backdrop-filter: var(--frost);
   -webkit-backdrop-filter: var(--frost);
 }
-.jump a:hover { background: var(--hover-wash); border-color: var(--border-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .jump a:hover { background: var(--hover-wash); border-color: var(--border-strong); }
+}
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); align-items: start; }
 .full { grid-column: 1 / -1; }
@@ -64,6 +66,8 @@
 .check input { width: 1.05rem; height: 1.05rem; margin: 0; flex: none; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .myTeam { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; margin: 0 0 var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+/* With no league squads under it, the form is the card's only content: no rule above it. */
+.myTeamOnly { margin-bottom: 0; padding-top: 0; border-top: 0; }
 .count { margin: var(--space-2) 0 0; font-size: 12px; color: var(--text-muted); }
 .player { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .playerText { display: grid; min-width: 0; line-height: 1.2; }
@@ -81,13 +85,27 @@
 .tabGroup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .tabGroup > span { margin-right: 2px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
 .tab { padding: 3px 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); font-weight: 700; text-decoration: none; }
-.tab:hover { background: var(--hover-wash); }
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover { background: var(--hover-wash); }
+}
 .tab[aria-current="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
 
 /* ----- Teams ----- */
 .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .teams a { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-decoration: none; }
-.teams a:hover { background: var(--hover-wash); border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .teams a:hover { background: var(--hover-wash); border-color: var(--accent); }
+}
 .teamName { font-weight: 700; overflow-wrap: anywhere; }
 .teamSub { font-size: 11px; color: var(--text-muted); }
 .teamRank { padding: 1px 8px; border-radius: var(--radius-pill); background: var(--wash); font-size: 12px; font-weight: 700; text-align: right; }
+
+/* Fingers, not cursors: the jump pills, ownership tabs and price filters get 44px targets on touch screens and phone
+   widths, in step with the Button "sm" rule beside them (components/ui/Button.module.css). Last in the file so it
+   outranks the base sizes above. */
+@media (pointer: coarse), (max-width: 699px) {
+  .jump a { min-height: 2.75rem; }
+  .tab { display: inline-flex; align-items: center; min-height: 2.75rem; }
+  .input { min-height: 2.75rem; }
+  .check { min-height: 2.75rem; }
+}

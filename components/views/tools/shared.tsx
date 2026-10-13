@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Badge, Crest, getT } from "@/components/ui";
 import { pickVariant } from "@/lib/domain";
 import type { LeaguePlayer } from "@/lib/domain/leagueTools";
@@ -12,8 +13,8 @@ import styles from "./leagueTools.module.css";
 export const LEAGUE_SLOT = { chips: 41, injuries: 42, template: 43, differentials: 44, rivals: 45 } as const;
 export const say = <T,>(items: readonly T[], variety: number, slot: number): T => pickVariant(items, variety, slot);
 
-/** A player: club crest, exact FPL name, club and position. */
-export function PlayerCell({ p }: { p: LeaguePlayer }) {
+/** A player: club crest, exact FPL name, club and position; `children` go under them (a narrow screen's second line). */
+export function PlayerCell({ p, children }: { p: LeaguePlayer; children?: ReactNode }) {
   const t = getT();
   return (
     <span className={tools.player}>
@@ -23,6 +24,7 @@ export function PlayerCell({ p }: { p: LeaguePlayer }) {
         <span className={tools.playerMeta}>
           {p.club} · {t.tools.positionShort[p.positionId]}
         </span>
+        {children}
       </span>
     </span>
   );

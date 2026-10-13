@@ -11,7 +11,8 @@
   display: grid;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  /* The same corners as the table panel it stands in for (DataTable .region), so nothing changes shape on arrival. */
+  border-radius: var(--radius-lg);
 }
 .row {
   display: grid;

@@ -1,12 +1,12 @@
 import type { FdrMatrix, FplEvent, FplTeam, ScheduledFixture } from "../domain";
 import {
-  buildFdrMatrix, buildFixtureFeed, currentEvent, defaultFdrStart, fdrBand, fdrHighlights, FDR_WINDOWS, feedStartIndex, gwStatus, nextDeadline, parseFdrWindow, parseGw, varietyKey,
+  buildFdrMatrix, buildFixtureFeed, currentEvent, DEFAULT_FDR_WINDOW, defaultFdrStart, fdrBand, fdrHighlights, FDR_WINDOWS, feedStartIndex, gwStatus, nextDeadline, parseFdrWindow, parseGw, varietyKey,
 } from "../domain";
 import type { FdrHighlightsView, FixtureFeedModel, FixturesModel, NextDeadlineView } from "./models";
 import type { FplPort, ServiceOptions } from "./ports";
 
-/** How far ahead the feed's intro looks for runs and swings. */
-export const FEED_OUTLOOK = 6;
+/** How far ahead the feed's intro looks for runs and swings: the grid's default "Next 5", from the same deadline. */
+export const FEED_OUTLOOK = DEFAULT_FDR_WINDOW;
 
 function highlightsView(matrix: FdrMatrix, teams: FplTeam[]): FdrHighlightsView | null {
   const h = fdrHighlights(matrix);
@@ -65,7 +65,8 @@ export function createFixturesService(fpl: Pick<FplPort, "bootstrap" | "allFixtu
     async load(gw: string | string[] | undefined, window: string | string[] | undefined): Promise<FixturesModel> {
       const [bootstrap, schedule] = await Promise.all([fpl.bootstrap(), fpl.allFixtures()]);
       const { events, teams } = bootstrap;
-      const fallback = defaultFdrStart(events);
+      const at = now();
+      const fallback = defaultFdrStart(events, at);
       if (fallback == null) return { kind: "no-season" };
 
       const last = events[events.length - 1].id;
@@ -76,7 +77,6 @@ export function createFixturesService(fpl: Pick<FplPort, "bootstrap" | "allFixtu
 
       const byId = new Map(teams.map((t) => [t.id, t]));
       const deadline = new Map(events.map((e) => [e.id, e.deadline_time]));
-      const at = now();
       return {
         kind: "ok",
         start,

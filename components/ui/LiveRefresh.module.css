@@ -1,6 +1,8 @@
 .wrap { display: inline-flex; align-items: center; }
-/* The words stay for screen readers (what was refreshed and when); sighted people get the icon and a tooltip. */
-.status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Always visible: a phone has no hover, so the time of the last update (or that we are offline) is said in words. */
+.status { margin-inline-end: 0.5rem; font-size: 0.75rem; line-height: 1.2; color: var(--text-muted, currentColor); opacity: 0.85; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* On the narrowest phones the words give way to the icon, but stay for screen readers. */
+@media (max-width: 359px) { .status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); } }
 
 /* A round, hairline button the size of a finger, like the rest of the design's pills. */
 .icon { width: 2.75rem; min-width: 2.75rem; padding: 0; border-radius: 50%; }

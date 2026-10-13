@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, LocalTime, SnapshotNudge, StateMessage, getT } from "@/components/ui";
+import { Badge, LocalTime, RetryButton, SnapshotNudge, StateMessage, getT } from "@/components/ui";
 import { pickVariant } from "@/lib/domain";
 import type { HistoryShelfModel, SnapshotListItem } from "@/lib/services/models";
 import styles from "./views.module.css";
@@ -27,7 +27,8 @@ export function HistoryListView({ snapshots, shelf }: { snapshots: SnapshotListI
     : latest !== null && latest === status.gw ? pickVariant(h.filed, v, SLOT.status)(status.gw)
     : null;
   return (
-    <section aria-labelledby="tables-heading" id="tables" className={styles.tables}>
+    // The #tables anchor sits on the wrapper in app/times/page.tsx, so it exists while this section is still loading.
+    <section aria-labelledby="tables-heading" className={styles.tables}>
       <h2 id="tables-heading" className={styles.tablesTitle}>
         {h.title}
       </h2>
@@ -37,7 +38,7 @@ export function HistoryListView({ snapshots, shelf }: { snapshots: SnapshotListI
         {statusLine && snapshots !== null ? <> {statusLine}</> : null}
       </p>
       {snapshots === null ? (
-        <StateMessage tone="info" title={t.client.errors.historyTitle}>
+        <StateMessage tone="info" title={t.client.errors.historyTitle} action={<RetryButton />}>
           <p>{t.client.errors.historyBody}</p>
         </StateMessage>
       ) : snapshots.length === 0 ? (

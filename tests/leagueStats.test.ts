@@ -48,7 +48,7 @@ describe("leagueStats: per-manager figures", () => {
   });
 
   it("takes value and bank from the latest gameweek, and sorts the chips by gameweek", () => {
-    expect(s.byEntry[3]).toMatchObject({ value: 1015, bank: 5 });       // squad 1010 + bank 5
+    expect(s.byEntry[3]).toMatchObject({ value: 1010, bank: 5 });       // FPL's value already includes the bank (verified against the live API: GW1 value is 1000 whatever the bank)
     const c = leagueStats(table(row(1, 1, 1)), map({ 1: hist([g(1, 1)], [{ name: "bboost", event: 9 }, { name: "wildcard", event: 2 }]) }))!;
     expect(c.byEntry[1].chips.map((x) => x.name)).toEqual(["wildcard", "bboost"]);
   });
@@ -225,10 +225,17 @@ describe("leagueStats: awards", () => {
     expect(newcomers.awards.find((a) => a.key === "climber")).toBeUndefined();     // last_rank 0 means "wasn't in the table yet"
   });
 
+  it("names no climber while the table has moved on to a gameweek still being played (its movement is that week's, not the awards')", () => {
+    const climbed = table(row(1, 1, 280, 3), row(2, 2, 233, 1), row(3, 3, 170, 2));
+    expect(leagueStats(climbed, H, 4, 5)!.awards.find((a) => a.key === "climber")).toBeUndefined();      // awards for GW4, table live in GW5
+    expect(leagueStats(climbed, H, 4, 4)!.awards.find((a) => a.key === "climber")).toMatchObject({ entry: 1, value: 2 }); // same week: it stands
+    expect(leagueStats(climbed, H, 4)!.awards.find((a) => a.key === "climber")).toMatchObject({ entry: 1, value: 2 });    // unknown: as before
+  });
+
   it("names the bench disaster, the hit machine and the biggest squad, only when there is something to name", () => {
     expect(award("benchDisaster")).toMatchObject({ entry: 3, value: 20 });
     expect(award("hitMachine")).toMatchObject({ entry: 2, value: 8, tiedWith: 1 });   // 2 and 3 both gave away 8: the higher-placed one gets the title
-    expect(award("deepPockets")).toMatchObject({ entry: 3, value: 1015 });
+    expect(award("deepPockets")).toMatchObject({ entry: 3, value: 1010 });   // FPL's value, bank included
     const clean = leagueStats(ROWS, map({ 1: hist([g(1, 5), g(2, 5), g(3, 5), g(4, 5)]), 2: hist([g(1, 5), g(2, 5), g(3, 5), g(4, 5)]), 3: hist([g(1, 5), g(2, 5), g(3, 5), g(4, 5)]) }))!;
     expect(clean.awards.find((a) => a.key === "benchDisaster")).toBeUndefined();   // nobody left points on the bench
     expect(clean.awards.find((a) => a.key === "hitMachine")).toBeUndefined();

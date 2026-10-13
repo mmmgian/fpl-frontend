@@ -11,10 +11,10 @@ type Partial2<T> = { [K in keyof T]?: T[K] extends (...a: never[]) => unknown ? 
 export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
   en: {
     theme: { group: "Colour of the sky", light: "Daylight", night: "Moonlight", dark: "The void" },
-    live: { updating: "Breathing in…", last: (time: string) => `Last breath ${time}`, refresh: "Breathe again" },
+    live: { updating: "Breathing in…", last: (time: string) => `Last breath ${time}`, offline: (time: string | null) => (time ? `Out of orbit · still seeing ${time}` : "Out of orbit"), refresh: "Breathe again" },
     errors: {
       title: "This page slipped into another dimension",
-      body: "The Fantasy Premier League API didn't answer. It's usually shifting between gameweeks or overwhelmed, so breathe and try again in a minute.",
+      body: "Something drifted while it was loading. It's usually brief (FPL shifting between gameweeks, or a server overwhelmed), so breathe and try again in a moment.",
       retry: "Try again, gently",
       backToTable: "Back to the cosmos",
       historyTitle: "The memories are out of reach",
@@ -25,7 +25,7 @@ export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
     fdr: { difficulty: (n: number) => `, gravity ${n} of 5`, scale: "Gravity: 1 a warm bath to 5 a bad trip" },
     feed: {
       live: "Breathing",
-      provisional: "Settling",
+      provisional: "Glow settling",
       provisionalTitle: "Full time, but the bonus glow hasn't settled yet",
       tbc: "Unwritten",
       thisWeek: "This orbit",
@@ -46,10 +46,10 @@ export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
   },
   es: {
     theme: { group: "Color del cielo", light: "Luz del día", night: "Luz de luna", dark: "El vacío" },
-    live: { updating: "Inhalando…", last: (time: string) => `Última respiración ${time}`, refresh: "Respirar otra vez" },
+    live: { updating: "Inhalando…", last: (time: string) => `Última respiración ${time}`, offline: (time: string | null) => (time ? `Fuera de órbita · viendo ${time}` : "Fuera de órbita"), refresh: "Respirar otra vez" },
     errors: {
       title: "Esta página se fue a otra dimensión",
-      body: "La API de Fantasy Premier League no respondió. Suele estar cambiando de jornada o saturada: respira e inténtalo en un minuto.",
+      body: "Algo se desvió mientras cargaba. Suele ser pasajero (FPL cambiando de jornada o un servidor saturado): respira e inténtalo en un momento.",
       retry: "Intentar otra vez, con calma",
       backToTable: "Volver al cosmos",
       historyTitle: "Los recuerdos están fuera de alcance",
@@ -60,7 +60,7 @@ export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
     fdr: { difficulty: (n: number) => `, gravedad ${n} de 5`, scale: "Gravedad: 1 un baño tibio, 5 un mal viaje" },
     feed: {
       live: "Respirando",
-      provisional: "Asentándose",
+      provisional: "Brillo asentándose",
       provisionalTitle: "Final del partido, pero el brillo extra aún no se asienta",
       tbc: "Sin escribir",
       thisWeek: "Esta órbita",
@@ -81,10 +81,10 @@ export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
   },
   fr: {
     theme: { group: "Couleur du ciel", light: "Plein jour", night: "Clair de lune", dark: "Le vide" },
-    live: { updating: "Inspiration…", last: (time: string) => `Dernier souffle ${time}`, refresh: "Respirer encore" },
+    live: { updating: "Inspiration…", last: (time: string) => `Dernier souffle ${time}`, offline: (time: string | null) => (time ? `Hors orbite · on voit encore ${time}` : "Hors orbite"), refresh: "Respirer encore" },
     errors: {
       title: "Cette page a glissé dans une autre dimension",
-      body: "L'API de Fantasy Premier League n'a pas répondu. Elle change souvent de journée ou sature : respirez et réessayez dans une minute.",
+      body: "Quelque chose a dérivé pendant le chargement. C'est en général passager (FPL qui change de journée, ou un serveur saturé) : respirez et réessayez dans un instant.",
       retry: "Réessayer, doucement",
       backToTable: "Retour au cosmos",
       historyTitle: "Les souvenirs sont hors d'atteinte",
@@ -95,7 +95,7 @@ export const CLIENT_TRIP: Record<Locale, Partial2<ClientMessages>> = {
     fdr: { difficulty: (n: number) => `, gravité ${n} sur 5`, scale: "Gravité : 1 un bain tiède, 5 un bad trip" },
     feed: {
       live: "Respire",
-      provisional: "Se pose",
+      provisional: "La lueur se pose",
       provisionalTitle: "Fin du match, mais la lueur bonus ne s'est pas encore posée",
       tbc: "Pas encore écrit",
       thisWeek: "Cette orbite",

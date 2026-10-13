@@ -14,7 +14,7 @@ export interface SeasonCharts {
   beatAverage: { weeks: number; of: number } | null;
   /** Overall rank after each gameweek (gameweeks FPL gave no rank for are left out). */
   ranks: { gw: number; rank: number }[];
-  /** Team value (squad plus bank) after each gameweek, in tenths of £m. */
+  /** Team value after each gameweek, in tenths of £m: FPL's `value`, which already includes the bank. */
   values: { gw: number; value: number }[];
   /** Points left on the bench each gameweek. A Bench Boost week is 0 here: those points counted, so none were left. */
   bench: { gw: number; points: number }[];
@@ -36,7 +36,7 @@ export function seasonCharts(current: HistoryGameweek[], events: Pick<FplEvent, 
     points,
     beatAverage: known.length ? { weeks: known.filter((p) => p.points > p.average!).length, of: known.length } : null,
     ranks: settled.filter((g): g is HistoryGameweek & { overall_rank: number } => g.overall_rank != null && g.overall_rank > 0).map((g) => ({ gw: g.event, rank: g.overall_rank })),
-    values: settled.map((g) => ({ gw: g.event, value: g.value + g.bank })),
+    values: settled.map((g) => ({ gw: g.event, value: g.value })),
     bench: settled.map((g) => ({ gw: g.event, points: boosted.has(g.event) ? 0 : g.points_on_bench })),
     benchBoostWeeks: settled.filter((g) => boosted.has(g.event)).map((g) => g.event),
     transfers: settled.map((g) => ({ gw: g.event, made: g.event_transfers, hit: g.event_transfers_cost })),

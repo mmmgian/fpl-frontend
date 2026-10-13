@@ -1,7 +1,9 @@
 /*
  * The altered view (an easter egg): <html data-trip="on">, set by the server from a cookie. Deep purple, saturated
- * colour, text that breathes, tables that sway, avatars that glow. Everything moves on transform, opacity and
- * text-shadow, which are cheap; and nothing moves for people who ask for less motion.
+ * colour, text that breathes, tables that sway, avatars that glow. The sky turns on transform alone (the compositor
+ * does it); text-shadow and filter animations repaint whatever they touch, so they stay off tables and the full-screen
+ * sky, and glass doesn't blur over the turning sky (it would re-blur every frame). Nothing moves for people who ask
+ * for less motion.
  */
 :root[data-trip="on"],
 :root[data-trip="on"][data-theme] {
@@ -25,9 +27,11 @@
   --dot: transparent;
   --hover-wash: rgba(255, 93, 224, 0.2);
   --shadow: 0 0 22px rgba(255, 93, 224, 0.28), inset 0 0 18px rgba(53, 232, 255, 0.12);
-  --glass-blur: saturate(1.8) blur(5px);
-  --frost: saturate(1.6) blur(10px);
-  --zone-strength: 30%;
+  /* Panels are already two-thirds opaque; a blur over the turning sky would be redone on every frame (heat on a phone). */
+  --glass-blur: none;
+  --frost: none;
+  /* Light enough that accent and negative text on an amber row stay readable (4.5:1). */
+  --zone-strength: 20%;
 }
 
 :root[data-trip="on"] body { background: var(--bg); position: relative; overflow-x: clip; }
@@ -45,12 +49,14 @@
     radial-gradient(50% 50% at 70% 80%, rgba(255, 225, 74, 0.4), transparent 70%),
     radial-gradient(45% 45% at 15% 80%, rgba(140, 255, 114, 0.35), transparent 70%),
     conic-gradient(from 0deg at 50% 50%, #ff5de0, #ffe14a, #8cff72, #35e8ff, #8f5bff, #ff5de0);
-  opacity: 0.55;
-  animation: trip-turn 90s linear infinite, trip-hue 40s linear infinite;
+  /* Faint enough that muted text straight on the sky (storyline, page meta, footer) stays above 4.5:1 where yellow passes. */
+  opacity: 0.35;
+  animation: trip-turn 90s linear infinite;
 }
 
-/* Words breathe: a slow swell and a rainbow fringe that pulses in and out of focus. */
-:root[data-trip="on"] :is(h1, h2, h3, p, dt, dd, li > a, th, td, label, summary, legend, figcaption) {
+/* Words breathe: a slow swell and a rainbow fringe that pulses in and out of focus. Not in tables, lists of links or
+ * definitions: an animated text-shadow repaints every cell it is on, every frame. */
+:root[data-trip="on"] :is(h1, h2, h3, p, dt, label, summary, legend, figcaption) {
   animation: trip-fringe 5.5s ease-in-out infinite;
 }
 :root[data-trip="on"] :is(h1, h2, h3) {
@@ -97,7 +103,6 @@
 }
 
 @keyframes trip-turn { to { transform: rotate(360deg); } }
-@keyframes trip-hue { to { filter: hue-rotate(360deg); } }
 @keyframes trip-slide { to { background-position: 300% 0; } }
 @keyframes trip-breathe { 0%, 100% { transform: scale(1) skewX(0deg); } 50% { transform: scale(1.025) skewX(-1.2deg); } }
 @keyframes trip-fringe {
@@ -126,4 +131,30 @@
   :root[data-trip="on"] [data-crest] img,
   :root[data-trip="on"] main figure img { filter: saturate(1.4); }
   :root[data-trip="on"] :is(h1, h2) { background-position: 40% 0; }
+}
+
+/* Print: the same plain paper as every other theme (globals.css), without the sky, the glow or the gradient headings. */
+@media print {
+  :root[data-trip="on"],
+  :root[data-trip="on"][data-theme] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-head: #ffffff;
+    --surface-solid: #ffffff;
+    --surface-2: rgba(0, 0, 0, 0.045);
+    --text: #111111;
+    --text-muted: #4a4a4a;
+    --border: rgba(0, 0, 0, 0.18);
+    --border-strong: rgba(0, 0, 0, 0.35);
+    --accent: #b0006b;
+    --positive: #00805a;
+    --negative: #800020;
+    --warning: #8a5a00;
+    --shadow: none;
+  }
+  :root[data-trip="on"] body::before { display: none; }
+  :root[data-trip="on"] :is(h1, h2) { background: none; -webkit-text-fill-color: currentColor; color: var(--text); }
+  :root[data-trip="on"] :is(h1, h2, h3, p, dt, label, summary, legend, figcaption) { text-shadow: none; }
+  :root[data-trip="on"] tbody tr:nth-child(n) td { background: none; }
 }

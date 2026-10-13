@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useT } from "./I18nProvider";
+import { Button } from "./Button";
+import { useT, useTrip } from "./I18nProvider";
 import { ThemeToggle } from "./ThemeToggle";
+import { flipTrip } from "./TripSwitch";
 import styles from "./SiteHeader.module.css";
 
 const NAV = [
@@ -14,14 +16,18 @@ const NAV = [
   { href: "/times", key: "times" },
 ] as const;
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/" || pathname.startsWith("/team/");
-  return pathname === href || pathname.startsWith(`${href}/`);
+/** Pages that live under another section: a team belongs to the table, a past table to The Times, a club to the fixtures. */
+const PARENT: Record<string, readonly string[]> = { "/": ["/team/"], "/times": ["/history/"], "/fixtures": ["/club/"] };
+
+export function isActive(pathname: string, href: string) {
+  const own = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  return own || (PARENT[href] ?? []).some((prefix) => pathname.startsWith(prefix));
 }
 
 export function SiteHeader({ siteName }: { siteName: string }) {
   const pathname = usePathname() ?? "/";
   const t = useT();
+  const trip = useTrip();
   return (
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
@@ -30,7 +36,14 @@ export function SiteHeader({ siteName }: { siteName: string }) {
           <img src="/brand/lobster-league-192.webp" alt="" width={96} height={64} className={styles.logo} decoding="async" />
         </Link>
         <div className={styles.theme}>
-          <ThemeToggle />
+          {/* The altered view paints over every theme, so the theme picker would do nothing: offer the way out instead. */}
+          {trip ? (
+            <Button size="sm" onClick={() => flipTrip(false)} title={t.trip.leave}>
+              {t.trip.leaveShort}
+            </Button>
+          ) : (
+            <ThemeToggle />
+          )}
         </div>
         <nav aria-label={t.nav.label} className={styles.navWrap}>
           <ul className={styles.nav}>

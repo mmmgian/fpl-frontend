@@ -1,5 +1,15 @@
 import { Suspense } from "react";
-import { ToolsEoCard, ToolsEoPending, ToolsLeagueNav, ToolsLeaguePending, ToolsLeagueSections, type ToolsDeferredSlots } from "@/components/views/ToolsView";
+import {
+  ToolsEoCard,
+  ToolsEoPending,
+  ToolsInjuries,
+  ToolsInjuriesNav,
+  ToolsInjuriesPending,
+  ToolsLeagueNav,
+  ToolsLeaguePending,
+  ToolsLeagueSections,
+  type ToolsDeferredSlots,
+} from "@/components/views/ToolsView";
 import type { ToolsModel } from "@/lib/services/models";
 import type { ToolsStream } from "@/lib/services/tools";
 import { initLocale } from "@/app/locale";
@@ -26,6 +36,14 @@ async function DeferredNav(parts: Parts) {
   return <ToolsLeagueNav model={await arrived(parts)} />;
 }
 
+async function DeferredInjuries(parts: Parts) {
+  return <ToolsInjuries model={await arrived(parts)} />;
+}
+
+async function DeferredInjuriesNav(parts: Parts) {
+  return <ToolsInjuriesNav model={await arrived(parts)} />;
+}
+
 /**
  * The Tools page's league-dependent parts as streamed slots: the page paints with the cheap tools straight away and these
  * fill in behind <Suspense> once every covered manager's squad has been read. Each placeholder holds its part's place and
@@ -49,6 +67,16 @@ export function toolsSlots({ model, deferred, kept }: ToolsStream): ToolsDeferre
     nav: (
       <Suspense fallback={null}>
         <DeferredNav model={model} deferred={deferred} />
+      </Suspense>
+    ),
+    injuries: (
+      <Suspense fallback={<ToolsInjuriesPending variety={variety} />}>
+        <DeferredInjuries model={model} deferred={deferred} />
+      </Suspense>
+    ),
+    injuriesNav: (
+      <Suspense fallback={null}>
+        <DeferredInjuriesNav model={model} deferred={deferred} />
       </Suspense>
     ),
   };

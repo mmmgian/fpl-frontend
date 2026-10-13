@@ -115,7 +115,20 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
     });
   }
 
-  const note = status === "live" ? t.liveNote : status === "provisional" ? t.provisionalNote(gw) : status === "final" ? t.finalNote(gw) : null;
+  // The final note looks ahead to the next deadline only when there is one, and only beside the latest gameweek.
+  const latest = gameweek.gw === gameweek.max;
+  const note =
+    status === "live"
+      ? t.liveNote
+      : status === "provisional"
+        ? t.provisionalNote(gw)
+        : status === "final"
+          ? gameweek.seasonOver
+            ? t.seasonOverNote(gw)
+            : latest
+              ? t.finalNote(gw)
+              : t.pastNote(gw)
+          : null;
 
   return (
     <section className={styles.panel} aria-labelledby="interview-heading" data-trip={trip ? "" : undefined}>
@@ -132,7 +145,8 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
             {/* eslint-disable-next-line @next/next/no-img-element -- a fixed, immutable local file whose shape is known */}
             <img className={styles.photo} src={press.src} width={press.width} height={press.height} alt={trip ? t.trip.pressAlt(team.teamName) : t.pressAlt(team.teamName)} loading="lazy" decoding="async" />
             <figcaption className={styles.caption}>
-              <span className={styles.live} aria-hidden />
+              {/* "On air" only while the latest gameweek is being played; an old or settled week isn't live. */}
+              {gameweek.isLive ? <span className={styles.live} aria-hidden /> : null}
               {gw}
             </figcaption>
           </figure>

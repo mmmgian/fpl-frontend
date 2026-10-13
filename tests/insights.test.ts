@@ -82,7 +82,7 @@ describe("seasonForm", () => {
     expect(f.gameweeks.map((g) => g.net)).toEqual([60, 38, 70]);
     expect(f).toMatchObject({
       best: { gw: 3, net: 70 }, worst: { gw: 2, net: 38 }, hitPoints: 4, benchPoints: 10, transfers: 17,
-      firstRank: 900_000, latestRank: 175_000, bestRank: { gw: 3, rank: 175_000 }, value: { start: 1005, now: 1020 },
+      firstRank: 900_000, latestRank: 175_000, bestRank: { gw: 3, rank: 175_000 }, value: { start: 1000, now: 1017 }, // FPL's value already includes the bank
     });
     expect(f.average).toBeCloseTo((60 + 38 + 70) / 3);
   });

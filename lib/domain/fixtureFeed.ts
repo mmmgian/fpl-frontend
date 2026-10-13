@@ -1,8 +1,9 @@
 /**
  * The season's fixtures as a feed: gameweek by gameweek, match day by match day. Pure: no I/O, no framework.
  *
- * Match days follow UK dates (Europe/London), because that is where the league is played; a viewer's own timezone
- * only changes the clock time printed on each match, not which day heading it sits under.
+ * The server groups match days by UK date (Europe/London), the league's own calendar, since it can't know the
+ * reader's time zone. In the browser, `regroupDays` moves each match under the reader's own date, so a late kick-off
+ * seen from Sydney or Los Angeles sits under the day its clock time belongs to.
  */
 import { fdrBand, type FdrBand } from "./fdr";
 import type { FplEvent, FplTeam, ScheduledFixture } from "./types";
@@ -25,7 +26,7 @@ export interface FeedMatch {
 }
 
 export interface FeedDay {
-  /** UK calendar date, YYYY-MM-DD ("tbc" for matches with no kick-off yet). */
+  /** Calendar date, YYYY-MM-DD, in the time zone the days were grouped in ("tbc" for matches with no kick-off yet). */
   date: string;
   /** "Saturday 17 October". */
   label: string;
@@ -46,8 +47,31 @@ export interface FeedGameweek {
   blanks: number[];
 }
 
-const ukDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
-const ukLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long" });
+/** The league's own time zone, the server's grouping. */
+export const LEAGUE_TIME_ZONE = "Europe/London";
+
+const formats = new Map<string, { date: Intl.DateTimeFormat; label: Intl.DateTimeFormat }>();
+/** Date and label formatters for a time zone, made once; an unknown zone falls back to the league's. */
+function formatsFor(timeZone: string) {
+  let f = formats.get(timeZone);
+  if (!f) {
+    try {
+      f = {
+        date: new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }),
+        label: new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "long", day: "numeric", month: "long" }),
+      };
+    } catch {
+      return formatsFor(LEAGUE_TIME_ZONE);
+    }
+    formats.set(timeZone, f);
+  }
+  return f;
+}
+
+/** Today's date (YYYY-MM-DD) in a time zone, to match against `FeedDay.date`. */
+export function dateIn(at: Date, timeZone: string): string {
+  return formatsFor(timeZone).date.format(at);
+}
 
 export function matchState(f: Pick<ScheduledFixture, "kickoff_time" | "started" | "finished" | "finished_provisional">): MatchState {
   if (f.finished) return "finished";
@@ -83,16 +107,28 @@ const byKickoff = (a: FeedMatch, b: FeedMatch) => {
   return ta === tb ? a.id - b.id : ta < tb ? -1 : 1;
 };
 
-function toDays(matches: FeedMatch[]): FeedDay[] {
+function toDays(matches: FeedMatch[], timeZone = LEAGUE_TIME_ZONE): FeedDay[] {
+  const { date: dateFmt, label: labelFmt } = formatsFor(timeZone);
   const days = new Map<string, FeedDay>();
   for (const m of [...matches].sort(byKickoff)) {
     const t = m.kickoff ? new Date(m.kickoff) : null;
     const valid = t && !Number.isNaN(t.getTime());
-    const date = valid ? ukDate.format(t) : "tbc";
-    if (!days.has(date)) days.set(date, { date, label: valid ? ukLabel.format(t) : "Kick-off time to be confirmed", matches: [] });
+    const date = valid ? dateFmt.format(t) : "tbc";
+    if (!days.has(date)) days.set(date, { date, label: valid ? labelFmt.format(t) : "Kick-off time to be confirmed", matches: [] });
     days.get(date)!.matches.push(m);
   }
   return [...days.values()];
+}
+
+/**
+ * The same matches grouped under dates in another time zone (the reader's), in kick-off order. Matches without a
+ * kick-off stay together at the end.
+ */
+export function regroupDays(days: FeedDay[], timeZone: string): FeedDay[] {
+  return toDays(
+    days.flatMap((d) => d.matches),
+    timeZone,
+  );
 }
 
 /** Every gameweek that has fixtures, in order, with postponed (unscheduled) matches last. */

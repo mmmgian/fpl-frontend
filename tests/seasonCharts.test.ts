@@ -38,9 +38,9 @@ describe("seasonCharts", () => {
     const c = seasonCharts([g(1, 1, { overall_rank: null }), g(2, 1, { overall_rank: 0 }), g(3, 1, { overall_rank: 500 })], events, 3)!;
     expect(c.ranks).toEqual([{ gw: 3, rank: 500 }]);
   });
-  it("reports team value as squad plus bank, and carries bench and transfers", () => {
+  it("reports team value as FPL gives it (bank included, never added twice), and carries bench and transfers", () => {
     const c = seasonCharts(cur, events, 2)!;
-    expect(c.values).toEqual([{ gw: 1, value: 1005 }, { gw: 2, value: 1005 }]);
+    expect(c.values).toEqual([{ gw: 1, value: 1000 }, { gw: 2, value: 1000 }]);
     expect(c.bench).toEqual([{ gw: 1, points: 0 }, { gw: 2, points: 9 }]);
     expect(c.transfers).toEqual([{ gw: 1, made: 0, hit: 0 }, { gw: 2, made: 2, hit: 4 }]);
   });

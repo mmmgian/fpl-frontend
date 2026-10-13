@@ -69,13 +69,14 @@ describe("issue", () => {
     expect(await at("abc")).toBe(1);
   });
 
-  it("gives the neighbouring issues by date", async () => {
-    const m = await svc.issue("dossier-gw6", undefined);
-    if (m.kind !== "ok") throw new Error("expected ok");
-    expect(m.newer?.id).toBe("plan-gw6");
-    expect(m.older?.id).toBe("times-gw5");
-    const newest = await svc.issue("plan-gw6", undefined);
-    expect(newest).toMatchObject({ kind: "ok", newer: null });
+  it("gives the neighbouring issues of the same kind, by date", async () => {
+    // Newspapers walk to newspapers: the dossier and plan published between them are skipped.
+    const gw4 = await svc.issue("times-gw4", undefined);
+    expect(gw4).toMatchObject({ kind: "ok", newer: { id: "times-gw5" }, older: null });
+    const gw5 = await svc.issue("times-gw5", undefined);
+    expect(gw5).toMatchObject({ kind: "ok", newer: null, older: { id: "times-gw4" } });
+    // The only dossier has no neighbours, even though other kinds were published either side of it.
+    expect(await svc.issue("dossier-gw6", undefined)).toMatchObject({ kind: "ok", newer: null, older: null });
   });
 
   it("reports an unknown issue as not found", async () => {

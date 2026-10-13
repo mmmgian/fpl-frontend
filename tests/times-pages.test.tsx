@@ -80,9 +80,35 @@ describe("/times/[issue]", () => {
   });
   it("keeps the private material out of search results", async () => {
     const { generateMetadata, Issue } = await load();
-    expect(await generateMetadata(props("times-gw5"))).toMatchObject({ title: "The Lobster Times", robots: { index: false, follow: false } });
+    expect(await generateMetadata(props("times-gw5"))).toMatchObject({ title: "The Lobster Times, GW5", robots: { index: false, follow: false } });
     expect(await generateMetadata(props("nope"))).toMatchObject({ title: "The Times", robots: { index: false } });
     expect(Issue).toBeTypeOf("function");
+  });
+  it("gives each issue its own shared-link preview: its gameweek or kicker, its blurb and its cover, keeping the site's name", async () => {
+    const { generateMetadata } = await load();
+    expect(await generateMetadata(props("times-gw5"))).toMatchObject({
+      description: "The gazette of the league.",
+      openGraph: {
+        siteName: "The Lobster League",
+        type: "article",
+        title: "The Lobster Times, GW5",
+        description: "The gazette of the league.",
+        images: [{ url: "/times/times-gw5/p-001-l.webp", width: 1080 }],
+      },
+    });
+    // Two newspapers never share a title in a chat or a tab.
+    const [a, b] = await Promise.all([generateMetadata(props("times-gw5")), generateMetadata(props("times-gw4"))]);
+    expect(a.title).not.toBe(b.title);
+    // No gameweek: the kicker tells it apart; no blurb: the section's description stands in.
+    const one = await generateMetadata(props("one-pager"));
+    expect(one.description).toBe("Every weekly edition of The Lobster Times, one page at a time.");
+  });
+  it("an issue that isn't on the shelf leads back to The Times, not the league table", async () => {
+    const { render, screen } = await import("@testing-library/react");
+    const NotFound = (await import("@/app/times/not-found")).default;
+    render(await NotFound());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("We couldn't find that issue");
+    expect(screen.getByRole("link", { name: "← The Times" })).toHaveAttribute("href", "/times");
   });
   it("the library page is noindex too", async () => {
     const mod = await import("@/app/times/page");

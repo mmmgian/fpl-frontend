@@ -1,10 +1,22 @@
 [
   {
     "title": "Gaucho F.C. (gian jaen)",
+    "description": "Gaucho F.C., managed by gian jaen: this week's points, the squad and the season so far, in The Lobster League.",
     "alternates": {
       "canonical": "/team/gaucho-f-c"
     },
     "openGraph": {
+      "siteName": "The Lobster League",
+      "type": "website",
+      "description": "Gaucho F.C., managed by gian jaen: this week's points, the squad and the season so far, in The Lobster League.",
+      "images": [
+        {
+          "url": "/brand/lobster-league.webp",
+          "width": 288,
+          "height": 192,
+          "alt": "The Lobster League"
+        }
+      ],
       "title": "Gaucho F.C. (gian jaen)"
     }
   },

@@ -1,4 +1,4 @@
-import { THEME_COLOR, THEME_STORAGE_KEY, type Theme } from "@/lib/domain";
+import { THEME_STORAGE_KEY, chromeColor, type Theme } from "@/lib/domain";
 
 /** Show a theme now and (when `remember`) keep it for next time. Storage may be blocked; that's fine. */
 export function applyTheme(theme: Theme, remember: boolean, doc: Document = document, storage?: Pick<Storage, "setItem">): void {
@@ -6,7 +6,7 @@ export function applyTheme(theme: Theme, remember: boolean, doc: Document = docu
   const meta = doc.querySelector<HTMLMetaElement>('meta[name="theme-color"][data-theme-color]') ?? doc.createElement("meta");
   meta.name = "theme-color";
   meta.dataset.themeColor = "";
-  meta.content = THEME_COLOR[theme];
+  meta.content = chromeColor(theme, doc.documentElement.dataset.trip === "on");
   if (!meta.parentNode) doc.head.prepend(meta); // before the static, media-qualified ones: the first match wins
   if (remember) {
     try {

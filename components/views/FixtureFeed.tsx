@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 // Deep imports on purpose: the components/ui barrel also exports the server-side i18n, which pulls every language into the browser bundle.
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -9,8 +10,10 @@ import { Crest } from "@/components/ui/Crest";
 import { FdrChip } from "@/components/ui/FdrChip";
 import { useIntlLocale, useT } from "@/components/ui/I18nProvider";
 import { LocalTime } from "@/components/ui/LocalTime";
+import { CLOCK, KICKOFF } from "@/components/ui/timeFormats";
 // Deep imports on purpose: the domain barrel would pull every language into the browser bundle.
-import { scoreLine, type FeedGameweek, type FeedMatch } from "@/lib/domain/fixtureFeed";
+import type { FdrBand } from "@/lib/domain/fdr";
+import { dateIn, LEAGUE_TIME_ZONE, regroupDays, scoreLine, type FeedGameweek, type FeedMatch } from "@/lib/domain/fixtureFeed";
 import type { FeedTeamRef } from "@/lib/services/models";
 import styles from "./fixtureFeed.module.css";
 
@@ -25,22 +28,24 @@ interface FixtureFeedProps {
 }
 
 const subscribe = () => () => {};
-const ukToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
+const readerZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || LEAGUE_TIME_ZONE;
 
-/** Today's UK date, known only in the browser (null while rendering on the server, so there is no mismatch). */
-function useToday() {
-  return useSyncExternalStore(subscribe, () => ukToday.format(new Date()), () => null);
+/**
+ * The reader's time zone, known only in the browser: null while rendering on the server and hydrating, so the first
+ * paint matches the server's UK days exactly, then the days regroup under the reader's own dates.
+ */
+function useTimeZone() {
+  return useSyncExternalStore(subscribe, readerZone, () => null);
 }
 
-// Two-digit hours so "04:30" and "19:00" line up and are never mistaken for each other.
-const clock: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
-const deadlineFmt: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+/** A match that has kicked off: its score leads to the bonus page, and difficulty no longer matters. */
+const played = (m: FeedMatch) => m.state === "live" || m.state === "provisional" || m.state === "finished";
 
 function names(ids: number[], teams: Record<number, FeedTeamRef>) {
   return ids.map((id) => teams[id]?.short ?? "?").join(", ");
 }
 
-function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 2 | 3 | 4 | 5; align: "home" | "away" }) {
+function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: FdrBand | null; align: "home" | "away" }) {
   const t = useT();
   const label = team?.name ?? t.feed.unknownClub;
   const crest = <Crest code={team?.code} name={label} size={28} />;
@@ -50,9 +55,11 @@ function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 
         {team?.short ?? "?"}
       </span>
       <span className="sr-only">{label}</span>
-      <FdrChip band={band} label={t.fdr.difficulty(band)}>
-        <span aria-hidden="true">{band}</span>
-      </FdrChip>
+      {band ? (
+        <FdrChip band={band} label={t.fdr.difficulty(band)}>
+          <span aria-hidden="true">{band}</span>
+        </FdrChip>
+      ) : null}
     </span>
   );
   const inner =
@@ -77,34 +84,48 @@ function Side({ team, band, align }: { team: FeedTeamRef | undefined; band: 1 | 
   );
 }
 
-function Middle({ m }: { m: FeedMatch }) {
+/** A started match's score, linked to that gameweek's bonus page when there is one. */
+function Played({ m, gw, teams, children }: { m: FeedMatch; gw: number | null; teams: Record<number, FeedTeamRef>; children: ReactNode }) {
+  const t = useT().feed;
+  if (gw === null) return <span className={styles.middle}>{children}</span>;
+  const name = (id: number) => teams[id]?.name ?? t.unknownClub;
+  return (
+    <Link href={`/bonus?gw=${gw}`} className={`${styles.middle} ${styles.scoreLink}`} prefetch={false}>
+      {children}
+      <span className="sr-only">, {t.bonusFor(name(m.home), name(m.away))}</span>
+    </Link>
+  );
+}
+
+function Middle({ m, gw, teams }: { m: FeedMatch; gw: number | null; teams: Record<number, FeedTeamRef> }) {
   const t = useT().feed;
   const score = scoreLine(m);
   switch (m.state) {
     case "live":
       return (
-        <span className={styles.middle}>
+        <Played m={m} gw={gw} teams={teams}>
           <span className={styles.score}>{score ?? "0–0"}</span>
           <span className={`${styles.state} ${styles.stateLive}`}>{t.live}</span>
-        </span>
+        </Played>
       );
     case "provisional":
       return (
-        <span className={styles.middle}>
-          <span className={styles.score}>{score ?? "–"}</span>
-          <span className={`${styles.state} ${styles.stateProvisional}`} title={t.provisionalTitle}>
-            {t.provisional}
-          </span>
-        </span>
-      );
-    case "finished":
-      return (
-        <span className={styles.middle}>
+        <Played m={m} gw={gw} teams={teams}>
           <span className={styles.score}>
             {score ?? "–"}
             <span className="sr-only"> {t.fullTime}</span>
           </span>
-        </span>
+          <span className={styles.pending}>{t.provisional}</span>
+        </Played>
+      );
+    case "finished":
+      return (
+        <Played m={m} gw={gw} teams={teams}>
+          <span className={styles.score}>
+            {score ?? "–"}
+            <span className="sr-only"> {t.fullTime}</span>
+          </span>
+        </Played>
       );
     case "tbc":
       return (
@@ -116,25 +137,28 @@ function Middle({ m }: { m: FeedMatch }) {
       return (
         <span className={styles.middle}>
           <span className={styles.time}>
-            <LocalTime iso={m.kickoff} options={clock} />
+            <LocalTime iso={m.kickoff} options={CLOCK} />
           </span>
         </span>
       );
   }
 }
 
-function Match({ m, teams }: { m: FeedMatch; teams: Record<number, FeedTeamRef> }) {
+function Match({ m, gw, teams }: { m: FeedMatch; gw: number | null; teams: Record<number, FeedTeamRef> }) {
+  const done = played(m);
   return (
     <li className={styles.match}>
-      <Side team={teams[m.home]} band={m.homeBand} align="home" />
-      <Middle m={m} />
-      <Side team={teams[m.away]} band={m.awayBand} align="away" />
+      <Side team={teams[m.home]} band={done ? null : m.homeBand} align="home" />
+      <Middle m={m} gw={gw} teams={teams} />
+      <Side team={teams[m.away]} band={done ? null : m.awayBand} align="away" />
     </li>
   );
 }
 
-function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, FeedTeamRef>; today: string | null }) {
+function Gameweek({ g, teams, timeZone }: { g: FeedGameweek; teams: Record<number, FeedTeamRef>; timeZone: string | null }) {
   const t = useT().feed;
+  const days = useMemo(() => (timeZone && timeZone !== LEAGUE_TIME_ZONE ? regroupDays(g.days, timeZone) : g.days), [g.days, timeZone]);
+  const today = timeZone ? dateIn(new Date(), timeZone) : null;
   const intl = useIntlLocale();
   const dayLabel = (date: string) => new Intl.DateTimeFormat(intl, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
   const id = `gw-${g.gw ?? "tbc"}`;
@@ -145,9 +169,14 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
           {g.gw === null ? t.postponedHeading : t.gameweek(g.gw)}
         </h2>
         {g.status === "live" ? <Badge tone="live">{t.thisWeek}</Badge> : g.status === "finished" ? <Badge tone="positive">{t.played}</Badge> : null}
+        {g.gw !== null && g.status !== "upcoming" ? (
+          <Link href={`/bonus?gw=${g.gw}`} className={styles.bonusLink} prefetch={false}>
+            {t.bonusLink}
+          </Link>
+        ) : null}
         {g.deadline ? (
           <span className={styles.deadline}>
-            {t.deadline} <LocalTime iso={g.deadline} options={deadlineFmt} />
+            {t.deadline} <LocalTime iso={g.deadline} options={KICKOFF} />
           </span>
         ) : null}
       </header>
@@ -165,7 +194,7 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
           ) : null}
         </p>
       ) : null}
-      {g.days.map((day) => (
+      {days.map((day) => (
         <div key={day.date} className={styles.day}>
           <h3 className={styles.dayTitle}>
             <time dateTime={day.date === "tbc" ? undefined : day.date}>{day.date === "tbc" ? t.kickoffTbc : dayLabel(day.date)}</time>
@@ -173,7 +202,7 @@ function Gameweek({ g, teams, today }: { g: FeedGameweek; teams: Record<number, 
           </h3>
           <ul className={styles.matches}>
             {day.matches.map((m) => (
-              <Match key={m.id} m={m} teams={teams} />
+              <Match key={m.id} m={m} gw={g.gw} teams={teams} />
             ))}
           </ul>
         </div>
@@ -191,7 +220,7 @@ export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) 
   const t = useT().feed;
   const [from, setFrom] = useState(startIndex);
   const [to, setTo] = useState(Math.min(gameweeks.length, startIndex + STEP));
-  const today = useToday();
+  const timeZone = useTimeZone();
   const sentinel = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
   const anchor = useRef<{ height: number; y: number } | null>(null);
@@ -254,11 +283,12 @@ export function FixtureFeed({ gameweeks, teams, startIndex }: FixtureFeedProps) 
             {t.earlier}
           </Button>
         ) : null}
+        <p className={styles.zone}>{t.localTimes}</p>
       </div>
 
       <div className={styles.weeks}>
         {shown.map((g) => (
-          <Gameweek key={g.gw ?? "tbc"} g={g} teams={teams} today={today} />
+          <Gameweek key={g.gw ?? "tbc"} g={g} teams={teams} timeZone={timeZone} />
         ))}
       </div>
 

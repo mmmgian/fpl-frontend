@@ -84,11 +84,22 @@
 .textPage[data-current] { display: block; }
 @media (min-width: 960px) { .root[data-layout="auto"] .textPage { display: block; } }
 .root[data-layout="double"] .textPage { display: block; }
-.textPage h3 { font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+/* h2: the page title is the h1, so the per-page headings in "read as text" come next (no jump from h1 to h3). */
+.textPage h2 { margin: 0; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
 .textPage p { margin-top: 0.25rem; overflow-wrap: anywhere; }
 
 .empty { padding: var(--space-5); text-align: center; color: var(--text-muted); }
 
 @media (forced-colors: active) {
   .viewport, .text { border: 1px solid CanvasText; }
+}
+
+/* Printing or saving as PDF: just the pages on screen, without the page-turning controls, tools and thumbnails. Only the
+   current page or spread is in the document; the whole issue is the "open full size" PDF. */
+@media print {
+  .controls, .tools, .text { display: none; }
+  .viewport { padding: 0; border: 0; box-shadow: none; background: none; }
+  .spread { animation: none; }
+  .root[data-layout] .slot { display: block; break-inside: avoid; }
+  .slot + .slot::before { display: none; }
 }

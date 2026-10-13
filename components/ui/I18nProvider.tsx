@@ -9,9 +9,10 @@ import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "@/lib/domain/i18n/loca
 interface Value {
   locale: Locale;
   t: ClientMessages;
+  trip: boolean;
 }
 
-const Ctx = createContext<Value>({ locale: DEFAULT_LOCALE, t: CLIENT_MESSAGES[DEFAULT_LOCALE] });
+const Ctx = createContext<Value>({ locale: DEFAULT_LOCALE, t: CLIENT_MESSAGES[DEFAULT_LOCALE], trip: false });
 
 /**
  * Makes the page's language available to client components (server components use getT()). Only the small locale
@@ -19,10 +20,12 @@ const Ctx = createContext<Value>({ locale: DEFAULT_LOCALE, t: CLIENT_MESSAGES[DE
  */
 export function I18nProvider({ locale, trip = false, children }: { locale: Locale; trip?: boolean; children: ReactNode }) {
   const t = trip ? clientTrip(CLIENT_MESSAGES[locale], locale) : CLIENT_MESSAGES[locale];
-  return <Ctx.Provider value={{ locale, t }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ locale, t, trip }}>{children}</Ctx.Provider>;
 }
 
 /** Messages for client components. */
 export const useT = (): ClientMessages => useContext(Ctx).t;
 export const useLocale = (): Locale => useContext(Ctx).locale;
+/** Whether the altered ("trip") view is on. */
+export const useTrip = (): boolean => useContext(Ctx).trip;
 export const useIntlLocale = (): string => INTL_LOCALE[useContext(Ctx).locale];

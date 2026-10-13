@@ -371,6 +371,8 @@ export interface Rivals {
 export interface LeagueTools {
   /** The gameweek the squads are from; null before the season (no picks yet). */
   gw: number | null;
+  /** The gameweek of the next deadline, whose picks stay hidden until it passes; null when none is left. */
+  nextGw: number | null;
   /** Managers in the league, and how many of them (from the top) were looked at. */
   total: number;
   covered: number;
@@ -423,6 +425,7 @@ export function buildLeagueTools({ bootstrap, total, managers, gw, nextGw, squad
 
   return {
     gw: read.length ? gw : null,
+    nextGw,
     total,
     covered: managers.length,
     squads: read.length,

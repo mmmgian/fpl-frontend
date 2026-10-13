@@ -1,3 +1,14 @@
+/*
+ * Sticky, but only the nav row stays on screen once the page scrolls: on phones and tablets the brand row (logo and
+ * theme) slides up out of view and the pills stay pinned, so a long table keeps most of the screen. A negative top
+ * does it without script: the header sticks once it has moved up by the brand row's height (top padding + logo), which
+ * leaves the row gap above the pills, the pills and the padding under them. Keep --header-h in app/globals.css in step
+ * (pinned part, in px):
+ *   900px and up    one row, all pinned                    8 + 64 + 8 + 1           = 81
+ *   600-899px       top -(8 + 64), header 133 tall          8 + 44 + 8 + 1           = 61
+ *   under 600px     top -(8 + 52), header 121 tall          8 + 44 + 8 + 1           = 61
+ *   two pill rows   es/fr under 430px, all under 360px      8 + 44 + 6 + 44 + 8 + 1  = 111
+ */
 .header {
   position: sticky;
   top: 0;
@@ -33,8 +44,14 @@
   background: #fbf8ec;
   transition: transform 150ms ease, box-shadow 150ms ease;
 }
-.brand:hover .logo { transform: rotate(-2deg) scale(1.04); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
-@media (max-width: 599px) { .logo { width: 78px; height: 52px; } }
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover .logo { transform: rotate(-2deg) scale(1.04); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+}
+@media (max-width: 899px) { .header { top: calc(-1 * (var(--space-2) + 64px)); } }
+@media (max-width: 599px) {
+  .logo { width: 78px; height: 52px; }
+  .header { top: calc(-1 * (var(--space-2) + 52px)); }
+}
 .nav {
   display: flex;
   flex-wrap: wrap;
@@ -57,7 +74,9 @@
   -webkit-tap-highlight-color: transparent;
   transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
 }
-.link:hover { background: var(--wash); border-color: var(--border-strong); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .link:hover { background: var(--wash); border-color: var(--border-strong); color: var(--text); }
+}
 .link:active { transform: scale(0.97); }
 .link[aria-current="page"] { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
 
@@ -79,8 +98,25 @@
   .link { width: 100%; justify-content: center; padding: 0 0.45rem; font-size: 0.8125rem; }
 }
 
-/* Very small phones: five pills can't share one row without clipping, so they wrap three and two. */
-@media (max-width: 339px) {
-  .nav li { flex: 1 1 calc(33.333% - 6px); }
-  .link { padding: 0 0.4rem; font-size: 0.8125rem; }
+/*
+ * Two rows, three pills over two, when five can't share one row (otherwise "The Times" would wrap alone onto a row of
+ * its own). The five labels at 13px need about 322px in English, 377px in French and 386px in Spanish; a phone gives
+ * the nav its width less 32px of gutters, so English fits from 360px and French and Spanish from 430px. A full-width
+ * empty item ordered after the third pill forces the break, so each row's pills still share it by the length of their
+ * words; the second row's top margin stands in for the row gap (the empty item's line would otherwise add a second).
+ */
+@media (max-width: 429px) {
+  :lang(es) .nav, :lang(fr) .nav { row-gap: 0; }
+  :lang(es) .nav::after, :lang(fr) .nav::after { content: ""; order: 1; flex-basis: 100%; }
+  :lang(es) .nav li:nth-child(n + 4), :lang(fr) .nav li:nth-child(n + 4) { order: 2; margin-top: 6px; }
+}
+@media (max-width: 359px) {
+  .nav { row-gap: 0; }
+  .nav::after { content: ""; order: 1; flex-basis: 100%; }
+  .nav li:nth-child(n + 4) { order: 2; margin-top: 6px; }
+  .link { padding: 0 0.4rem; }
+}
+
+@media print {
+  .header { display: none; }
 }

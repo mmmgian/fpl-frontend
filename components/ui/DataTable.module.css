@@ -4,7 +4,17 @@
   position: relative;
   max-width: 100%;
   overflow-x: auto;
-  background: var(--surface);
+  /* Scroll cues: a soft shadow on whichever side has more table to scroll to. The two shadows stay put on the panel
+     edges ("scroll"); two covers in the panel colour ride along with the table ("local") and hide a shadow once its
+     end of the table is reached. A table that fits shows no shadow at all. --cover approximates the glass panel
+     over the page background. */
+  --cover: color-mix(in srgb, var(--surface-solid) 76%, var(--bg));
+  background:
+    linear-gradient(to right, var(--cover) 40%, transparent) left center / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--cover) 40%, transparent) right center / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.16), transparent) left center / 0.875rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.16), transparent) right center / 0.875rem 100% no-repeat scroll,
+    var(--surface);
   border: 1px solid var(--border);
   border-width: var(--nest-border, 1px);
   border-radius: var(--nest-radius, var(--radius-lg));
@@ -14,6 +24,10 @@
   -webkit-overflow-scrolling: touch;
 }
 .region:focus-visible { outline-offset: -2px; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .region { --cover: var(--surface-solid); } }
+/* The altered view's moving background shows through the glass, so no cover colour could match it: plain panel. */
+:global(:root[data-trip="on"]) .region { background: var(--surface); }
+@media print { .region { background: var(--surface); overflow: visible; } }
 
 .table {
   width: 100%;
@@ -54,7 +68,7 @@
 .rowHeader { font-weight: 400; }
 
 .table tbody tr { transition: background 200ms ease; }
-.table tbody tr:hover { background: var(--hover-wash); }
+@media (hover: hover) and (pointer: fine) { .table tbody tr:hover { background: var(--hover-wash); } }
 .current { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
 
 .start { text-align: left; }
@@ -93,4 +107,30 @@
 .table tbody tr[data-tone="good"] { --zone: var(--zone-good); }
 .table tbody tr[data-tone="warn"] { --zone: var(--zone-warn); }
 .table tbody tr[data-tone="bad"] { --zone: var(--zone-bad); }
-.table tbody tr[data-tone]:hover { background: color-mix(in srgb, var(--zone) calc(var(--zone-strength) + 8%), transparent); }
+@media (hover: hover) and (pointer: fine) { .table tbody tr[data-tone]:hover { background: color-mix(in srgb, var(--zone) calc(var(--zone-strength) + 8%), transparent); } }
+
+/* ----- stickyFirst: the first column (usually the player or team) stays put while the rest scrolls sideways, like the
+   team column of the fixtures grid (components/views/fixtures.module.css). Separate borders, because collapsed
+   borders don't travel with a sticky cell. The cell is near-opaque so scrolled cells don't show through its text, so
+   it repaints the row's own marks (zone tint, "you" highlight, hover) on top of that. ----- */
+.stickyFirst { border-collapse: separate; border-spacing: 0; }
+.stickyFirst tr:not(.detail) > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  --sticky-bg: color-mix(in srgb, var(--surface-solid) 92%, transparent);
+  --sticky-wash: transparent;
+  background: linear-gradient(var(--sticky-wash), var(--sticky-wash)), var(--sticky-bg);
+  box-shadow: var(--sticky-mark, 0 0 0 transparent), 6px 0 8px -6px rgba(0, 0, 0, 0.18);
+}
+.stickyFirst thead tr > :first-child { z-index: 2; --sticky-bg: color-mix(in srgb, var(--surface-solid) 94%, transparent); }
+.stickyFirst tbody tr.current > :first-child { --sticky-wash: var(--surface-2); --sticky-mark: inset 3px 0 0 var(--accent); }
+.stickyFirst tbody tr[data-tone] > :first-child {
+  --sticky-wash: color-mix(in srgb, var(--zone) var(--zone-strength), transparent);
+  --sticky-mark: inset 3px 0 0 var(--zone);
+}
+@media (hover: hover) and (pointer: fine) {
+  .stickyFirst tbody tr:hover > :first-child { --sticky-wash: var(--hover-wash); }
+  .stickyFirst tbody tr[data-tone]:hover > :first-child { --sticky-wash: color-mix(in srgb, var(--zone) calc(var(--zone-strength) + 8%), transparent); }
+}
+@media print { .stickyFirst tr:not(.detail) > :first-child { position: static; box-shadow: none; } }

@@ -81,3 +81,6 @@ export function selectGameweek(
   const event = (asked !== null ? events.find((e) => e.id === asked) : undefined) ?? latest;
   return { latest, gw: event.id, event, status: gwStatus(event, now) };
 }
+
+/** The season is over: the gameweek shown is final and FPL lists no deadline after it (see `nextDeadline`). */
+export const seasonOver = (status: GwStatus | null, next: unknown | null, events: readonly unknown[]): boolean => status === "final" && next === null && events.length > 0;

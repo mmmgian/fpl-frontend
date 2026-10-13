@@ -11,7 +11,7 @@
   background: var(--surface-solid);
   color: var(--text);
 }
-.wrap:hover { background: var(--wash); }
+@media (hover: hover) and (pointer: fine) { .wrap:hover { background: var(--wash); } }
 .wrap:has(.select:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .select {
   min-height: 2.5rem;

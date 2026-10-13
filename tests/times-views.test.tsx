@@ -133,9 +133,14 @@ describe("TimesReaderView", () => {
   });
 
   it("omits the neighbour a first or last issue doesn't have", async () => {
-    render(<TimesReaderView model={await reader("one-pager")} />);
+    render(<TimesReaderView model={await reader("times-gw4")} />);
     const more = screen.getByRole("navigation", { name: "More issues" });
     expect(within(more).getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("walks one series: the only issue of its kind has no neighbours, even with other kinds either side", async () => {
+    render(<TimesReaderView model={await reader("one-pager")} />);
+    expect(screen.queryByRole("navigation", { name: "More issues" })).toBeNull();
   });
 
   it("a one-page issue is shown without page turning", async () => {

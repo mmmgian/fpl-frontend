@@ -60,7 +60,9 @@
 
 /* ---------- One team's stats, folded away ---------- */
 .toggle { display: inline-flex; position: relative; margin-top: var(--space-1); cursor: pointer; }
-.toggleInput { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+/* The checkbox overhangs the 28px pill by 8px above and below and 6px each side, so the target is 44px tall without the
+   row growing. Above it are only the form bars or the manager's name (nothing to tap); below, the cell's 10px padding. */
+.toggleInput { position: absolute; opacity: 0; inset: -8px -6px; width: auto; height: auto; margin: 0; cursor: pointer; }
 .togglePill {
   display: inline-flex;
   align-items: center;
@@ -73,7 +75,9 @@
   color: var(--text-muted);
 }
 .togglePill::after { content: "+"; margin-left: 0.4rem; font-weight: 700; }
-.toggle:hover .togglePill { background: var(--wash); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .toggle:hover .togglePill { background: var(--wash); color: var(--text); }
+}
 .toggle:has(.toggleInput:checked) .togglePill { background: var(--text); border-color: var(--text); color: var(--bg); }
 .toggle:has(.toggleInput:checked) .togglePill::after { content: "−"; }
 .toggle:has(.toggleInput:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-pill); }

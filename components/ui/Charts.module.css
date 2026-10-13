@@ -18,7 +18,7 @@
 /* A halo in the panel's colour keeps a number readable where it crosses a line or a marker. */
 .value, .valueBest { paint-order: stroke; stroke: var(--surface-solid); stroke-width: 3px; stroke-linejoin: round; }
 .valueBest { fill: var(--text); font-weight: 800; }
-.axis { font-size: 9.5px; font-weight: 500; }
+.axis { font-size: 10px; font-weight: 500; }
 
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); margin-top: var(--space-2); font-size: 0.75rem; color: var(--text-muted); }
 .key { display: inline-flex; align-items: center; gap: 0.35rem; }

@@ -2,6 +2,7 @@ import { Badge, Card, Crest, DataTable, FdrChip, gameweekName, getFormat, getT, 
 import { fdrBand, pickVariant, type CaptainCandidate } from "@/lib/domain";
 import type { CaptainShortlist as Shortlist } from "@/lib/domain/planning";
 import styles from "../tools.module.css";
+import layout from "./layout.module.css";
 import plan from "./planning.module.css";
 
 /** Wording slots of their own, clear of the page's (1-17), so these cards don't change wording in step with the others. */
@@ -19,6 +20,12 @@ export function CaptainShortlist({ captain, variety }: { captain: Shortlist; var
   const f = getFormat();
   const percent = (p: number) => t.common.percent(String(pct(p)));
   const gwName = gameweekName(`Gameweek ${captain.gw}`);
+  const opponents = (r: CaptainCandidate) =>
+    r.opponents.map((o, i) => (
+      <FdrChip key={i} band={fdrBand(o.difficulty)} label={t.client.fdr.difficulty(fdrBand(o.difficulty))}>
+        {o.short} ({o.home ? t.fixtures.homeShort : t.fixtures.awayShort})
+      </FdrChip>
+    ));
   const columns: Column<CaptainCandidate>[] = [
     {
       key: "player",
@@ -32,6 +39,8 @@ export function CaptainShortlist({ captain, variety }: { captain: Shortlist; var
             <span className={styles.playerMeta}>
               {r.club} · {t.tools.positionShort[r.positionId]}
             </span>
+            {/* On a phone the fixture column hides; the opponent is the point of a captain pick, so it moves here. */}
+            {r.opponents.length ? <span className={layout.sm}>{opponents(r)}</span> : null}
           </span>
         </span>
       ),
@@ -42,11 +51,7 @@ export function CaptainShortlist({ captain, variety }: { captain: Shortlist; var
       hideBelow: "sm",
       cell: (r) => (
         <span className={plan.run}>
-          {r.opponents.map((o, i) => (
-            <FdrChip key={i} band={fdrBand(o.difficulty)} label={t.client.fdr.difficulty(fdrBand(o.difficulty))}>
-              {o.short} ({o.home ? t.fixtures.homeShort : t.fixtures.awayShort})
-            </FdrChip>
-          ))}
+          {opponents(r)}
         </span>
       ),
     },
@@ -84,7 +89,7 @@ export function CaptainShortlist({ captain, variety }: { captain: Shortlist; var
         {views.map(([title, rows]) => (
           <div key={title}>
             <h3 className={plan.viewTitle}>{title}</h3>
-            <DataTable caption={title} hideCaption dense columns={columns} rows={rows} rowKey={(r) => r.id} empty={none} />
+            <DataTable caption={title} hideCaption dense stickyFirst columns={columns} rows={rows} rowKey={(r) => r.id} empty={none} />
           </div>
         ))}
       </div>

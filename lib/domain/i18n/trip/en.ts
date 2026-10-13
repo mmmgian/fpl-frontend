@@ -33,7 +33,7 @@ export const tripEn: TripOverlay = {
   },
 
   footer: {
-    disclaimer: "Numbers channelled from the official Fantasy Premier League API. The Premier League has no idea this is happening.",
+    disclaimer: "Numbers channelled from the official Fantasy Premier League API; club whispers from BBC Sport and football-data.org. The Premier League has no idea this is happening.",
     credit: "Dreamt up by a lobster · Est. 2025 · Nothing is real but the points",
   },
 
@@ -133,10 +133,10 @@ export const tripEn: TripOverlay = {
       "Nothing has a shape yet. The first deadline gives it one.",
       "The cosmos is still choosing its squads. Come back after Gameweek 1 kicks off.",
     ],
-    joined: (n: number) => ` ${n} travellers have boarded so far.`,
+    joined: (n: number) => (n === 1 ? " 1 traveller has boarded so far." : ` ${n} travellers have boarded so far.`),
     summary: "The state of the cosmos",
     leader: "The Sun",
-    best: (g: string) => `Brightest ${g.replace(/^GW(\d)/, "GW $1")}`,
+    best: (g: string) => `Brightest ${g}`,
     managers: "Travellers",
     truncated: "Showing the first layers only",
     caption: (name: string) => `${name}, as the universe sees it`,
@@ -278,8 +278,8 @@ export const tripEn: TripOverlay = {
       (gw) => `Next to be remembered: Gameweek ${gw}, once its glow is confirmed.`,
     ],
     pending: [
-      (gw) => `Gameweek ${gw} has ended. It's captured on the daily 06:00 UTC pass once FPL settles the bonus.`,
-      (gw) => `Gameweek ${gw} is over; its memory forms with the next morning's snapshot.`,
+      (gw) => `Gameweek ${gw} has ended. It's captured the morning after FPL settles the bonus.`,
+      (gw) => `Gameweek ${gw} is over; its memory forms the next morning.`,
       (gw) => `The final whistle of Gameweek ${gw} has faded. The memory lands as soon as FPL seals the points.`,
     ],
     filed: [
@@ -317,7 +317,7 @@ export const tripEn: TripOverlay = {
   },
 
   team: {
-    header: { manager: "Pilot", gameweek: "This orbit", chip: "Door open", experience: "Time in the void", league: "Place in the swarm" },
+    header: { manager: "Pilot", gameweek: "This orbit", chip: "Door open", experience: "Time in the void", league: "Place in the swarm", deadline: "Next portal" },
     positions: { 1: "Gatekeepers", 2: "The Wall", 3: "The Dreamers", 4: "The Comets" },
     flags: { Doubtful: "Flickering", Injured: "Broken", Suspended: "Banished", Unavailable: "Elsewhere" },
     experience: (year: string, n: number) => `Tripping since ${year} · ${n} earlier ${n === 1 ? "season" : "seasons"}`,
@@ -331,7 +331,7 @@ export const tripEn: TripOverlay = {
     transfers: "Shapeshifts",
     noHit: "no fare paid",
     teamValue: "Squad mass",
-    inBank: (bank: string) => `${bank} of stardust`,
+    inBank: (bank: string) => `incl. ${bank} of stardust`,
     noSeasonTitle: "The season hasn't been born",
     noSeasonBody: "Team sheets materialise after the Gameweek 1 deadline.",
     notStartedTitle: (team: string, n: number) => `${team} lands in Gameweek ${n}`,
@@ -345,11 +345,11 @@ export const tripEn: TripOverlay = {
       final: ["sealed in amber by FPL", "set in stone: FPL checked it", "final, the oracle has spoken"],
       leagueSpot: [
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `The sun of ${size} souls, ${gap} of light ahead` : `Orbit ${rank} of ${size}, ${gap} from the sun`}${moved > 0 ? ` · rose ${moved}` : moved < 0 ? ` · sank ${-moved}` : ""}`,
+          `${rank === 1 ? (gap ? `The sun of ${size} souls, ${gap} of light ahead` : `The sun of ${size} souls, sharing its light with 2nd`) : gap ? `Orbit ${rank} of ${size}, ${gap} from the sun` : `Orbit ${rank} of ${size}, level with the sun`}${moved > 0 ? ` · rose ${moved}` : moved < 0 ? ` · sank ${-moved}` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `Floating above ${size - 1} others by ${gap}` : `${gap} below the brightest, drifting at ${rank} of ${size}`}${moved ? `, ${moved > 0 ? "lifted" : "pulled down"} ${Math.abs(moved)} this week` : ""}`,
+          `${rank === 1 ? (gap ? `Floating above ${size - 1} others by ${gap}` : `Floating level with the next of ${size - 1} others`) : gap ? `${gap} below the brightest, drifting at ${rank} of ${size}` : `Level with the brightest, drifting at ${rank} of ${size}`}${moved ? `, ${moved > 0 ? "lifted" : "pulled down"} ${Math.abs(moved)} this week` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `#${rank} in a swarm of ${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} of clear sky` : `, ${gap} of sky to climb`}`,
+          `#${rank} in a swarm of ${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? (gap ? `, ${gap} of clear sky` : ", sky shared at the top") : gap ? `, ${gap} of sky to climb` : ", level with the brightest"}`,
       ],
     },
   },
@@ -552,6 +552,7 @@ export const tripEn: TripOverlay = {
     eyebrow: "Premier League tribe",
     result: { W: "Ascended", D: "Hovered", L: "Fell" },
     next: (home: boolean, opponent: string) => `Next collision: ${home ? "" : "at "}${opponent}, `,
+    playingNow: (home: boolean, opponent: string) => `Colliding right now: ${home ? "" : "at "}${opponent}`,
     noFixture: "No collision scheduled",
     upNext: "Coming into view",
     recent: "Echoes",
@@ -577,8 +578,9 @@ export const tripEn: TripOverlay = {
     noRegular: "no whole regular to fill it",
     xiEmpty: "No vision yet: it needs a few matches and enough whole players to see most of a side.",
     unavailable: "This vision isn't coming through right now. The rest of the page is fine; try again in a few minutes.",
+    championsLeague: "Champions League voyages",
     europe: "Across the sea",
-    europeEmpty: "No European voyages on the horizon. (This source sees the Champions League only; Europa and Conference League trips are invisible to it.)",
+    europeEmpty: "No Champions League voyages on the horizon. Europa and Conference League trips are invisible from here.",
     dateTbc: "Date still swirling",
     headlines: "Transmissions",
     headlinesEmpty: "No transmissions from BBC Sport for this tribe right now.",
@@ -649,6 +651,7 @@ export const tripEn: TripOverlay = {
       confirmed: { label: "Carved in stone", help: "Official bonus, added to scores." },
       provisional: { label: "Settling", help: "FPL's provisional bonus; may still shift until confirmed." },
       projected: { label: "Foreseen", help: "Divined from live BPS; it will move as the match flows." },
+      projectedFt: { label: "Foreseen", help: "Divined from the final BPS; FPL carves the official glow soon after the whistle." },
     },
     noBonusYet: "No glow yet.",
     noBonus: "No glow:",
@@ -721,7 +724,7 @@ export const tripEn: TripOverlay = {
 
   notFound: {
     title: "This page dissolved",
-    body: "You've wandered off the map: that page, team or club doesn't exist on this plane. Team links use the numeric FPL entry ID, e.g. /team/2379133.",
+    body: "You've wandered off the map: nothing exists at this address on this plane. The link may be mistyped, or from another timeline.",
   },
 
   captainBadge: { captain: "The chosen one (captain)", vice: "The understudy (vice-captain)", triple: "The third eye (triple captain)" },
@@ -904,7 +907,8 @@ export const tripEn: TripOverlay = {
       },
     },
     xi: {
-      title: (g: string) => `The Chosen Eleven · ${g}`,
+      title: (g: string) => `The Foreseen Eleven · ${g}`,
+      captainDiffers: (xi: string, safe: string) => `Why not ${safe}? This eleven follows FPL's visions alone, which crown ${xi}. A thousand timelines name ${safe} the safest chosen one, weighing minutes, clean sheets and bonus too.`,
       note: [
         (captain, formation, total) => `${captain} wears the armband in this ${formation}, the brightest legal eleven by FPL's expected points for the next gameweek (${total}, chosen one doubled). The broken and the unlikely stay in the dark.`,
         (captain, formation, total) => `FPL's foreseen points summon a ${formation} worth ${total} with the chosen one doubled, ${captain} leading. Only the likely to play are called.`,

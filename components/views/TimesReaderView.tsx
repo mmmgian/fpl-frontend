@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, English, PageHeader, getLocale, getT } from "@/components/ui";
+import { BackLink, Badge, English, PageHeader, getLocale, getT } from "@/components/ui";
 import { formatBytes, localizeIssue, type IssueSummary } from "@/lib/domain";
 import type { TimesIssueModel } from "@/lib/services/models";
 import { issueFacts } from "./IssueCard";
@@ -31,7 +31,7 @@ export function TimesReaderView({ model }: { model: Ok }) {
   return (
     <>
       <PageHeader
-        back={<Link href="/times">{t.back}</Link>}
+        back={<BackLink href="/times">{t.back}</BackLink>}
         eyebrow={t.eyebrow(t.kindSingular[issue.kind], issue.gameweek)}
         title={<English>{issue.title}</English>}
         meta={

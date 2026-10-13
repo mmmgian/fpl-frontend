@@ -43,7 +43,7 @@ export const es: Messages = {
 
 
 
-  footer: { disclaimer: "Datos de la API oficial de Fantasy Premier League. Sin afiliación con la Premier League.", credit: "Desarrollado por una langosta · Desde 2025" },
+  footer: { disclaimer: "Puntos y tablas de la API oficial de Fantasy Premier League; noticias de los clubes de BBC Sport y football-data.org. Sin afiliación con la Premier League.", credit: "Desarrollado por una langosta · Desde 2025" },
 
 
   pager: {
@@ -74,11 +74,13 @@ export const es: Messages = {
   meta: {
     tools: "Herramientas",
     toolsDescription: "Cambios de precio, equipo de la semana y propiedad efectiva para la Lobster League.",
-    description: "Tabla en vivo, alineaciones, puntos bonus e historial de The Lobster League (Fantasy Premier League).",
+    description: "Tabla en vivo, alineaciones, puntos bonus, The Times y tablas pasadas de The Lobster League (Fantasy Premier League).",
     bonus: "Puntos bonus",
     fixtures: "Calendario",
-    history: "Historial",
-    snapshot: (gw) => `Tabla de la J${gw}`,
+    history: "Tablas pasadas",
+    snapshot: (gw) => `Tabla tras la J${gw}`,
+    snapshotDescription: (gw, site) => `${site}: la tabla tal como quedó tras la jornada ${gw}.`,
+    teamDescription: (team, manager, site) => `${team}${manager ? `, de ${manager}` : ""}: los puntos de la jornada, la plantilla y la temporada hasta ahora, en ${site}.`,
     times: "The Times",
     timesDescription: "Cada edición semanal de The Lobster Times, página por página.",
     team: "Equipo",
@@ -101,6 +103,7 @@ export const es: Messages = {
     avg: (n) => `prom. ${n}`,
     rankSr: (rank, team) => `Puesto ${rank}, ${team}`,
     noFixture: "Sin partido",
+    blankNote: "– sin partido, cuenta como 5 (la más difícil)",
     tabsLabel: "Vista del calendario",
     all: "Todos los partidos",
     next: (n) => `Próximas ${n}`,
@@ -121,7 +124,7 @@ export const es: Messages = {
     toughest: [
       (team, avg, from, to) => `${team} afronta el camino más duro, J${from}–J${to} (dificultad ${avg}).`,
       (team, avg, from, to) => `Ojo con ${team}: ${avg} por jornada de la J${from} a la J${to}, el tramo más difícil.`,
-      (team, avg, from, to) => `El tramo para vender: ${team}, ${avg} entre J${from} y J${to}.`,
+      (team, avg, from, to) => `El tramo más duro: ${team}, ${avg} entre J${from} y J${to}. Piénsalo antes de fichar.`,
     ],
     swing: [
       (team, before, after, gw) => `Giro de calendario: ${team} pasa de ${before} a ${after} desde la J${gw}. Planifica el fichaje con una semana de antelación.`,
@@ -159,7 +162,13 @@ export const es: Messages = {
       "No hay nada que ordenar hasta que pase el primer cierre y FPL congele los planteles.",
       "La tabla se llena cuando arranque la jornada 1. Mientras tanto, a planear el equipo.",
     ],
-    joined: (n) => ` Hasta ahora se han unido ${n} managers.`,
+    joined: (n) => (n === 1 ? " Hasta ahora se ha unido 1 manager." : ` Hasta ahora se han unido ${n} managers.`),
+    emptyInSeason: [
+      "La clasificación aparece con la próxima actualización de FPL.",
+      "FPL aún no ha publicado la clasificación de esta liga. Aparecerá con su próxima actualización.",
+      "Todavía no hay tabla: se llena cuando FPL vuelva a actualizar la liga.",
+    ],
+    updating: "FPL está actualizando el juego. Esta página se actualiza sola.",
     summary: "Resumen de la liga",
     leader: "Líder",
     best: (gw) => `Mejor ${gw}`,
@@ -196,6 +205,22 @@ export const es: Messages = {
         (gw) => `La J${gw} está cerrada y revisada. Estos totales se quedan.`,
       ],
     },
+    phasePaused: [
+      { before: (gw) => `La J${gw} está en vivo, entre partidos. Próximo partido: `, after: "." },
+      { before: (gw) => `Pausa en la J${gw}: ahora no se juega nada. Próximo partido: `, after: "." },
+      { before: (gw) => `La J${gw} sigue en marcha, con un hueco en el calendario. Se vuelve a jugar el `, after: "." },
+    ],
+    phaseAllPlayed: [
+      (gw) => `Ya se jugaron todos los partidos de la J${gw}. FPL cierra la jornada cuando entren los últimos puntos.`,
+      (gw) => `Final en la J${gw}: todos los partidos terminados, faltan los últimos puntos.`,
+      (gw) => `Los partidos de la J${gw} ya acabaron; la tabla se asienta cuando FPL cierre la jornada.`,
+    ],
+    phaseOver: [
+      (gw) => `La J${gw} fue la última de la temporada y FPL ya la confirmó. Se acabó la temporada.`,
+      (gw) => `La temporada terminó: la J${gw} es definitiva y estos totales se quedan.`,
+      (gw) => `No quedan más cierres. La J${gw} cerró la temporada y FPL la confirmó.`,
+    ],
+    deadline: { before: (gw) => `Cierre de la J${gw}: `, after: "." },
     story: {
       newLeader: [
         (c) => `${c.name} tomó el primer lugar, desde el ${ord(c.place)}.`,
@@ -236,6 +261,21 @@ export const es: Messages = {
         (c) => (c.n === 0 ? `${c.name} cierra la tabla, empatado con el de arriba.` : `${c.name} cierra la tabla, a ${c.figure}.`),
         (c) => (c.n === 0 ? `El fondo de la tabla: ${c.name}, pero solo por desempate.` : `${c.name} necesita ${c.figure} para salir del fondo.`),
         (c) => (c.n === 0 ? `${c.name} va último, aunque empatado en puntos con el de arriba.` : `Último lugar: ${c.name}, a ${c.figure} del siguiente.`),
+      ],
+      champion: [
+        (c) => `Campeón: ${c.name}, con ${c.figure} de ventaja sobre ${c.other} al final.`,
+        (c) => `El título es para ${c.name}, que terminó ${c.figure} por delante de ${c.other} en la tabla.`,
+        (c) => `${c.name} se lleva el título con ${c.figure} de ventaja sobre ${c.other}, segundo.`,
+      ],
+      championLevel: [
+        (c) => `${c.name} termina primero, empatado en puntos con ${c.other}, segundo.`,
+        (c) => `Nada los separa en puntos, pero ${c.name} termina por encima de ${c.other} en la tabla final.`,
+        (c) => `Empatado en puntos con ${c.other}, ${c.name} acaba la temporada primero.`,
+      ],
+      bottomFinal: [
+        (c) => (c.n === 0 ? `${c.name} termina último, empatado en puntos con el de arriba.` : `${c.name} termina último, a ${c.figure}.`),
+        (c) => (c.n === 0 ? `La cuchara de palo es para ${c.name}, pero solo por desempate.` : `La cuchara de palo es para ${c.name}, a ${c.figure} del de arriba.`),
+        (c) => (c.n === 0 ? `${c.name} acaba la temporada último, aunque empatado en puntos con el de arriba.` : `Último lugar al final: ${c.name}, a ${c.figure} del siguiente.`),
       ],
     },
   },
@@ -293,7 +333,7 @@ export const es: Messages = {
     squadNote: (gw) => `El xG, el xA y el DefCon del once son de los jugadores que contaron en la ${gw}: goles y asistencias esperados, y el bonus de +2 por acciones defensivas.`,
     hits: "Penalizaciones por traspasos",
     none: "Ninguna",
-    hitsValue: (pts, transfers) => `−${pts} pts (${transfers} traspasos)`,
+    hitsValue: (pts, transfers) => `−${pts} ${pts === 1 ? "pt" : "pts"} · ${transfers} ${transfers === 1 ? "traspaso" : "traspasos"} en total`,
     overall: "Posición global",
     chipsPlayed: "Chips jugados",
     noChips: "Ninguno todavía",
@@ -382,9 +422,9 @@ export const es: Messages = {
       (c) => `${c.figure} después de penalizaciones ${c.when}. Nadie en la liga lo hizo mejor que ${c.name}.`,
     ],
     woodenSpoon: [
-      (c) => `${c.name} apenas juntó ${c.figure} ${c.when}. La próxima semana seguro mejora.`,
+      (c) => `${c.name} apenas juntó ${c.figure} ${c.when}. Para olvidar.`,
       (c) => `Lo más bajo de la liga ${c.when}: ${c.figure} para ${c.name}.`,
-      (c) => `${c.figure} ${c.when}. ${c.name} querrá olvidarlo antes del próximo cierre.`,
+      (c) => `${c.figure} ${c.when}. ${c.name} querrá olvidarlo pronto.`,
     ],
     hotStreak: [
       (c) => `${c.name} lleva ${c.figure} seguidas por encima del promedio de la liga.`,
@@ -421,8 +461,8 @@ export const es: Messages = {
   },
 
   history: {
-    eyebrow: "Historial",
-    title: "Clasificaciones pasadas",
+    eyebrow: "Tablas pasadas",
+    title: "Tablas pasadas",
     intro: "La tabla de la liga, congelada al pitazo final de cada jornada.",
     lede: [
       (latest, count) => `La tabla de la liga, congelada en el pitido final de cada jornada: ${count} ${count === 1 ? "tabla" : "tablas"} hasta ahora, la de la jornada ${latest} es la última definitiva.`,
@@ -436,8 +476,8 @@ export const es: Messages = {
       (gw) => `Lo próximo en el estante: la jornada ${gw}, cuando se confirmen sus puntos.`,
     ],
     pending: [
-      (gw) => `La jornada ${gw} ha terminado. Su tabla se archiva en la pasada diaria de las 06:00 UTC, cuando la FPL confirme el bonus.`,
-      (gw) => `La jornada ${gw} ha acabado; su tabla llega con la instantánea de la mañana siguiente.`,
+      (gw) => `La jornada ${gw} ha terminado. Su tabla se archiva la mañana después de que la FPL confirme el bonus.`,
+      (gw) => `La jornada ${gw} ha acabado; su tabla llega a la mañana siguiente.`,
       (gw) => `Ya sonó el pitido final de la jornada ${gw}. Su tabla llega aquí cuando la FPL dé los puntos por buenos.`,
     ],
     filed: [
@@ -445,23 +485,23 @@ export const es: Messages = {
       (gw) => `Ya está la tabla definitiva de la jornada ${gw}. Nada pendiente.`,
       (gw) => `El estante está al día hasta la jornada ${gw}.`,
     ],
-    emptyTitle: "El archivo está vacío",
+    emptyTitle: "Aún no hay tablas pasadas",
     emptyBody: [
-      "Se toma una instantánea automáticamente cuando termina una jornada y se confirman sus puntos bonus. Vuelva cuando acabe la actual.",
+      "Una tabla se guarda automáticamente cuando termina una jornada y se confirman sus puntos bonus. Vuelva cuando acabe la actual.",
       "Aún no hay nada archivado. La primera tabla llega la mañana después de que se confirmen los puntos de una jornada.",
       "El estante se llena solo: una tabla por jornada, guardada cuando la FPL confirma el bonus.",
     ],
     rebuilt: "Reconstruida",
     saved: "Guardada",
-    back: "← Todas las instantáneas",
-    missingTitle: (gw) => `No hay instantánea de la jornada ${gw}`,
+    back: "← Tablas pasadas",
+    missingTitle: (gw) => `No hay tabla guardada de la jornada ${gw}`,
     missingBody: [
-      "Todavía no hay foto de esta. Las instantáneas se toman cuando termina una jornada y se confirman sus puntos bonus.",
+      "Todavía no se ha guardado. Una tabla se guarda cuando termina la jornada y se confirman sus puntos bonus.",
       "Esta jornada no se ha archivado. Las tablas se guardan la mañana después de que la FPL confirme los puntos.",
       "Aún no hay nada guardado de esta: una tabla solo se archiva cuando la jornada es definitiva.",
     ],
-    standings: (gw) => `Clasificación de la jornada ${gw}`,
-    standingsAfter: (name, gw) => `Clasificación de ${name} tras la jornada ${gw}`,
+    standings: (gw) => `Tabla tras la jornada ${gw}`,
+    standingsAfter: (name, gw) => `Tabla de ${name} tras la jornada ${gw}`,
     rebuiltTitle: "Reconstruida después de la jornada",
     rebuiltBody: "Esta tabla no se guardó en su momento. Se reconstruyó con los resultados de FPL de cada manager: los puntos son los de FPL y el orden se calcula a partir de ellos. Los managers con los mismos puntos se ordenan por posición global, como hace FPL.",
     levelLead: "Empatados en puntos ",
@@ -483,7 +523,7 @@ export const es: Messages = {
   team: {
     /** The labels of the ruled facts row under the team name. */
     header: {
-      manager: "Manager", gameweek: "Jornada", chip: "Chip", experience: "Experiencia", league: "Liga",
+      manager: "Manager", gameweek: "Jornada", chip: "Chip", experience: "Experiencia", league: "Liga", deadline: "Próximo cierre",
       neighbours: {
         label: "Managers vecinos",
         prev: (team, rank) => `Manager anterior: ${team}, puesto ${rank}`,
@@ -493,6 +533,8 @@ export const es: Messages = {
     positions: { 1: "Porteros", 2: "Defensas", 3: "Mediocampistas", 4: "Delanteros" },
     flags: { Doubtful: "Duda", Injured: "Lesionado", Suspended: "Suspendido", Unavailable: "No disponible" },
     experience: (year, n) => `Juega desde ${year} · ${n} ${n === 1 ? "temporada anterior" : "temporadas anteriores"}`,
+    latest: (gw) => `Última: ${gw}`,
+    latestLabel: (gw) => `Ir a la última jornada, la jornada ${gw}`,
     summary: (gw) => `Resumen de la ${gw}`,
     gwPoints: "Puntos de la jornada",
     gwPointsLive: "Puntos de la jornada (en vivo)",
@@ -504,7 +546,7 @@ export const es: Messages = {
     noHit: "sin penalización",
     hitPts: (hit) => `−${hit} pts`,
     teamValue: "Valor del equipo",
-    inBank: (bank) => `${bank} en caja`,
+    inBank: (bank) => `incl. ${bank} en caja`,
     noSeasonTitle: "La temporada no ha empezado",
     noSeasonBody: "Las alineaciones aparecen después del cierre de la Jornada 1.",
     notStartedTitle: (team, gw) => `${team} empieza en la Jornada ${gw}`,
@@ -518,11 +560,11 @@ export const es: Messages = {
       final: ["definitivo: revisado por FPL", "confirmado por FPL", "definitivo, datos verificados por FPL"],
       leagueSpot: [
         (rank, size, moved, gap) =>
-          `${rank === 1 ? `Líder de ${size}, ${gap} de ventaja` : `${ord(rank)} de ${size}, a ${gap} del primero`}${moved > 0 ? ` · sube ${moved}` : moved < 0 ? ` · baja ${-moved}` : ""}`,
+          `${rank === 1 ? (gap ? `Líder de ${size}, ${gap} ${pts(gap)} de ventaja` : `Líder de ${size}, empatado con el 2.º`) : gap ? `${ord(rank)} de ${size}, a ${gap} ${pts(gap)} del primero` : `${ord(rank)} de ${size}, empatado con el líder`}${moved > 0 ? ` · sube ${moved}` : moved < 0 ? ` · baja ${-moved}` : ""}`,
         (rank, size, moved, gap) =>
-          `${rank === 1 ? `Manda entre ${size} equipos por ${gap} ${pts(gap)}` : `${ord(rank)} de ${size}, a ${gap} ${pts(gap)} del líder`}${moved ? `, ${moved > 0 ? "sube" : "cae"} ${Math.abs(moved)} esta semana` : ""}`,
+          `${rank === 1 ? (gap ? `Manda entre ${size} equipos por ${gap} ${pts(gap)}` : `Líder compartido entre ${size} equipos`) : gap ? `${ord(rank)} de ${size}, a ${gap} ${pts(gap)} del líder` : `${ord(rank)} de ${size}, empatado en puntos con el líder`}${moved ? `, ${moved > 0 ? "sube" : "cae"} ${Math.abs(moved)} esta semana` : ""}`,
         (rank, size, moved, gap) =>
-          `${ord(rank)}/${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} por delante` : `, ${gap} por recuperar`}`,
+          `${ord(rank)}/${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? (gap ? `, ${gap} ${pts(gap)} por delante` : ", empatado arriba") : gap ? `, ${gap} ${pts(gap)} por recuperar` : ", empatado con el líder"}`,
       ],
     },
   },
@@ -751,6 +793,7 @@ export const es: Messages = {
     result: { W: "Ganó", D: "Empató", L: "Perdió" },
     pip: { W: "G", D: "E", L: "P" },
     next: (home, opponent) => `Próximo: ${home ? "" : "visita a "}${opponent}, `,
+    playingNow: (home, opponent) => `Jugando ahora: ${home ? "" : "visita a "}${opponent}`,
     noFixture: "Sin partido programado",
     upNext: "Próximos partidos",
     recent: "Resultados recientes",
@@ -782,8 +825,9 @@ export const es: Messages = {
       `Esto es una predicción, no una alineación oficial. Se basa en quién está disponible según FPL y en cuántas veces ha sido titular cada jugador esta temporada (el más utilizado ha sido titular en ${matches} ${matches === 1 ? "partido" : "partidos"})${early ? ", así que es pronto: tómalo con cautela" : ""}. Los técnicos rotan; la alineación real se anuncia aproximadamente una hora antes del inicio.`,
     xiEmpty: "Todavía no hay predicción: hacen falta algunos partidos jugados y suficientes jugadores disponibles para nombrar casi todo el once.",
     unavailable: "No está disponible en este momento. El resto de la página no se ve afectado; vuelve a intentarlo en unos minutos.",
+    championsLeague: "Champions League",
     europe: "En Europa",
-    europeEmpty: "No hay partidos europeos próximos. (Esta fuente cubre la Champions League; no incluye los partidos de la Europa League ni de la Conference League.)",
+    europeEmpty: "No hay partidos de Champions League próximos. Aquí no se incluyen la Europa League ni la Conference League.",
     dateTbc: "Fecha por confirmar",
     headlines: "Titulares",
     headlinesEmpty: "Nada nuevo de BBC Sport sobre este club por ahora.",
@@ -858,7 +902,9 @@ export const es: Messages = {
       confirmed: { label: "Confirmado", help: "Bonus oficial, ya sumado a las puntuaciones." },
       provisional: { label: "Provisional", help: "Bonus provisional de FPL; puede cambiar hasta que se confirme." },
       projected: { label: "Proyectado", help: "Calculado con el BPS en vivo; cambiará mientras avanza el partido." },
+      projectedFt: { label: "Proyectado", help: "Calculado con el BPS final; FPL suma el bonus oficial poco después del final." },
     },
+    paused: "Entre partidos",
     noBonusYet: "Todavía sin bonus.",
     bonusList: (club) => `Puntos bonus, ${club}`,
     bonusSr: (n) => `${n} ${n === 1 ? "punto" : "puntos"} de bonus:`,
@@ -887,6 +933,11 @@ export const es: Messages = {
         (gw, player, club, bps, _bestClub, _bonus) => `${gw} en juego. Mejor BPS por ahora: ${player} (${club}) con ${bps}. El bonus proyectado y el provisional aún pueden cambiar.`,
         (gw, player, _club, bps, bestClub, bonus) => `${player} lidera la ${gw} con ${bps} BPS. Los jugadores de ${bestClub} suman ${bonus} ${bonus === 1 ? "punto" : "puntos"} de bonus entre todos, por ahora.`,
         (gw, player, _club, bps, _bestClub, _bonus) => `Bonus en vivo de la ${gw}: nada se confirma hasta que termina el partido. ${player} es el rival a batir con ${bps} BPS.`,
+      ],
+      paused: [
+        (gw, when) => `La ${gw} está en pausa entre partidos. La carrera por el bonus vuelve a las ${when}; los partidos terminados esperan la revisión de FPL.`,
+        (gw, when) => `Ahora no se juega ningún partido de la ${gw}. Próximo inicio: ${when}. Hasta entonces, aquí no se mueve nada.`,
+        (gw, when) => `Un rato de calma en la ${gw}: la próxima carrera por el bonus empieza a las ${when}.`,
       ],
       provisional: [
         (gw, player, club, bps, _bestClub, _bonus) => `Todos los partidos de la ${gw} se han jugado; FPL aún no ha confirmado los datos, así que el bonus es provisional. ${player} (${club}) lideró el BPS con ${bps}.`,
@@ -933,7 +984,20 @@ export const es: Messages = {
     },
   },
 
-  notFound: { title: "Página no encontrada", body: "Nos quedamos en blanco: esa página, equipo o club no existe. Los enlaces de equipos usan el ID numérico de FPL, por ejemplo /team/2379133." },
+  notFound: {
+    title: "Página no encontrada",
+    body: "Nos quedamos en blanco: no hay nada en esta dirección. Puede que el enlace esté mal escrito o desactualizado.",
+    team: {
+      title: "No encontramos ese equipo",
+      body: "Los enlaces de los equipos siguen el nombre del equipo, así que un enlace deja de funcionar si el manager cambia el nombre después de compartirlo.",
+      table: "Ir a la tabla",
+      pick: "Elige un equipo",
+    },
+    times: {
+      title: "No encontramos esa edición",
+      body: "Puede que el enlace esté mal escrito o que la edición ya no esté en el estante. Todas las ediciones están en la portada de The Times.",
+    },
+  },
 
   times: {
     mastheadLeft: "Gaceta oficial de la Lobster League",
@@ -985,6 +1049,7 @@ export const es: Messages = {
   tools: {
     positionShort: { 1: "POR", 2: "DEF", 3: "MED", 4: "DEL" } as Record<number, string>,
     heading: "Herramientas",
+    groups: { deadline: "Antes del cierre", transfers: "Fichajes", league: "Tu liga" },
     brief: {
       title: "La semana en la FPL",
       seasonEnd: "el final de la temporada",
@@ -997,6 +1062,11 @@ export const es: Messages = {
         (gw, next) => `La ${gw} está en juego: los puntos se mueven y el bonus aún es provisional. Próxima parada: ${next}.`,
         (gw, next) => `La ${gw} ya ha empezado, así que nada de lo que cambie ahora puntúa esta semana. Después: ${next}.`,
         (gw, next) => `Se juegan los partidos de la ${gw} y la tabla cambia minuto a minuto. Luego: ${next}.`,
+      ],
+      paused: [
+        (gw, when, next) => `La ${gw} está en pausa entre partidos: el próximo empieza ${when}. Lo que cambies ahora cuenta desde la ${next}.`,
+        (gw, when, next) => `Ahora no se juega ningún partido de la ${gw}. Se reanuda ${when}; después llega la ${next}.`,
+        (gw, when, next) => `Un respiro en la ${gw}. Los puntos vuelven a moverse ${when}, y luego toca la ${next}.`,
       ],
       provisional: [
         (gw, next) => `Los partidos de la ${gw} han terminado; la FPL aún confirma el bonus. Después: ${next}.`,
@@ -1072,7 +1142,7 @@ export const es: Messages = {
       byMean: "Más puntos esperados",
       byHaul: "Mejor opción de 10+",
       byCeiling: "Mejor opción de 15+ (apuestas de Triple Capitán)",
-      cols: { player: "Jugador", owned: "Elegido", sim: "xP sim.", double: "De capitán", p10: "10+", p15: "15+", fixture: "Partido", pair: "Pareja", average: "FDR medio", picks: "Juega el que tenga el partido más fácil", yellows: "Amarillas", toBan: "Para sanción", per90: "Por 90", share: "Del bonus" },
+      cols: { player: "Jugador", owned: "Elegido", sim: "xP sim.", double: "De capitán", p10: "% 10+ pts", p15: "% 15+ pts", fixture: "Partido", pair: "Pareja", average: "FDR medio", picks: "Juega el que tenga el partido más fácil", yellows: "Amarillas", toBan: "Para sanción", per90: "Por 90", share: "Del bonus" },
       rotationTitle: "Parejas de rotación",
       rotationNote: [
         (span, pair, avg) => `Dos clubes cuyos defensas puede compartir: tome el partido más fácil cada semana. En las próximas ${span} jornadas, ${pair} es la más amable (FDR medio ${avg}).`,
@@ -1111,7 +1181,7 @@ export const es: Messages = {
         ],
         method: (trials) => `Una simulación, no un pronóstico: ${trials} simulaciones por jugador con los propios números de la FPL (minutos, xG y xA, dificultad del rival, vallas invictas, DefCon, tarjetas, bonus). Los puntos son de un solo jugador; el brazalete los duplica. Quedan fuera los jugadores con menos de un 75 % de opciones de jugar y los clubes sin partido. La propiedad en la FPL se muestra aparte de la simulación.`,
         views: { safest: "El más seguro: más puntos esperados", haul: "Opción de cosecha: 10+ puntos", punt: "Apuesta de Triple Capitán: 15+ puntos" },
-        cols: { player: "Jugador", fixture: "Partido", mean: "Puntos sim.", p10: "10+", p15: "15+", owned: "Elegido en la FPL" },
+        cols: { player: "Jugador", fixture: "Partido", mean: "Puntos sim.", p10: "% 10+ pts", p15: "% 15+ pts", owned: "Elegido en la FPL" },
         blanks: (count, clubs, gw) => `${count === 1 ? "Un club no juega" : `${count} clubes no juegan`} en la ${gw} (${clubs}), así que sus jugadores quedan fuera.`,
         doubles: (count, clubs, gw) => `${count === 1 ? "Un club juega" : `${count} clubes juegan`} dos veces en la ${gw} (${clubs}): las cifras de sus jugadores cubren ambos partidos.`,
         none: ["Todavía no se clasifica nadie.", "Aún no hay candidatos.", "Todavía no hay minutos suficientes para simular."],
@@ -1123,7 +1193,7 @@ export const es: Messages = {
           (soon, later) => `${soon} frente a ${later}: los clubes cuyo calendario cambia de color. Los giros a verde se suavizan; los giros a rojo se complican.`,
           (soon, later) => `Puntos de inflexión entre ${soon} y ${later}, según la dificultad de la propia FPL, en promedio por partido.`,
         ],
-        method: "Dificultad de la FPL (1 la más fácil, 5 la más difícil), en promedio por partido. Una jornada en blanco se muestra, no se puntúa; una doble cuenta ambos partidos. Quedan fuera los clubes sin partido en uno de los dos tramos.",
+        method: "Dificultad de la FPL (1 la más fácil, 5 la más difícil), en promedio por partido. Una jornada en blanco cuenta como 5, la más difícil, porque no da puntos; una doble cuenta ambos partidos.",
         easing: "Giro a verde: el calendario se suaviza",
         hardening: "Giro a rojo: el calendario se complica",
         cols: { club: "Club", soon: "Pronto", later: "Después", change: "Cambio", run: "Racha" },
@@ -1159,7 +1229,9 @@ export const es: Messages = {
       },
     },
     xi: {
-      title: (gw) => `Equipo de la semana · ${gw}`,
+      title: (gw) => `XI proyectado · ${gw}`,
+      badge: "Proyección",
+      captainDiffers: (xi, safe) => `¿Por qué no ${safe}? Este once sigue solo los puntos esperados de la FPL, que ponen arriba a ${xi}. El capitán más seguro de la lista de capitanes, ${safe}, sale de nuestra simulación, que también pesa minutos, porterías a cero y bonus.`,
       note: [
         (captain, formation, total) => `${captain} lleva el brazalete en este ${formation}, el mejor once válido según los puntos esperados de la FPL para la próxima jornada (${total}, capitán doble). Se dejan fuera los lesionados y los dudosos.`,
         (captain, formation, total) => `Los propios puntos esperados de la FPL eligen un ${formation} que vale ${total} con el capitán doble, y a ${captain} de capitán. Solo cuentan los que probablemente juegan.`,
@@ -1207,13 +1279,16 @@ export const es: Messages = {
       ],
       groups: "Grupo",
       tiers: { top4: "Primeros 4", top10: "Primeros 10", all: "Todos" } as Record<string, string>,
-      by: { eo: "PE", captain: "Capitanes" },
+      by: { eo: "Mayor PE", captain: "Más capitaneados" },
       cols: { player: "Jugador", eo: "PE", started: "Titular", captained: "Capitán", owned: "En la FPL" },
       none: ["Todavía no hay alineaciones con qué trabajar.", "Aún no hay alineaciones que leer.", "Nadie ha elegido todavía, así que no hay nada que contar."],
     },
     leagueTools: {
       scope: (covered, total) => `Se cuentan los ${covered} primeros de ${total} managers.`,
       unavailable: "No disponible",
+      picksFrom: (gw, next) => `Según las alineaciones de la ${gw}. Las de la ${next} se ven tras su cierre.`,
+      nextHidden: (next) => `Las de la ${next} se ven tras su cierre.`,
+      chipsFrom: (gw, next) => `Chips jugados hasta la ${gw}. Lo que se juegue en la ${next} aparece tras su cierre.`,
       squadsFrom: (gw, read, of) => (read === of ? `Plantillas tal como quedaron para la ${gw}.` : `Plantillas tal como quedaron para la ${gw}: se pudieron leer ${read} de ${of}; las demás quedan fuera.`),
       bench: "banca",
       chips: {
@@ -1234,6 +1309,7 @@ export const es: Messages = {
           (managers) => `Temporada cerrada: cada chip que usaron ${managers} ${managers === 1 ? "manager" : "managers"}, por jornada.`,
         ],
         holders: "Disponibles en el próximo cierre",
+        legend: "Códigos de chips",
         holding: (n, managers) => `${n} de ${managers}`,
         cols: { manager: "Equipo", played: "Usados", left: "Por usar" },
         open: (gw) => `Hasta la ${gw}`,
@@ -1331,13 +1407,15 @@ export const es: Messages = {
       mood === "live"
         ? `${manager}, de ${team}, da la cara ante la prensa en plena ${gw}.`
         : mood === "provisional"
-          ? `${manager}, de ${team}, da la cara ante la prensa tras la ${gw}, mientras FPL cierra los bonus.`
+          ? `${manager}, de ${team}, da la cara ante la prensa tras la ${gw}, mientras FPL hace su revisión final.`
           : mood === "ahead" && next
             ? `${manager}, de ${team}, da la cara ante la prensa tras la ${gw}, con el cierre de la ${next} a la vista.`
             : `${manager}, de ${team}, da la cara ante la prensa tras la ${gw}.`,
-    liveNote: "*Cambia cada día durante la jornada.",
-    provisionalNote: (gw) => `*Los bonus de la ${gw} aún son provisionales: preguntas nuevas cada día, y otra vez cuando FPL confirme las puntuaciones.`,
+    liveNote: "Preguntas nuevas cada día durante la jornada.",
+    provisionalNote: (gw) => `La ${gw} espera la revisión final de FPL: preguntas nuevas cada día, y otra vez cuando FPL confirme las puntuaciones.`,
     finalNote: (gw) => `FPL ha confirmado las puntuaciones de la ${gw}. Preguntas nuevas cada día hasta el próximo cierre.`,
+    pastNote: (gw) => `FPL confirmó las puntuaciones de la ${gw}. Preguntas nuevas cada día.`,
+    seasonOverNote: (gw) => `FPL ha confirmado las puntuaciones de la ${gw}, la última de la temporada. Preguntas nuevas cada día hasta la próxima temporada.`,
     openers: [
       (c, q) => `${c.first}, una pregunta: ${q}`,
       (c, q) => `${c.manager}, los seguidores de ${c.team} quieren saber: ${q}`,
@@ -1361,9 +1439,9 @@ export const es: Messages = {
         (c, q) => `Mientras el marcador sigue moviéndose, la afición de ${c.team} pregunta: ${q}`,
       ],
       provisional: [
-        (c, q) => `Antes de que FPL confirme los bonus, ${c.first}: ${q}`,
+        (c, q) => `Antes de la revisión final de FPL, ${c.first}: ${q}`,
         (c, q) => `Con las puntuaciones aún provisionales, ${c.manager}: ${q}`,
-        (c, q) => `Mientras se cuentan los bonus, los seguidores de ${c.team} preguntan: ${q}`,
+        (c, q) => `Mientras FPL revisa las puntuaciones, los seguidores de ${c.team} preguntan: ${q}`,
       ],
       final: [
         (c, q) => `Ahora que FPL ha confirmado las puntuaciones, ${c.first}: ${q}`,
@@ -2558,7 +2636,7 @@ export const es: Messages = {
         mood === "live"
           ? `${manager}, de ${team}, se disuelve en la sala de prensa en plena ${gw}. Las paredes respiran.`
           : mood === "provisional"
-            ? `${manager}, de ${team}, se disuelve en la sala de prensa tras la ${gw}. Los bonus brillan, aún sin solidificar.`
+            ? `${manager}, de ${team}, se disuelve en la sala de prensa tras la ${gw}. Las puntuaciones brillan, aún sin solidificar.`
             : mood === "ahead" && next
               ? `${manager}, de ${team}, se disuelve en la sala de prensa tras la ${gw}. El cierre de la ${next} brilla en el horizonte.`
               : `${manager}, de ${team}, se disuelve en la sala de prensa tras la ${gw}. Las paredes respiran.`,
@@ -2589,7 +2667,7 @@ export const es: Messages = {
       ],
       moodOpeners: {
         live: [(c, q) => `Mientras los partidos aún ondulan, ${c.first}: ${q}`, (c, q) => `Los marcadores en directo giran alrededor de ${c.team}: ${q}`],
-        provisional: [(c, q) => `Los bonus aún son líquidos, ${c.manager}: ${q}`, (c, q) => `Antes de que los números cuajen como gelatina, ${c.first}: ${q}`],
+        provisional: [(c, q) => `Las puntuaciones aún son líquidas, ${c.manager}: ${q}`, (c, q) => `Antes de que los números cuajen como gelatina, ${c.first}: ${q}`],
         final: [(c, q) => `Las puntuaciones ya se han cristalizado, ${c.first}: ${q}`, (c, q) => `Ya grabado en las paredes, ${c.team}: ${q}`],
         ahead: [(c, q) => `El cierre de la ${c.nextGw} zumba cada vez más cerca, ${c.first}: ${q}`, (c, q) => `Los partidos de mañana brillan, ${c.manager}: ${q}`],
       },
@@ -3040,12 +3118,13 @@ export const es: Messages = {
     tools: ["Cargando las herramientas", "Procesando los números de la FPL", "Revisando precios y alineaciones"],
     eo: ["Contando las elecciones de la liga", "Calculando la propiedad efectiva", "Leyendo las plantillas de esta jornada"],
     league: ["Leyendo las plantillas y los chips de la liga", "Revisando cada plantilla de la liga", "Reuniendo chips, lesiones y plantillas tipo"],
+    injuries: ["Buscando lesionados en las plantillas de la liga", "Leyendo los avisos de lesión de la FPL", "Revisando a los jugadores señalados de la liga"],
     leagueExtras: ["Cargando forma, premios y estadísticas", "Leyendo la temporada de cada mánager", "Repartiendo los premios de la jornada"],
     team: "Cargando el equipo",
     club: "Cargando el club",
     fixtures: "Cargando el calendario",
     bonus: "Cargando los puntos bonus",
-    history: ["Cargando el historial", "Buscando las tablas pasadas", "Abriendo el archivo"],
+    history: ["Cargando las tablas pasadas", "Buscando las tablas pasadas", "Abriendo las tablas pasadas"],
     historySlow: "Despertando el servidor del historial. Se duerme cuando no se usa, así que la primera visita puede tardar hasta un minuto.",
     times: ["Cargando The Times", "Buscando la última edición", "Desplegando The Times"],
     issue: ["Abriendo la edición", "Pasando a la primera página", "Cargando las páginas"],
@@ -3094,7 +3173,7 @@ export const es: Messages = {
       woodenSpoon: [
         (c) => `${c.name} aterrizó suavemente en ${c.figure} ${c.when}. Respira. La ola vuelve.`,
         (c) => `${c.figure} ${c.when}, lo más bajo de la liga. ${c.name} está tirado en el piso, mirando el techo.`,
-        (c) => `${c.name} bajó a ${c.figure} ${c.when}. Toma agua. Viene un nuevo cierre.`,
+        (c) => `${c.name} bajó a ${c.figure} ${c.when}. Toma agua. Los colores vuelven.`,
       ],
       hotStreak: [
         (c) => `${c.name} lleva ${c.figure} flotando por encima del promedio de la liga.`,

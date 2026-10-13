@@ -30,7 +30,7 @@ export interface ManagerStats {
   hitPoints: number;
   transfers: number;
   benchPoints: number;
-  /** Team value in tenths of £m: the squad plus the bank, as the team page reports it (FPL's own `value` excludes the bank). */
+  /** Team value in tenths of £m, as FPL reports it: the squad's selling value with the bank already in it. */
   value: number;
   /** Of which cash in the bank, in tenths of £m. */
   bank: number;
@@ -105,9 +105,11 @@ function competitionRanks(values: Map<number, number>): Map<number, number> {
 
 /**
  * Stats for every manager who has a history, plus the awards. `rows` is the league table (best first); managers
- * without a history are skipped, not guessed at. Returns null when nobody has played yet.
+ * without a history are skipped, not guessed at. Returns null when nobody has played yet. `tableGw` is the gameweek the
+ * table's movement (rank against last rank) describes: when it is later than the stats' week (a gameweek is being
+ * played), that movement is not the awards' week's, so there is no climber award.
  */
-export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHistory>, settledThrough: number = Infinity): LeagueStats | null {
+export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHistory>, settledThrough: number = Infinity, tableGw?: number): LeagueStats | null {
   // A gameweek in progress has half-scored teams, so every statistic runs through the last one that is over.
   const settled = (h: EntryHistory): EntryHistory => ({ ...h, chips: readableChips(h.chips), current: readableWeeks(h.current).filter((g) => g.event <= settledThrough) });
   const have = rows.filter((r) => histories.has(r.entry) && settled(histories.get(r.entry)!).current.length > 0);
@@ -148,7 +150,7 @@ export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHis
       transfers: gws.reduce((s, g) => s + g.event_transfers, 0),
       // Under Bench Boost the bench's points count towards the score, so they were not wasted.
       benchPoints: gws.filter((g) => !boosted.has(g.event)).reduce((s, g) => s + g.points_on_bench, 0),
-      value: last.value + last.bank,
+      value: last.value, // FPL's value already includes the bank: adding it again counted it twice
       bank: last.bank,
       chips: [...h.chips].sort((a, b) => a.event - b.event),
       weekRank: weekRanks.get(row.entry) ?? 0,
@@ -161,7 +163,8 @@ export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHis
   }
 
   const comparable = have.length >= MIN_AWARD_MANAGERS && have.length >= Math.ceil(rows.length * MIN_AWARD_COVERAGE);
-  return { gw, comparable, byEntry, awards: comparable ? awards(rows, byEntry, usable) : [] };
+  const tableMatches = tableGw === undefined || tableGw === gw;
+  return { gw, comparable, byEntry, awards: comparable ? awards(rows, byEntry, usable, tableMatches) : [] };
 }
 
 const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
@@ -198,7 +201,7 @@ function best(candidates: Candidate[], higherIsBetter = true): { entry: number; 
   return { ...top, tiedWith: candidates.filter((c) => c.value === top.value).length - 1 };
 }
 
-function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histories: Map<number, EntryHistory>): Award[] {
+function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histories: Map<number, EntryHistory>, tableMatches = true): Award[] {
   const inTable = rows.filter((r) => stats[r.entry]); // table order breaks ties
   const all = inTable.map((r) => stats[r.entry]);
   const out: Award[] = [];
@@ -217,7 +220,8 @@ function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histor
   const hot = best(all.filter((s) => s.streak?.kind === "hot" && s.streak.length >= 2).map((s) => ({ entry: s.entry, value: s.streak!.length }))); // "on a roll" needs a run, not one good week
   add("hotStreak", hot);
 
-  const climb = best(inTable.filter((r) => r.last_rank > 0).map((r) => ({ entry: r.entry, value: r.last_rank - r.rank })).filter((p) => p.value > 0));
+  // The table's movement is the latest gameweek's; while that week is still being played it isn't the awards' week.
+  const climb = !tableMatches ? null : best(inTable.filter((r) => r.last_rank > 0).map((r) => ({ entry: r.entry, value: r.last_rank - r.rank })).filter((p) => p.value > 0));
   add("climber", climb);
 
   const swing = best(
@@ -230,7 +234,7 @@ function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histor
 
   add("benchDisaster", positive(best(all.map((s) => ({ entry: s.entry, value: s.benchPoints })))));
   add("hitMachine", positive(best(all.map((s) => ({ entry: s.entry, value: s.hitPoints })))));
-  add("deepPockets", best(all.map((s) => ({ entry: s.entry, value: s.value }))));      // squad plus bank
+  add("deepPockets", best(all.map((s) => ({ entry: s.entry, value: s.value }))));      // squad plus bank (FPL's value)
   return out;
 }
 

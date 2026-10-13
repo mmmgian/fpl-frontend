@@ -23,7 +23,7 @@
   -webkit-tap-highlight-color: transparent;
   transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
 }
-.option:hover { color: var(--text); }
+@media (hover: hover) and (pointer: fine) { .option:hover { color: var(--text); } }
 .option:active { transform: scale(0.94); }
 
 /* The radio is the real control, laid over the segment and invisible. */

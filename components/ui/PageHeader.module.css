@@ -3,6 +3,9 @@
   border-bottom: 1px solid var(--border);
 }
 .back { margin-bottom: var(--space-3); font-size: 13px; }
+/* A 44px target for "← back" without moving anything: the link is 44px tall but gives 12px back above and below, so it
+   takes the room of its line of text and overhangs the page's top padding and the gap under it. */
+.back a { display: inline-flex; align-items: center; min-height: 2.75rem; margin-block: -0.75rem; }
 .row {
   display: flex;
   flex-wrap: wrap;

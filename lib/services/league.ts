@@ -1,10 +1,10 @@
-import { cleanStandings, currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
+import { cleanStandings, currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, nextDeadline, refreshPlan, seasonOver, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
 import type { LeagueExtras, LeagueModel, LeagueStream, LeagueTable } from "./models";
 import { withAvatars } from "./avatars";
 import type { FplPort, ServiceOptions } from "./ports";
-import { withinDeadline } from "./shared";
+import { ifAlreadyIn, pulseOf, withinDeadline } from "./shared";
 
 export { STATS_DEADLINE_MS } from "./shared";
 
@@ -54,6 +54,9 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
     // Both requests start together; bootstrap is only needed once the league is known to exist.
     const bootstrapRequest = fpl.bootstrap();
     bootstrapRequest.catch(() => {}); // awaited below; avoid an unhandled rejection on the "not found" path
+    // The schedule (cached for an hour) tells a match in play from a quiet day, for the refresh rate and the phase line.
+    // Optional: used only if it is in by the time the table is ready, never waited for.
+    const scheduleRequest = fpl.allFixtures().catch(() => null);
 
     const standings = await fpl.standings(leagueId);
     if (!standings) return { model: { kind: "not-found", leagueId }, extras: Promise.resolve({ stats: null, statsPhase: null, headlines: [] }), pending: false };
@@ -81,6 +84,9 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
     const at = now();
     const status = event ? gwStatus(event, at) : null;
     const summary = summarizeStandings(rows);
+    const schedule = bootstrap ? await ifAlreadyIn(scheduleRequest) : null;
+    const pulse = event && status === "live" ? pulseOf(schedule, event.id, at) : null;
+    const next = bootstrap ? nextDeadline(events, at) : null;
     const tableOnly: LeagueExtras = { stats: null, statsPhase: null, headlines: leagueHeadlines(rows, null) };
 
     const model: LeagueTable = {
@@ -96,6 +102,12 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
       currentGw: event?.id ?? null,
       // Wording only: redrawn daily, and the moment FPL moves the gameweek on (live -> provisional -> final).
       variety: varietyKey(event?.id ?? 0, status ?? "upcoming", at),
+      // An unreadable gameweek (FPL's game file failing while the game updates) is retried slowly, like provisional.
+      refreshMs: !bootstrap ? refreshPlan("provisional", null, at) : status ? refreshPlan(status, pulse, at) : null,
+      pulse,
+      // Only once the latest week is played (or before the season): while it is live, the next deadline is noise.
+      nextDeadline: next && status !== "live" ? { gw: next.gw, at: next.at } : null,
+      seasonOver: seasonOver(status, next, events),
       ...tableOnly,
     };
 
@@ -105,7 +117,7 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
 
     const extras = Promise.all([historiesRequest, squadsRequest])
       .then(([histories, squads]): LeagueExtras => {
-        const stats = leagueStats(rows, histories, settledThrough(events));
+        const stats = leagueStats(rows, histories, settledThrough(events), event?.id);
         return {
           stats: stats && (squads.size ? { ...stats, squad: Object.fromEntries(squads) } : stats),
           statsPhase: stats ? statsPhase(stats.gw, event && status ? { id: event.id, status } : null) : null,

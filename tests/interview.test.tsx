@@ -759,8 +759,13 @@ describe.each(LOCALES)("the interview copy in %s", (locale) => {
     expect(ledes[3]).toContain("7");
     expect(t.lede("Zed Qux", "Teamy FC", "Gameweek 6", "ahead", "")).toBe(t.lede("Zed Qux", "Teamy FC", "Gameweek 6", "final"));
     expect(t.provisionalNote("Gameweek 6")).toContain("6");
-    expect(t.provisionalNote("Gameweek 6").startsWith("*")).toBe(true);
+    // No footnote marks: nothing on the page is starred.
+    for (const note of [t.liveNote, t.provisionalNote("Gameweek 6"), t.finalNote("Gameweek 6"), t.pastNote("Gameweek 6"), t.seasonOverNote("Gameweek 6")]) expect(note).not.toMatch(/\*/);
     expect(t.finalNote("Gameweek 6")).toMatch(/FPL/);
+    // Only the latest week's note looks ahead to a deadline; an older week's and the season's last don't.
+    expect(t.pastNote("Gameweek 6")).toContain("6");
+    expect(t.seasonOverNote("Gameweek 6")).toContain("6");
+    expect(new Set([t.finalNote("Gameweek 6"), t.pastNote("Gameweek 6"), t.seasonOverNote("Gameweek 6")]).size).toBe(3);
     const trips = (["live", "provisional", "final", "ahead"] as const).map((m) => t.trip.lede("Zed Qux", "Teamy FC", "Gameweek 6", m, "Gameweek 7"));
     expect(new Set(trips).size).toBe(4);
   });
@@ -819,7 +824,7 @@ describe.each(LOCALES)("the interview copy in %s", (locale) => {
   });
 
   it("explains the daily change in every phase", () => {
-    expect(t.liveNote.startsWith("*")).toBe(true);
+    expect(t.liveNote.length).toBeGreaterThan(0);
     expect(t.finalNote("Gameweek 6")).toContain("6");
     expect(JSON.stringify(t)).not.toMatch(/Invented|Inventada|Inventée|nobody was really asked/);
   });
@@ -869,7 +874,7 @@ describe("InterviewPanel", () => {
     const m = withLeague(await okModel());
     expect(m.gameweek.status).toBe("live");
     render(<InterviewPanel model={m} />);
-    expect(screen.getByText("*Changes every day during the gameweek.")).toBeInTheDocument();
+    expect(screen.getByText("New questions every day during the gameweek.")).toBeInTheDocument();
   });
 
   it("is redrawn each day while live, and the same all day", async () => {
@@ -886,8 +891,37 @@ describe("InterviewPanel", () => {
     expect(at(20000, 1)).toBe(at(20000, 22));
     expect(new Set([20000, 20001, 20002, 20003].map((d) => at(d))).size).toBeGreaterThanOrEqual(3);
     render(<InterviewPanel model={final} />);
-    expect(screen.getByText(/FPL has confirmed the scores for Gameweek 5/)).toBeInTheDocument();
-    expect(screen.queryByText(/Changes every day during/)).toBeNull();
+    // Gameweek 5 is an older week (6 is the latest): no talk of the next deadline beside it.
+    expect(screen.getByText("FPL confirmed the scores for Gameweek 5. New questions every day.")).toBeInTheDocument();
+    expect(screen.queryByText(/during the gameweek|next deadline/)).toBeNull();
+  });
+
+  it("puts the on-air dot only on the latest gameweek while it is live", async () => {
+    const dot = (m: Extract<TeamModel, { kind: "ok" }>) => {
+      const { container, unmount } = render(<InterviewPanel model={withMascot(m)} />);
+      const on = container.querySelector("span[class*=live]") !== null;
+      unmount();
+      return on;
+    };
+    const live = withLeague(await okModel());
+    expect(live.gameweek.isLive).toBe(true);
+    expect(dot(live)).toBe(true);
+    expect(dot(withLeague(await okModel("5")))).toBe(false);
+    expect(dot({ ...live, gameweek: { ...live.gameweek, status: "final", isLive: false } })).toBe(false);
+  });
+
+  it("looks ahead to the next deadline beside the latest final week, and to next season after the last one", async () => {
+    const m = withLeague(await okModel());
+    const note = (gameweek: Partial<typeof m.gameweek>) => {
+      const { container, unmount } = render(<InterviewPanel model={{ ...m, gameweek: { ...m.gameweek, status: "final", isLive: false, ...gameweek } }} />);
+      const all = container.textContent ?? "";
+      unmount();
+      return all;
+    };
+    expect(note({})).toContain("FPL has confirmed the scores for Gameweek 6. New questions every day until the next deadline.");
+    const over = note({ seasonOver: true });
+    expect(over).toContain("the last of the season. New questions every day until next season.");
+    expect(over).not.toMatch(/next deadline/);
   });
 
   it("is redrawn the moment FPL moves the gameweek on, even on the same day", async () => {
@@ -902,8 +936,10 @@ describe("InterviewPanel", () => {
     const provisional = as("provisional");
     const final = as("final");
     expect(new Set([live.items, provisional.items, final.items]).size).toBe(3);
-    expect(provisional.all).toMatch(/Bonus for Gameweek 5 is still provisional/);
-    expect(provisional.all).toMatch(/while FPL settles the bonus/);
+    // Provisional means the bonus is in and only FPL's final check is pending: nothing says the bonus is still counting.
+    expect(provisional.all).toMatch(/Gameweek 5 awaits FPL's final check/);
+    expect(provisional.all).toMatch(/while FPL runs its final check/);
+    expect(provisional.all).not.toMatch(/bonus (for|is still)|settles the bonus|bonus is being counted|confirms the bonus/i);
     expect(live.all).toMatch(/faces the press during Gameweek 5/);
   });
 
@@ -969,6 +1005,11 @@ describe("interviewInputOf", () => {
   it("carries the league place, the neighbours and the leader", async () => {
     const i = input(withLeague(await okModel()));
     expect(i.league).toEqual({ rank: 8, size: 21, points: 380, leader: { team: "Bart's Team", points: 443 }, up: { team: "Up FC", points: 385 }, down: { team: "Down FC", points: 375 }, moved: -2 });
+  });
+  it("leaves today's table and rank move out beside an older gameweek", async () => {
+    const past = input(withLeague(await okModel("5")));
+    expect(past.league).toBeNull();
+    expect(past.rankMove).toBeNull();
   });
 });
 

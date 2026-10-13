@@ -1,0 +1,64 @@
+/*
+ * Tools page layout additions: the section groups and the second line a table row grows on a narrow screen when a
+ * column hides (see DataTable's hide-sm / hide-md breakpoints, 639px and 899px). The line only shows when its column
+ * is gone, so nothing is read or shown twice.
+ */
+
+/* ---------- Second lines for hidden columns ---------- */
+.sm,
+.md { display: none; }
+
+@media (max-width: 639px) {
+  .sm { display: flex; }
+}
+@media (max-width: 899px) {
+  .md { display: flex; }
+}
+
+.sm,
+.md {
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-muted);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Inside a crest + name cell, the line sits under the name, not under the crest. */
+.stack { display: grid; gap: 0; justify-items: start; min-width: 0; }
+/* Several facts in one second line, one under the other. */
+.rows { flex-direction: column; align-items: flex-start; gap: 2px; }
+
+/* ---------- Section groups ---------- */
+.group {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 calc(-1 * var(--space-1));
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.group::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.group:first-child { margin-top: 0; }
+
+/* The jump bar, a row of pills per group with a quiet label in front. */
+.jumpGroups { display: grid; gap: var(--space-2); }
+.jumpGroup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.jumpLabel { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); min-width: 0; }
+@media (min-width: 640px) {
+  .jumpLabel { min-width: 9.5rem; }
+}
+
+/* A short line under a card's note: whose gameweek the picks are from, what a code means. */
+.aside { margin: calc(-1 * var(--space-2)) 0 var(--space-3); font-size: 12px; color: var(--text-muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: var(--space-3) 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--text-muted); }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }

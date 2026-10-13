@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { CrestFallback, I18nProvider, LanguageSwitcher, SiteHeader, SkipLink, TripSwitch, getT, isTrip } from "@/components/ui";
+import { CrestFallback, I18nProvider, LanguageSwitcher, NavTracker, SiteHeader, SkipLink, TripSwitch, getT, isTrip } from "@/components/ui";
 import { initLocale } from "./locale";
+import { openGraph } from "./meta";
 import { SITE_NAME } from "@/lib/config";
 import { HTML_LANG, THEME_SCRIPT } from "@/lib/domain";
 import "./globals.css";
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(process.env.SITE_URL ?? "https://lobsterleague.fyi"),
     title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
     description,
-    openGraph: { siteName: SITE_NAME, type: "website", description, images: [{ url: "/brand/lobster-league.webp", width: 288, height: 192, alt: SITE_NAME }] },
+    openGraph: openGraph(description),
     twitter: { card: "summary" },
   };
 }
@@ -24,6 +25,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Edge to edge on notched iPhones in landscape: .container pads by env(safe-area-inset-left/right) and the footer by
+  // the bottom inset, so backgrounds run to the screen edges while text stays clear of the notch and home indicator.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
@@ -71,6 +75,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </div>
           </footer>
           <CrestFallback />
+          <NavTracker />
         </I18nProvider>
       </body>
     </html>

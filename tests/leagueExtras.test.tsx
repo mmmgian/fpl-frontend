@@ -35,7 +35,7 @@ describe("award copy", () => {
   it("names the winner and states the number it is based on", () => {
     expect(awardLine(make("weekWinner", 62), "Alpha")).toMatch(/Alpha.*62 points/);
     expect(awardLine(make("weekWinner", 62), "Alpha", 5)).toMatch(/best score in the league in GW5\./);
-    expect(awardLine(make("woodenSpoon", 20), "Alpha", 5)).toMatch(/20 points in GW5\. Next week/);
+    expect(awardLine(make("woodenSpoon", 20), "Alpha", 5)).toMatch(/20 points in GW5\. One to forget\./);
     expect(awardLine(make("hotStreak", 4), "Alpha")).toMatch(/4 weeks running/);
     expect(awardLine(make("hotStreak", 1), "Alpha")).toMatch(/1 week running/);
     expect(awardLine(make("climber", 1), "Alpha")).toMatch(/1 place up/);
@@ -104,10 +104,10 @@ describe("StandingsTable with stats", () => {
   it("reads each team's own numbers in its own row", () => {
     render(<StandingsTable rows={rows} caption="t" stats={stats} />);
     const beta = teamRow("Beta");
-    expect(within(beta).getByText("£100.9m")).toBeInTheDocument();       // squad 1004 + bank 5
+    expect(within(beta).getByText("£100.4m")).toBeInTheDocument();       // FPL's value, which already includes the bank
     expect(within(beta).getByText("−8")).toBeInTheDocument();
     expect(within(beta).getByText("11")).toBeInTheDocument();
-    expect(within(beta).queryByText("£100.4m")).toBeNull();            // not the squad alone
+    expect(within(beta).queryByText("£100.9m")).toBeNull();            // the bank is not counted twice
     const alpha = teamRow("Alpha");
     expect(within(alpha).getByText("Wildcard, gameweek 2")).toBeInTheDocument();
   });
@@ -178,7 +178,7 @@ describe("ManagerStatsDetail", () => {
     expect(fact("Worst week")).toContain("42");
     expect(fact("Behind the leader")).toContain("50 pts");
     expect(fact("Behind the team above")).toContain("50 pts");
-    expect(fact("Transfer hits")).toContain("−8 pts (2 transfers)");
+    expect(fact("Transfer hits")).toContain("−8 pts · 2 transfers in all");
     expect(fact("Bench points")).toContain("11");
     expect(fact("Chips played")).toContain("None yet");
   });

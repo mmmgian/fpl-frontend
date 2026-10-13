@@ -1,20 +1,20 @@
 import type { ClientMessages } from "./en";
 
 export const clientEs: ClientMessages = {
-  trip: { enter: "Probar algo extraño", leave: "Volver a la normalidad" },
+  trip: { enter: "Probar algo extraño", leave: "Volver a la normalidad", leaveShort: "Vista normal" },
   language: { label: "Idioma", changeTo: "Cambiar idioma" },
 
   theme: { group: "Tema de color", light: "Normal", night: "Lectura nocturna", dark: "Oscuro" },
 
-  live: { updating: "Actualizando…", last: (time) => `Actualizado ${time}`, refresh: "Actualizar" },
+  live: { updating: "Actualizando…", last: (time) => `Actualizado ${time}`, offline: (time) => (time ? `Sin conexión · mostrando ${time}` : "Sin conexión"), refresh: "Actualizar" },
 
   errors: {
     title: "No se pudo cargar esta página",
-    body: "La API de Fantasy Premier League no respondió. Normalmente significa que FPL se está actualizando entre jornadas o tiene mucha carga; vuelve a intentarlo en un minuto.",
+    body: "Algo falló al cargarla. Suele ser pasajero (FPL se actualiza entre jornadas o un servidor está ocupado); vuelve a intentarlo en un momento.",
     retry: "Intentar de nuevo",
     backToTable: "Volver a la tabla",
     reference: (digest) => `Referencia: ${digest}`,
-    historyTitle: "El historial no está disponible en este momento",
+    historyTitle: "Las tablas pasadas no están disponibles en este momento",
     historyBody: "El servidor del historial no respondió. Corre en un alojamiento gratuito que se duerme cuando no se usa; normalmente funciona al reintentar cuando ya despertó.",
   },
   nav: { label: "Principal", table: "Tabla", tools: "Herramientas", bonus: "Bonus", fixtures: "Calendario", times: "The Times", home: "Inicio", skip: "Saltar al contenido" },
@@ -24,7 +24,7 @@ export const clientEs: ClientMessages = {
   fdr: { difficulty: (n) => `, dificultad ${n} de 5`, scale: "Escala de dificultad: 1 la más fácil, 5 la más difícil" },
   feed: {
     live: "En vivo",
-    provisional: "Provisional",
+    provisional: "Bonus pendiente",
     provisionalTitle: "Final del partido, pero los puntos bonus aún no están confirmados",
     fullTime: "FIN",
     tbc: "Por definir",
@@ -44,6 +44,9 @@ export const clientEs: ClientMessages = {
     showMore: "Mostrar más jornadas",
     end: "Eso es todo: toda la temporada, hasta el último pitazo.",
     unknownClub: "Club desconocido",
+    bonusFor: (home, away) => `Puntos bonus de ${home} - ${away}`,
+    bonusLink: "Puntos bonus",
+    localTimes: "Horas en tu zona horaria",
   },
   clubLink: {
     title: (name) => `${name}: noticias, partidos y probable alineación`,
@@ -51,6 +54,7 @@ export const clientEs: ClientMessages = {
 
   flipbook: {
     roleDescription: "visor de páginas",
+    noPages: "No hay páginas que mostrar.",
     pages: "Páginas",
     help: "Usa las flechas izquierda y derecha para pasar la página.",
     controls: "Controles de página",

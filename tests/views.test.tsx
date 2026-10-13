@@ -180,6 +180,25 @@ describe("SnapshotView", () => {
 
   it("still handles a missing snapshot", () => {
     render(<SnapshotView gw={9} snapshot={null} />);
-    expect(screen.getByText("No snapshot for Gameweek 9")).toBeInTheDocument();
+    expect(screen.getByText("No table saved for Gameweek 9")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: /gameweek/i })).toBeNull(); // no saved list given: no pager
+  });
+
+  it("pages between saved tables, stepping over gameweeks that weren't saved", () => {
+    render(<SnapshotView gw={5} snapshot={null} saved={[7, 5, 2]} />);
+    const pager = screen.getByRole("navigation", { name: /gameweek/i });
+    expect(within(pager).getByRole("link", { name: /previous/i })).toHaveAttribute("href", "/history/2");
+    expect(within(pager).getByRole("link", { name: /next/i })).toHaveAttribute("href", "/history/7");
+  });
+
+  it("has no pager when this is the only saved table", () => {
+    render(<SnapshotView gw={5} snapshot={null} saved={[5]} />);
+    expect(screen.queryByRole("navigation", { name: /gameweek/i })).toBeNull();
+  });
+
+  it("goes back to the past tables by name, never 'snapshots'", () => {
+    render(<SnapshotView gw={9} snapshot={null} />);
+    expect(screen.getByRole("link", { name: "← Past tables" })).toHaveAttribute("href", "/times#tables");
+    expect(document.body.textContent).not.toMatch(/snapshot/i);
   });
 });

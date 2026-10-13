@@ -1,5 +1,5 @@
 import type { Fixture, FplElement, FplTeam } from "../domain";
-import { BUBBLE_GAP, bonusRace, bpsRanking, compareByKickoff, fixtureState, isFinished, matchBonus, matchEvents, selectGameweek, sideLeaders, varietyKey } from "../domain";
+import { BUBBLE_GAP, bonusRace, bpsRanking, compareByKickoff, fixtureState, isFinished, matchBonus, matchEvents, matchPulse, refreshPlan, selectGameweek, sideLeaders, varietyKey, type MatchPulse } from "../domain";
 import type { BonusLine, BonusModel, BonusRaceView, EventLine, FixtureCard } from "./models";
 import type { FplPort, ServiceOptions } from "./ports";
 
@@ -99,6 +99,14 @@ export function createBonusService(fpl: Pick<FplPort, "bootstrap" | "fixtures">,
       const players = new Map(bootstrap.elements.map((p) => [p.id, p]));
 
       const states = fixtures.map(fixtureState);
+      // Is a ball actually being kicked? FPL keeps the week "live" across quiet days between match days. A match that
+      // FPL itself still reports in play counts as playing even past MATCH_MS (long stoppages, a delayed restart).
+      const timed = matchPulse(
+        fixtures.map((f) => ({ event: selection.gw, kickoff_time: f.kickoff_time, finished: f.finished || f.finished_provisional })),
+        selection.gw,
+        at,
+      );
+      const pulse: MatchPulse = states.includes("live") && timed.state !== "playing" ? { ...timed, state: "playing", playing: Math.max(1, timed.playing) } : timed;
       return {
         kind: "ok",
         gameweek: { gw: selection.gw, name: selection.event.name, status: selection.status, min: 1, max: selection.latest.id },
@@ -106,6 +114,8 @@ export function createBonusService(fpl: Pick<FplPort, "bootstrap" | "fixtures">,
         finished: fixtures.filter(isFinished).length,
         // A confirmed week can't change: an abandoned match (started, never finished) must not keep the page polling.
         anyLive: selection.status !== "final" && states.includes("live"),
+        refreshMs: refreshPlan(selection.status, pulse, at),
+        pulse: selection.status === "live" ? { state: pulse.state, nextKickoff: pulse.nextKickoff } : null,
         counts: {
           live: states.filter((s) => s === "live").length,
           finished: states.filter((s) => s === "final" || s === "provisional").length,

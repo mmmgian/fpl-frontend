@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildFixtureFeed, feedStartIndex, matchState, scoreLine } from "@/lib/domain";
+import { dateIn, regroupDays } from "@/lib/domain/fixtureFeed";
 import type { FplEvent, FplTeam, ScheduledFixture } from "@/lib/domain/types";
 
 const team = (id: number): FplTeam => ({ id, code: id * 10, name: `Club ${id}`, short_name: `C${id}` });
@@ -125,4 +126,37 @@ describe("feedStartIndex", () => {
     expect(feedStartIndex(over, null)).toBe(3);
   });
   it("copes with an empty feed", () => expect(feedStartIndex([], 3)).toBe(0));
+});
+
+describe("regroupDays (the reader's own calendar)", () => {
+  // Saturday 20:00 UK is Sunday morning in Sydney and Saturday lunchtime in Los Angeles.
+  const late = buildFixtureFeed([event(1)], teams, [
+    fx(1, { kickoff_time: "2026-10-17T11:30:00Z" }),
+    fx(2, { kickoff_time: "2026-10-17T19:00:00Z", team_h: 3, team_a: 4 }),
+    fx(3, { kickoff_time: null, team_h: 1, team_a: 4 }),
+  ])[0];
+
+  it("groups by UK date on the server", () => {
+    expect(late.days.map((d) => [d.date, d.matches.map((m) => m.id)])).toEqual([["2026-10-17", [1, 2]], ["tbc", [3]]]);
+  });
+
+  it("moves a late UK kick-off onto the next day for a reader in Sydney", () => {
+    const days = regroupDays(late.days, "Australia/Sydney");
+    expect(days.map((d) => [d.date, d.matches.map((m) => m.id)])).toEqual([["2026-10-17", [1]], ["2026-10-18", [2]], ["tbc", [3]]]);
+    expect(days[1].label).toBe("Sunday 18 October");
+  });
+
+  it("keeps the same day where the clock difference doesn't cross midnight", () => {
+    expect(regroupDays(late.days, "America/Los_Angeles").map((d) => d.matches.map((m) => m.id))).toEqual([[1, 2], [3]]);
+  });
+
+  it("falls back to UK dates for a time zone the runtime doesn't know", () => {
+    expect(regroupDays(late.days, "Not/AZone").map((d) => d.date)).toEqual(["2026-10-17", "tbc"]);
+  });
+
+  it("reads today's date in a given time zone", () => {
+    const at = new Date("2026-10-17T22:00:00Z");
+    expect(dateIn(at, "Europe/London")).toBe("2026-10-17");
+    expect(dateIn(at, "Australia/Sydney")).toBe("2026-10-18");
+  });
 });

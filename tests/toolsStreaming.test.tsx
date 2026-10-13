@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { toolsSlots } from "@/app/tools/Deferred";
 import { setRequestLocale } from "@/components/ui/i18n";
 import { setRequestTrip } from "@/components/ui/tripSlot";
-import { ToolsEoCard, ToolsEoPending, ToolsLeagueNav, ToolsLeaguePending, ToolsLeagueSections, ToolsView, type ToolsDeferredSlots } from "@/components/views/ToolsView";
+import { ToolsEoCard, ToolsEoPending, ToolsInjuries, ToolsInjuriesNav, ToolsLeagueNav, ToolsLeaguePending, ToolsLeagueSections, ToolsView, type ToolsDeferredSlots } from "@/components/views/ToolsView";
 import { MESSAGES, tripMessagesFor } from "@/lib/domain/i18n";
 import type { Bootstrap, EntryHistory, EntryPicks } from "@/lib/domain/types";
 import type { ToolsModel } from "@/lib/services/models";
@@ -162,12 +162,21 @@ const arrivedSlots = (s: ToolsStream, full: Ok): ToolsDeferredSlots => ({
   eo: <ToolsEoCard model={full} />,
   league: <ToolsLeagueSections model={full} />,
   nav: <ToolsLeagueNav model={full} />,
+  injuries: <ToolsInjuries model={full} />,
+  injuriesNav: <ToolsInjuriesNav model={full} />,
 });
 /** The slots as the page paints them first: each Suspense boundary's fallback, from the page's own wiring. */
 const fallbackSlots = (s: ToolsStream): ToolsDeferredSlots => {
   const slots = toolsSlots(s);
   const fallback = (n: ReactNode) => (n as ReactElement<{ fallback: ReactNode }>).props.fallback;
-  return { kept: slots.kept, eo: fallback(slots.eo), league: fallback(slots.league), nav: fallback(slots.nav) };
+  return {
+    kept: slots.kept,
+    eo: fallback(slots.eo),
+    league: fallback(slots.league),
+    nav: fallback(slots.nav),
+    injuries: fallback(slots.injuries),
+    injuriesNav: fallback(slots.injuriesNav),
+  };
 };
 /** Renders what one of the page's async slots resolves to. */
 async function resolveSlot(n: ReactNode): Promise<string> {
@@ -193,17 +202,29 @@ describe("ToolsView with streamed slots", () => {
     expect(renderToStaticMarkup(<ToolsView model={ok(s.model)} deferred={arrivedSlots(s, full)} />)).toBe(renderToStaticMarkup(<ToolsView model={full} />));
   });
 
-  it("puts each slot where its part goes: EO inside #eo, the league tools before the teams, their links in the nav", async () => {
+  it("puts each slot where its part goes: injuries first, EO inside #eo, the league tools before the teams, their links in the nav", async () => {
     const s = await stream();
     const { container } = render(
-      <ToolsView model={ok(s.model)} deferred={{ kept: s.kept, eo: <p>eo-slot</p>, league: <section id="league-slot">league-slot</section>, nav: <li><a href="#league-slot">league-link</a></li> }} />,
+      <ToolsView
+        model={ok(s.model)}
+        deferred={{
+          kept: s.kept,
+          eo: <p>eo-slot</p>,
+          league: <section id="league-slot">league-slot</section>,
+          nav: <li><a href="#league-slot">league-link</a></li>,
+          injuries: <section id="injuries-slot">injuries-slot</section>,
+          injuriesNav: <li><a href="#injuries-slot">injuries-link</a></li>,
+        }}
+      />,
     );
     expect(container.querySelector("#eo")).toHaveTextContent("eo-slot");
     const ids = [...container.querySelectorAll("section[id]")].map((x) => x.id);
+    expect(ids[0]).toBe("brief");
+    expect(ids[1]).toBe("injuries-slot");
     expect(ids.indexOf("league-slot")).toBeGreaterThan(ids.indexOf("eo"));
     expect(ids.indexOf("league-slot")).toBeLessThan(ids.indexOf("teams"));
     const nav = screen.getByRole("navigation", { name: "Tools" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#xi", "#prices", "#eo", "#league-slot", "#teams"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#injuries-slot", "#xi", "#prices", "#eo", "#league-slot", "#teams"]);
   });
 
   it("still renders a full model on its own, with no slots", async () => {
@@ -221,9 +242,10 @@ describe("the first paint, before the league's squads arrive", () => {
     const eo = container.querySelector("#eo") as HTMLElement;
     expect(within(eo).getByRole("heading", { level: 2, name: "Effective ownership" })).toBeInTheDocument();
     const statuses = screen.getAllByRole("status");
-    expect(statuses).toHaveLength(2);
-    expect(MESSAGES.en.loading.eo).toContain(statuses[0].textContent);
-    expect(MESSAGES.en.loading.league).toContain(statuses[1].textContent);
+    expect(statuses).toHaveLength(3);
+    expect(MESSAGES.en.loading.injuries).toContain(statuses[0].textContent);
+    expect(MESSAGES.en.loading.eo).toContain(statuses[1].textContent);
+    expect(MESSAGES.en.loading.league).toContain(statuses[2].textContent);
     // every jump link points at something already on the page; the league tools' links come with their sections
     const nav = screen.getByRole("navigation", { name: "Tools" });
     for (const a of within(nav).getAllByRole("link")) expect(container.querySelector(a.getAttribute("href")!), a.getAttribute("href")!).not.toBeNull();
@@ -250,7 +272,8 @@ describe("the first paint, before the league's squads arrive", () => {
     setRequestLocale("en");
     setRequestTrip(true);
     const { container } = render(<ToolsView model={ok(s.model)} deferred={fallbackSlots(s)} />);
-    const [eo, lg] = screen.getAllByRole("status");
+    const [inj, eo, lg] = screen.getAllByRole("status");
+    expect(tripMessagesFor("en").loading.injuries).toContain(inj.textContent);
     expect(tripMessagesFor("en").loading.eo).toContain(eo.textContent);
     expect(tripMessagesFor("en").loading.league).toContain(lg.textContent);
     await expectNoAxeViolations(container);
@@ -260,7 +283,7 @@ describe("the first paint, before the league's squads arrive", () => {
     const s = await stream({ q: "player", pos: "2", moving: "1", eo: "top10", by: "captain", vs: "100,101" });
     expect(ok(s.model).leagueTools).toBeNull();
     const { container } = render(<ToolsView model={ok(s.model)} deferred={fallbackSlots(s)} />);
-    const form = container.querySelector('#prices form[action="/tools"]') as HTMLFormElement;
+    const form = container.querySelector('#prices form[action="/tools#prices"]') as HTMLFormElement;
     const hidden = Object.fromEntries([...form.querySelectorAll<HTMLInputElement>('input[type="hidden"]')].map((i) => [i.name, i.value]));
     expect(hidden).toEqual({ eo: "top10", by: "captain", vs: "100,101" });
     expect(within(form).getByLabelText("Player")).toHaveValue("player");
@@ -269,7 +292,7 @@ describe("the first paint, before the league's squads arrive", () => {
     // and the same fields a full render would keep
     const full = await merged(s);
     const { container: c2 } = render(<ToolsView model={full} />);
-    const fullHidden = Object.fromEntries([...c2.querySelectorAll<HTMLInputElement>('#prices form[action="/tools"] input[type="hidden"]')].map((i) => [i.name, i.value]));
+    const fullHidden = Object.fromEntries([...c2.querySelectorAll<HTMLInputElement>('#prices form[action="/tools#prices"] input[type="hidden"]')].map((i) => [i.name, i.value]));
     expect(hidden).toEqual(fullHidden);
   });
 

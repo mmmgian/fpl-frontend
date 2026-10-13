@@ -26,13 +26,14 @@ describe("the Tools page", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument();
     expect(screen.getByRole("timer")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Tools" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#xi", "#prices", "#eo", "#injury-watch", "#template", "#differentials", "#head-to-head", "#teams"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#injury-watch", "#xi", "#prices", "#eo", "#template", "#differentials", "#head-to-head", "#teams"]);
   });
 
-  it("shows the team of the week as a formation with captain, vice-captain and the opponent for each player", async () => {
+  it("shows the projected XI as a formation with captain, vice-captain and the opponent for each player", async () => {
     const { container } = render(<ToolsView model={await model()} />);
     const xi = container.querySelector("#xi")!;
-    expect(within(xi as HTMLElement).getByRole("heading", { level: 2, name: "Team of the Week · Gameweek 7" })).toBeInTheDocument();
+    expect(within(xi as HTMLElement).getByRole("heading", { level: 2, name: "Projected XI · Gameweek 7" })).toBeInTheDocument();
+    expect(within(xi as HTMLElement).getByText("Projection")).toBeInTheDocument();
     expect(xi).toHaveTextContent("Player13");
     expect(xi.textContent).toMatch(/\d-\d-\d/);
     expect(within(xi as HTMLElement).getAllByText("Captain")).toHaveLength(1);       // exactly one captain...
@@ -67,9 +68,9 @@ describe("the Tools page", () => {
     const tab = (name: string) => within(eo).getByRole("link", { name });
     expect(tab("Top 10")).toHaveAttribute("aria-current", "true");
     expect(tab("Top 4")).not.toHaveAttribute("aria-current");
-    expect(tab("Captains")).toHaveAttribute("aria-current", "true");
+    expect(tab("Most captained")).toHaveAttribute("aria-current", "true");
     expect(tab("Everyone").getAttribute("href")).toBe("/tools?q=abc&eo=all&by=captain#eo");     // keeps the search and the view
-    expect(tab("EO").getAttribute("href")).toBe("/tools?q=abc&eo=top10#eo");                  // drops only "by"
+    expect(tab("Highest EO").getAttribute("href")).toBe("/tools?q=abc&eo=top10#eo");                  // drops only "by"
   });
 
   it("links every team to its team sheet", async () => {
@@ -92,9 +93,12 @@ describe("the Tools page", () => {
     const m = await model({}, 3);
     const { container } = render(<ToolsView model={{ ...m, xi: null, teams: [], eo: null, leagueTools: null }} />);
     expect(container.querySelector("#xi")).toBeNull();
-    expect(container.querySelector("#teams")).toBeNull();
+    expect(container.querySelector("#injury-watch")).toBeNull();
+    // no league squads to list, but the card stays for the "my team" form
+    expect(container.querySelector("#teams ul")).toBeNull();
+    expect(container.querySelector('#teams form[action="/team"]')).not.toBeNull();
     expect(MESSAGES.en.tools.eo.none.some((line) => container.querySelector("#eo")?.textContent?.includes(line))).toBe(true);
-    expect(screen.getByRole("navigation", { name: "Tools" }).querySelectorAll("a")).toHaveLength(2);
+    expect([...screen.getByRole("navigation", { name: "Tools" }).querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["#prices", "#eo", "#teams"]);
   });
 
   it("has no accessibility violations", async () => {
@@ -249,7 +253,7 @@ describe("the Tools page in the altered view", () => {
     expect(m.lab).not.toBeNull();
     render(<ToolsView model={m} />);
     const nav = screen.getByRole("navigation", { name: "The Lab" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#upside", "#captain", "#xi", "#prices", "#eo", "#injury-watch", "#template", "#differentials", "#head-to-head", "#teams"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#injury-watch", "#captain", "#xi", "#upside", "#rotation", "#prices", "#trackers", "#eo", "#template", "#differentials", "#head-to-head", "#teams"]);
     for (const heading of ["The upside dimension", "A thousand timelines", "Twin souls", "Keepers of the spot", "On the edge of banishment", "The Wall's anchors"]) {
       expect(screen.getByRole("heading", { level: 2, name: heading }), heading).toBeInTheDocument();
     }

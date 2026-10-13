@@ -3,6 +3,7 @@ import { fdrBand, minus, pickVariant } from "@/lib/domain";
 import type { FixtureSwings as Swings, PlanCell, RotationPlan, RotationPlanPair, SwingRow } from "@/lib/domain/planning";
 import styles from "../tools.module.css";
 import { PLAN_SLOT } from "./CaptainShortlist";
+import layout from "./layout.module.css";
 import plan from "./planning.module.css";
 
 /** "GW8" or "GW8–GW9". */
@@ -50,7 +51,13 @@ export function FixtureSwings({ swings, variety }: { swings: Swings; variety: nu
       cell: (r) => (
         <span className={plan.club}>
           <Crest code={r.clubCode} name={r.club} size={22} />
-          {r.club}
+          <span className={layout.stack}>
+            {r.club}
+            {/* The run column hides on a phone, and it is the only place a blank or a double shows: keep it under the club. */}
+            <span className={layout.sm}>
+              <Run cells={r.cells} />
+            </span>
+          </span>
         </span>
       ),
     },
@@ -96,33 +103,40 @@ export function RotationPairs({ rotation, variety }: { rotation: RotationPlan; v
   const t = getT();
   const p = t.tools.planning.pairs;
   const f = getFormat();
+  const weeks = (r: RotationPlanPair) => (
+    <span className={plan.run}>
+      {r.weeks.map((w) => (
+        <span key={w.gw} className={plan.week}>
+          {w.club && w.difficulty !== null ? (
+            <FdrChip band={fdrBand(w.difficulty)} label={t.client.fdr.difficulty(fdrBand(w.difficulty))}>
+              {t.common.gw(w.gw)} {w.club}
+            </FdrChip>
+          ) : (
+            <>
+              <span className={plan.gw}>{t.common.gw(w.gw)}</span>
+              <Badge tone="warning">{p.neither}</Badge>
+            </>
+          )}
+          {w.matches >= 2 ? <Badge tone="positive">{p.double}</Badge> : null}
+        </span>
+      ))}
+    </span>
+  );
   const columns: Column<RotationPlanPair>[] = [
-    { key: "pair", header: p.cols.pair, rowHeader: true, cell: (r) => <strong>{r.clubs.join(" + ")}</strong> },
-    { key: "average", header: p.cols.average, align: "end", cell: (r) => f.oneDecimal(r.average) },
     {
-      key: "weeks",
-      header: p.cols.weeks,
-      hideBelow: "sm",
+      key: "pair",
+      header: p.cols.pair,
+      rowHeader: true,
       cell: (r) => (
-        <span className={plan.run}>
-          {r.weeks.map((w) => (
-            <span key={w.gw} className={plan.week}>
-              {w.club && w.difficulty !== null ? (
-                <FdrChip band={fdrBand(w.difficulty)} label={t.client.fdr.difficulty(fdrBand(w.difficulty))}>
-                  {t.common.gw(w.gw)} {w.club}
-                </FdrChip>
-              ) : (
-                <>
-                  <span className={plan.gw}>{t.common.gw(w.gw)}</span>
-                  <Badge tone="warning">{p.neither}</Badge>
-                </>
-              )}
-              {w.matches >= 2 ? <Badge tone="positive">{p.double}</Badge> : null}
-            </span>
-          ))}
+        <span className={layout.stack}>
+          <strong>{r.clubs.join(" + ")}</strong>
+          {/* Which club to start each week is the whole point of a pair, so on a phone it stays, under the pair. */}
+          <span className={layout.sm}>{weeks(r)}</span>
         </span>
       ),
     },
+    { key: "average", header: p.cols.average, align: "end", cell: (r) => f.oneDecimal(r.average) },
+    { key: "weeks", header: p.cols.weeks, hideBelow: "sm", cell: weeks },
   ];
   const best = rotation.pairs[0];
   return (

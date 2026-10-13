@@ -114,12 +114,26 @@ describe("postponed and moved fixtures", () => {
 
 describe("the end of the season", () => {
   it("shows only the gameweeks left when fewer than asked for remain", async () => {
-    const model = await svc(events(6, 5), fullSeason(6)).load(undefined, "10");
+    const model = await svc(events(6, 5), fullSeason(6)).load("5", "10");
     if (model.kind !== "ok") throw new Error("expected ok");
     expect(model.columns.map((c) => c.gw)).toEqual([5, 6]);
     expect(model.window).toBe(10);
     render(<FixturesView model={model} />);
     expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Team", expect.stringContaining("GW5"), expect.stringContaining("GW6")]);
+  });
+
+  it("opens the grid at the next deadline, not on the gameweek already under way", async () => {
+    // NOW is 11 Oct: GW5 (deadline 10 Oct) is under way and locked; GW6 (12 Oct) is the next one you can change
+    const model = await svc(events(6, 5), fullSeason(6)).load(undefined, undefined);
+    if (model.kind !== "ok") throw new Error("expected ok");
+    expect(model.start).toBe(6);
+  });
+
+  it("the feed's summary covers the same gameweeks as the grid's default tab", async () => {
+    const s = svc(events(6, 2), fullSeason(6));
+    const [feed, grid] = await Promise.all([s.feed(undefined), s.load(undefined, undefined)]);
+    if (feed.kind !== "ok" || grid.kind !== "ok" || !feed.highlights || !grid.highlights) throw new Error("expected both");
+    expect([feed.highlights.from, feed.highlights.to]).toEqual([grid.highlights.from, grid.highlights.to]);
   });
 
   it("opens on the last gameweek once every gameweek is over, not on the first", () => {
@@ -154,13 +168,14 @@ describe("parameters nobody should have typed", () => {
 });
 
 describe("clubs with no fixtures, and fixtures against clubs FPL doesn't list", () => {
-  it("lists a club with no fixtures as blank everywhere, ranked as neutral", async () => {
+  it("lists a club with no fixtures as blank everywhere, ranked as the hardest", async () => {
     const five = [...teams, { id: 5, code: 105, name: "Club 5", short_name: "C5" }];
     const model = await svc(events(6, 2), fullSeason(6), five).load("2", "3");
     if (model.kind !== "ok") throw new Error("expected ok");
     const row = model.rows.find((r) => r.team.id === 5)!;
     expect(row.cells.every((c) => c.length === 0)).toBe(true);
-    expect(row.average).toBe(3);
+    expect(row.average).toBe(5);
+    expect(model.rows[model.rows.length - 1].team.id).toBe(5);
   });
 
   it("names an unknown opponent in the page's language and doesn't link it to a club page that can't exist", async () => {

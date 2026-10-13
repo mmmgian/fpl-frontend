@@ -15,6 +15,7 @@ const HARD_FIXTURE = 4;
  * What the press conference may ask about, taken from what the manager page already shows: the same numbers, in the
  * reader's language. Nothing is invented here; anything FPL did not give is left out, and the questions about it with it.
  * The next deadline is only spoken of while it is ahead: the latest gameweek is over and another one follows.
+ * The league table and the latest rank move are today's, so they are only asked about beside the latest gameweek.
  */
 export function interviewInputOf(
   model: Ok,
@@ -26,7 +27,8 @@ export function interviewInputOf(
   const { team, summary, insights, gameweek, sheet } = model;
   const g = insights.gameweek;
   const first = neatName(team.firstName) || neatName(team.manager) || team.teamName;
-  const l = team.league;
+  const latest = gameweek.gw === gameweek.max;
+  const l = latest ? team.league : null;
   const flagLabel = (label: string) => lower((t.team.flags as Record<string, string>)[label] ?? label);
 
   const captain = g.captain
@@ -133,7 +135,7 @@ export function interviewInputOf(
     players,
     rotated: rotated ? { name: rotated.name } : null,
     planet: summary.overallRank ? { rank: summary.overallRank, of: summary.fieldSize ?? null } : null,
-    rankMove: lastTwo.length === 2 ? { from: lastTwo[0].rank, to: lastTwo[1].rank } : null,
+    rankMove: latest && lastTwo.length === 2 ? { from: lastTwo[0].rank, to: lastTwo[1].rank } : null,
     value: form ? { now: form.value.now, start: form.value.start } : null,
     beat: charts?.beatAverage ?? null,
     freeTransfers: insights.season?.freeTransfers.available ?? null,

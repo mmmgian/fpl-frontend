@@ -44,10 +44,11 @@ afterEach(async () => {
 });
 
 describe("the league tools on the Tools page", () => {
-  it("adds a jump link to each, after the other tools and before the teams", async () => {
+  it("adds a jump link to each: injuries first (they matter before the deadline), the rest with the league before the teams", async () => {
     render(<ToolsView model={await model()} />);
     const hrefs = within(screen.getByRole("navigation", { name: "Tools" })).getAllByRole("link").map((a) => a.getAttribute("href"));
-    expect(hrefs.slice(-6)).toEqual(["#chip-tracker", "#injury-watch", "#template", "#differentials", "#head-to-head", "#teams"]);
+    expect(hrefs[0]).toBe("#injury-watch");
+    expect(hrefs.slice(-6)).toEqual(["#eo", "#chip-tracker", "#template", "#differentials", "#head-to-head", "#teams"]);
   });
 
   it("tracks chips against FPL's windows, names every chip for screen readers, and marks a failed history unavailable", async () => {
@@ -62,6 +63,9 @@ describe("the league tools on the Tools page", () => {
     expect(row("Team 4")).toHaveTextContent(/Unavailable/);   // history failed: unknown, not chipless
     expect(within(chips).getByRole("link", { name: "Team 1" })).toHaveAttribute("href", "/team/team-1");
     expect(chips).toHaveTextContent("4 of 5");                // 4 of the 5 known managers hold a Wildcard
+    // the column heads are codes; a visible legend spells each one out
+    const legend = within(chips).getByRole("list", { name: "Chip codes" });
+    expect(within(legend).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["WCWildcard", "FHFree Hit", "BBBench Boost", "TCTriple Captain"]);
   });
 
   it("without FPL's chip windows shows only chips played and says why", async () => {

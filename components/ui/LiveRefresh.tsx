@@ -28,11 +28,17 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
   const [pending, startTransition] = useTransition();
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [refreshSeq, setRefreshSeq] = useState(0);
+  const [online, setOnline] = useState(true);
   const pendingRef = useRef(false);
   const lastStartRef = useRef(0);
 
   const refresh = useCallback(() => {
     if (pendingRef.current) return;
+    // Offline, router.refresh() would fall back to a full page load and replace the page with the browser's error page.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setOnline(false);
+      return;
+    }
     pendingRef.current = true;
     lastStartRef.current = Date.now();
     startTransition(() => {
@@ -42,6 +48,28 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
       setRefreshSeq((n) => n + 1);
     });
   }, [router]);
+
+  // The page was just rendered with fresh data, so "Updated hh:mm" is true from the start (set after mount: no hydration mismatch).
+  useEffect(() => {
+    if (enabled) setUpdatedAt((at) => at ?? new Date());
+  }, [enabled]);
+
+  // Losing signal pauses refreshing and says so; regaining it catches up at once.
+  useEffect(() => {
+    if (!enabled) return;
+    setOnline(navigator.onLine !== false);
+    const goOnline = () => {
+      setOnline(true);
+      refresh();
+    };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, [enabled, refresh]);
 
   useEffect(() => {
     if (refreshSeq === 0 || pending) return;
@@ -74,7 +102,8 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
     };
   }, [enabled, intervalMs, minFocusGapMs, refresh]);
 
-  const when = !pending && updatedAt ? t.live.last(updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" })) : null;
+  const time = updatedAt ? updatedAt.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" }) : null;
+  const when = pending ? null : !online ? t.live.offline(time) : time ? t.live.last(time) : null;
   return (
     <div className={styles.wrap}>
       <span className={styles.status}>

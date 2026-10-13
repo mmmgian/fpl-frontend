@@ -50,7 +50,8 @@ async function trip<T>(work: () => Promise<T>): Promise<T> {
 describe("the planning tools", () => {
   it("each has a place on the page and in the jump links, in planning order", async () => {
     render(<ToolsView model={await load()} />);
-    expect(nav()).toEqual(["#shortlist", "#xi", "#swings", "#pairs", "#prices", "#eo", "#setpieces", "#teams"]);
+    // grouped: before the deadline, transfers, your league
+    expect(nav()).toEqual(["#shortlist", "#xi", "#swings", "#pairs", "#prices", "#setpieces", "#eo", "#teams"]);
     for (const name of ["Captain shortlist · Gameweek 7", "Fixture swings", "Rotation pairs", "Set pieces"]) expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
   });
 
@@ -81,9 +82,10 @@ describe("the planning tools", () => {
     expect(within(s).getByRole("heading", { level: 3, name: "Turning green: fixtures ease" })).toBeInTheDocument();
     expect(within(s).getByRole("heading", { level: 3, name: "Turning red: fixtures get harder" })).toBeInTheDocument();
     expect(s).toHaveTextContent("GW7–GW8 against GW9–GW11");
-    const c1 = within(s).getByRole("rowheader", { name: /C1/ }).closest("tr")!;
+    // the row header starts with the club; the phone-only run line after it names opponents, so anchor the match
+    const c1 = within(s).getByRole("rowheader", { name: /^C1(?!\d)/ }).closest("tr")!;
     expect(c1).toHaveTextContent("+3.0");             // C1: 2.0 soon, 5.0 later
-    const c2 = within(s).getByRole("rowheader", { name: /C2/ }).closest("tr")!;
+    const c2 = within(s).getByRole("rowheader", { name: /^C2(?!\d)/ }).closest("tr")!;
     expect(c2).toHaveTextContent("\u22122.0");        // C2: easier, with a proper minus sign
     expect(m.planning!.swings!.easing.concat(m.planning!.swings!.hardening).every((r) => r.blanks.every((gw) => r.cells.find((c) => c.gw === gw)!.matches.length === 0))).toBe(true);
   });
@@ -149,7 +151,7 @@ describe("the planning tools in the altered view", () => {
   it("keeps the lab's own captain and rotation tools, and adds the swings and set pieces in its own voice", async () => {
     await trip(async () => {
       render(<ToolsView model={await load()} />);
-      expect(links("The Lab")).toEqual(["#upside", "#captain", "#xi", "#swings", "#prices", "#eo", "#setpieces", "#teams"]);
+      expect(links("The Lab")).toEqual(["#captain", "#xi", "#upside", "#swings", "#prices", "#setpieces", "#eo", "#teams"]);
       expect(screen.getByRole("heading", { level: 2, name: "Tides turning" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { level: 2, name: "Keepers of the dead ball" })).toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: /Captain shortlist/ })).toBeNull();
@@ -214,7 +216,7 @@ describe("the Tools page when the season or FPL is odd", () => {
     expect(m.planning).toMatchObject({ captain: null, swings: null, rotation: null });
     expect(m.planning!.setPieces).not.toBeNull();
     render(<ToolsView model={m} />);
-    expect(nav()).toEqual(["#prices", "#eo", "#setpieces", "#teams"]);
+    expect(nav()).toEqual(["#prices", "#setpieces", "#eo", "#teams"]);
   });
 
   it("schedule unavailable: no fixture-based tools, the rest stay", async () => {
@@ -222,7 +224,7 @@ describe("the Tools page when the season or FPL is odd", () => {
     expect(m.planning).toMatchObject({ captain: null, swings: null, rotation: null });
     expect(m.prices.rows.length).toBeGreaterThan(0);
     render(<ToolsView model={m} />);
-    expect(nav()).toEqual(["#xi", "#prices", "#eo", "#setpieces", "#teams"]);
+    expect(nav()).toEqual(["#xi", "#prices", "#setpieces", "#eo", "#teams"]);
   });
 
   it("schedule malformed (not a list, or fixtures without clubs): treated as missing, never as a crash", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFdrMatrix, DEFAULT_FDR_WINDOW, defaultFdrStart, fdrBand, FDR_WINDOWS, NEUTRAL_DIFFICULTY, parseFdrWindow } from "@/lib/domain";
+import { BLANK_DIFFICULTY, buildFdrMatrix, DEFAULT_FDR_WINDOW, defaultFdrStart, fdrBand, fdrHighlights, FDR_WINDOWS, parseFdrWindow } from "@/lib/domain";
 import type { FplEvent, FplTeam, ScheduledFixture } from "@/lib/domain/types";
 import { event } from "./fixtures";
 
@@ -35,6 +35,20 @@ describe("defaultFdrStart", () => {
     const last = [event({ id: 37, is_current: false, finished: true }), event({ id: 38, is_current: true, finished: true })];
     expect(defaultFdrStart(last)).toBe(38);
   });
+  it("given the time, starts at the next deadline: a gameweek under way is locked, so planning starts after it", () => {
+    // one deadline a week, GW1 on 1 August
+    const weekly = events.map((e) => ({ ...e, deadline_time: new Date(Date.UTC(2026, 7, 1) + (e.id - 1) * 7 * 86_400_000).toISOString() }));
+    const at = (id: number) => Date.parse(weekly.find((e) => e.id === id)!.deadline_time);
+    // halfway between GW4's deadline and GW5's: GW4 is current and in progress, but GW5 is the next one you can change
+    const during = new Date((at(4) + at(5)) / 2);
+    expect(defaultFdrStart(events)).toBe(4);
+    expect(defaultFdrStart(weekly, during)).toBe(5);
+    // just before GW4's deadline, GW4 is still open
+    expect(defaultFdrStart(weekly, new Date(at(4) - 60_000))).toBe(4);
+    // no deadline left: the old rule (here, the current gameweek)
+    expect(defaultFdrStart(weekly, new Date(at(12) + 60_000))).toBe(4);
+  });
+
   it("falls back to the first unfinished gameweek, then the first, and handles no events", () => {
     expect(defaultFdrStart(events.map((e) => ({ ...e, is_current: false })))).toBe(4);
     expect(defaultFdrStart([event({ id: 1, is_current: false, finished: true })])).toBe(1);
@@ -73,20 +87,36 @@ describe("buildFdrMatrix", () => {
     expect(m.rows.find((r) => r.teamId === 2)!.cells[0].matches[0]).toEqual({ opponentId: 1, home: false, difficulty: 4 });
   });
 
-  it("sorts easiest first, counting a blank as neutral, ties by short name", () => {
+  it("sorts easiest first, counting a blank as the hardest (5), ties by short name", () => {
     const m = buildFdrMatrix(events, teams, fixtures, 4, 3)!;
     const score = Object.fromEntries(m.rows.map((r) => [r.teamId, r.score]));
-    expect(score).toEqual({ 1: 2 + 2 + NEUTRAL_DIFFICULTY, 2: 4 + NEUTRAL_DIFFICULTY + 3, 3: 5 + 3 + NEUTRAL_DIFFICULTY, 4: 1 + NEUTRAL_DIFFICULTY + 3 });
-    expect(m.rows.map((r) => r.teamId)).toEqual([1, 4, 2, 3]); // ARS 7, DUM 7 (tie: "ARS" < "DUM"), BHA 10, CHE 11
+    expect(BLANK_DIFFICULTY).toBe(5);
+    expect(score).toEqual({ 1: 2 + 2 + BLANK_DIFFICULTY, 2: 4 + BLANK_DIFFICULTY + 3, 3: 5 + 3 + BLANK_DIFFICULTY, 4: 1 + BLANK_DIFFICULTY + 3 });
+    expect(m.rows.map((r) => r.teamId)).toEqual([1, 4, 2, 3]); // ARS 9, DUM 9 (tie: "ARS" < "DUM"), BHA 12, CHE 13
+  });
+
+  it("never lets a blank make a run look easier than playing", () => {
+    // ARS: an easy 2 then a blank; BHA: two 3s. With a blank as a neutral 3, ARS would rank first (5 vs 6).
+    const two = [fx(4, 1, 2, 2, 3), fx(4, 3, 4, 3, 3), fx(5, 2, 3, 3, 3), fx(5, 4, 3, 3, 3)];
+    const m = buildFdrMatrix(events, teams, two, 4, 2)!;
+    const ars = m.rows.find((r) => r.teamId === 1)!;
+    expect(ars.average).toBe(3.5); // (2 + 5) / 2
+    expect(m.rows[0].teamId).not.toBe(1);
+  });
+
+  it("leaves a gameweek nobody is scheduled in yet out of the average, rather than calling it a blank for all", () => {
+    const early = [fx(4, 1, 2, 2, 4), fx(4, 3, 4, 3, 3)]; // only GW4 is scheduled; GW5 and GW6 are empty for everyone
+    const m = buildFdrMatrix(events, teams, early, 4, 3)!;
+    expect(Object.fromEntries(m.rows.map((r) => [r.teamId, r.average]))).toEqual({ 1: 2, 2: 4, 3: 3, 4: 3 });
   });
 
   it("breaks score ties alphabetically", () => {
     const m = buildFdrMatrix(events, teams, fixtures, 4, 3)!;
-    const tied = m.rows.filter((r) => r.score === 7).map((r) => r.teamId);
+    const tied = m.rows.filter((r) => r.score === 9).map((r) => r.teamId);
     expect(tied).toEqual([1, 4]); // ARS before DUM
   });
 
-  it("shows one figure per team, the one rows are ranked by: difficulty per gameweek, a blank counting as 3", () => {
+  it("shows one figure per team, the one rows are ranked by: difficulty per gameweek, a blank counting as 5", () => {
     const m = buildFdrMatrix(events, teams, fixtures, 4, 3)!;
     expect(m.rows.map((r) => r.average)).toEqual(m.rows.map((r) => r.score / 3));
     expect(m.rows.map((r) => r.average)).toEqual([...m.rows.map((r) => r.average)].sort((a, b) => a - b)); // shown order is ascending
@@ -100,6 +130,18 @@ describe("buildFdrMatrix", () => {
     expect(ars.cells[0].matches).toHaveLength(2);
     expect(ars.score).toBe(3); // mean(2, 4)
     expect(ars.average).toBe(3);
+  });
+
+  it("highlights score a blank as the hardest too, and skip gameweeks nobody is scheduled in", () => {
+    // GW4: ARS blank, BHA v CHE; GW5: ARS v DUM easy (1); GW6, GW7: nobody scheduled yet
+    const fx4 = [fx(4, 2, 3, 3, 3), fx(5, 1, 4, 1, 4)];
+    const h = fdrHighlights(buildFdrMatrix(events, teams, fx4, 4, 4)!)!;
+    // halves are GW4–5 and GW6–7; the second half has nothing scheduled, so no swing can be claimed
+    expect(h.swing).toBeNull();
+    const h2 = fdrHighlights(buildFdrMatrix(events, teams, fx4, 4, 2)!)!;
+    // over GW4–5 ARS go from a blank (5) to a 1: the biggest easing
+    expect(h2.swing).toMatchObject({ teamId: 1, before: 5, after: 1, from: 5 });
+    expect(h2.blank).toEqual({ gw: 4, teams: [1, 4] });
   });
 
   it("does not mutate its inputs", () => {

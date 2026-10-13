@@ -11,6 +11,7 @@ export * from "./fixtureFeed";
 export * from "./format";
 export * from "./i18n";
 export * from "./gameweek";
+export * from "./pulse";
 export * from "./insights";
 export * from "./interview";
 export * from "./seasonCharts";

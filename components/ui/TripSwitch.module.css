@@ -1,16 +1,21 @@
 .sun {
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  /* A 44px target around the 24px sun (it is also the only way back out of the altered view). */
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 10px;
   background: transparent;
   cursor: pointer;
   opacity: 0.55;
   transition: opacity 200ms ease, transform 400ms ease;
 }
-.sun:hover, .sun:focus-visible { opacity: 1; transform: rotate(18deg) scale(1.15); }
+.sun:focus-visible { opacity: 1; transform: rotate(18deg) scale(1.15); }
+@media (hover: hover) and (pointer: fine) {
+  .sun:hover { opacity: 1; transform: rotate(18deg) scale(1.15); }
+}
 .sun img { display: block; width: 24px; height: 24px; border-radius: 4px; }
 .sun[aria-pressed="true"] { opacity: 1; }

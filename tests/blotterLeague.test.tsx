@@ -124,7 +124,7 @@ describe("Stats in the altered view", () => {
     expect(within(region).getByText("Distance to the sun")).toBeInTheDocument();
     const fact = (label: string) => within(region).getByText(label).closest("div")!.textContent;
     expect(fact("Cruising altitude")).toContain("47.3");
-    expect(fact("Ferry fares")).toContain("−8 pts (2 transfers)");
+    expect(fact("Ferry fares")).toContain("−8 pts · 2 transfers in all");
     expect(fact("Doors opened")).toContain("All doors still shut");
     const dares = within(region).getByRole("heading", { name: "Daring moves" });
     const list = dares.nextElementSibling as HTMLElement;

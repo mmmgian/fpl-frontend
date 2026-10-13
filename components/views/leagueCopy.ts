@@ -9,7 +9,7 @@
  */
 import { getFormat, getT, isTrip } from "@/components/ui";
 import { isolateName, pickVariant } from "@/lib/domain";
-import type { Angle, Award, AwardCopy, AwardKey, Dare, GwStatus, LeagueHeadline, ManagerStats, StatsPhase, StoryCopy } from "@/lib/domain";
+import type { Angle, Award, AwardCopy, AwardKey, Dare, GwStatus, LeagueHeadline, ManagerStats, MatchPulse, StatsPhase, StoryCopy } from "@/lib/domain";
 
 /** The phrasing for `slot` under `key`; the first one when there is no key. */
 export const vary = <T>(items: readonly T[], key: number | undefined, slot = 0): T => (key === undefined ? items[0] : pickVariant(items, key, slot));
@@ -32,7 +32,8 @@ function awardFigureText(a: Award): string {
     case "deepPockets":
       return f.money(a.value);
     default:
-      return c.points(a.value);
+      // "−3 points": the count in the page's number format (a real minus sign, grouped thousands).
+      return c.points(a.value).replace(String(a.value), f.number(a.value));
   }
 }
 
@@ -67,7 +68,7 @@ export function awardFigure(a: Award): string {
     case "rollercoaster":
       return f.decimal(a.value);
     default:
-      return String(a.value);
+      return f.number(a.value);
   }
 }
 
@@ -156,12 +157,18 @@ export const MAX_STORIES = 2;
  * The storylines worth featuring: a new leader always, then others rotated by the variety key (all are true; the key
  * only decides which get the spotlight today). `nameOf` maps an entry to its team name.
  */
-export function storyLines(headlines: LeagueHeadline[], nameOfEntry: (entry: number) => string, variety?: number): string[] {
+export function storyLines(headlines: LeagueHeadline[], nameOfEntry: (entry: number) => string, variety?: number, seasonOver = false): string[] {
   const nameOf = (entry: number) => isolateName(nameOfEntry(entry));
   const t = getT();
   const c = t.common;
   const S = t.league.story;
-  const [lead, rest] = headlines[0]?.kind === "newLeader" ? [[headlines[0]], headlines.slice(1)] : [[], headlines];
+  // Once the season is over the champion always leads (and stands in for any late change at the top).
+  const top = seasonOver ? headlines.find((h) => h.kind === "titleRace" || h.kind === "level") : undefined;
+  const [lead, rest] = top
+    ? [[top], headlines.filter((h) => h !== top && h.kind !== "newLeader")]
+    : headlines[0]?.kind === "newLeader"
+      ? [[headlines[0]], headlines.slice(1)]
+      : [[], headlines];
   // Rotate the rest by the key so a different storyline leads on a different day; order within stays stable.
   const start = variety === undefined || rest.length === 0 ? 0 : pickVariant(rest.map((_, i) => i), variety, 201);
   const chosen = [...lead, ...rest.slice(start), ...rest.slice(0, start)].slice(0, MAX_STORIES);
@@ -171,10 +178,11 @@ export function storyLines(headlines: LeagueHeadline[], nameOfEntry: (entry: num
     switch (h.kind) {
       case "newLeader":
         return say("newLeader", { place: h.from });
+      // Once the season is over the race is run: the leader is the champion, the last team finished there.
       case "titleRace":
-        return say("titleRace", { other: nameOf(h.other), n: h.gap, figure: c.points(h.gap) });
+        return say(seasonOver ? "champion" : "titleRace", { other: nameOf(h.other), n: h.gap, figure: c.points(h.gap) });
       case "level":
-        return say("level", { other: nameOf(h.other) });
+        return say(seasonOver ? "championLevel" : "level", { other: nameOf(h.other) });
       case "riser":
         return say("riser", { n: h.places, figure: c.places(h.places), place: h.rank });
       case "faller":
@@ -184,10 +192,27 @@ export function storyLines(headlines: LeagueHeadline[], nameOfEntry: (entry: num
       case "chips":
         return say("chips", { n: h.count, figure: c.points(h.points), gw: h.gw, chip: (t.chips as Record<string, string>)[h.chip] ?? h.chip });
       case "bottom":
-        return say("bottom", { n: h.gap, figure: c.points(h.gap) });
+        return say(seasonOver ? "bottomFinal" : "bottom", { n: h.gap, figure: c.points(h.gap) });
     }
   });
 }
 
-/** Where the current gameweek stands, at the head of the storyline. */
+/**
+ * Where the current gameweek stands, at the head of the storyline. While it is live the fixtures refine it: between
+ * matches it names the next kick-off (`at`, for the page to show in the reader's time); with every match played, that
+ * FPL has still to close the week. After the season's last week, that the season is over.
+ */
+export type Phase = { text: string; at?: undefined } | { text: string; at: string; after: string };
+
+export function phaseOf(status: GwStatus, gw: number, { pulse, seasonOver, variety }: { pulse?: MatchPulse | null; seasonOver?: boolean; variety?: number } = {}): Phase {
+  const L = getT().league;
+  if (status === "final" && seasonOver) return { text: vary(L.phaseOver, variety, 200)(gw) };
+  if (status === "live" && pulse?.state === "between" && pulse.nextKickoff) {
+    const line = vary(L.phasePaused, variety, 200);
+    return { text: line.before(gw), at: pulse.nextKickoff, after: line.after };
+  }
+  if (status === "live" && pulse?.state === "over") return { text: vary(L.phaseAllPlayed, variety, 200)(gw) };
+  return { text: phaseLine(status, gw, variety) };
+}
+
 export const phaseLine = (status: GwStatus, gw: number, variety?: number): string => vary(getT().league.phase[status], variety, 200)(gw);

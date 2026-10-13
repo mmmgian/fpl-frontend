@@ -125,7 +125,7 @@ describe("FixtureFeed", () => {
     expect(screen.getByText("FT")).toBeInTheDocument();
     expect(screen.getByText("0–0")).toBeInTheDocument();
     expect(screen.getByText("Live")).toBeInTheDocument();
-    expect(screen.queryByText("Provisional")).toBeNull();
+    expect(screen.queryByText("Bonus pending")).toBeNull();
     expect(document.querySelectorAll("li time")).toHaveLength(1);                // only the one that hasn't kicked off has a time
   });
 
@@ -181,10 +181,98 @@ describe("FixtureFeedView", () => {
 });
 
 describe("FixtureFeed: full time before bonus is confirmed", () => {
-  it("says Provisional, in the app's usual word, not a long label that would not fit beside the score", () => {
+  it("says in visible words that the bonus is still pending, with no hover-only tooltip", () => {
     const g = buildFixtureFeed(events, clubs, [fixture(1, 1, { started: true, finished_provisional: true, team_h_score: 2, team_a_score: 1 })]);
     render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
     expect(screen.getByText("2–1")).toBeInTheDocument();
-    expect(screen.getByText("Provisional")).toBeInTheDocument();
+    const pending = screen.getByText("Bonus pending");
+    expect(pending).toBeVisible();
+    expect(pending).not.toHaveAttribute("title");
+    expect(screen.getByText("FT")).toHaveClass("sr-only");                        // full time is still said to screen readers
+  });
+});
+
+describe("FixtureFeed: played matches lead to the bonus page", () => {
+  const g = buildFixtureFeed(events, clubs, [
+    fixture(1, 1, { started: true, finished: true, finished_provisional: true, team_h_score: 3, team_a_score: 1 }),
+    fixture(2, 1, { started: true, team_h_score: 0, team_a_score: 0, team_h: 3, team_a: 4 }),
+    fixture(3, 1, { team_h: 1, team_a: 4 }),
+  ]);
+
+  it("links each started match's score to that gameweek's bonus page, named for the match", () => {
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    const done = screen.getByRole("link", { name: /3–1.*bonus points for club 1 v club 2/i });
+    expect(done).toHaveAttribute("href", "/bonus?gw=1");
+    expect(screen.getByRole("link", { name: /0–0.*live.*bonus points for club 3 v club 4/i })).toHaveAttribute("href", "/bonus?gw=1");
+    expect(screen.queryByRole("link", { name: /club 1 v club 4/i })).toBeNull();     // not kicked off: no score, no link
+  });
+
+  it("never nests a link inside another", () => {
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    expect(document.querySelectorAll("a a")).toHaveLength(0);
+  });
+
+  it("puts a bonus link by started gameweeks' headings only", () => {
+    render(<FixtureFeed gameweeks={feed} teams={teams} startIndex={3} />);         // GW4 played, GW5 live, GW6 upcoming
+    const bonus = (gw: number) => within(document.getElementById(`gw-${gw}`)!).queryByRole("link", { name: "Bonus points" });
+    expect(bonus(4)).toHaveAttribute("href", "/bonus?gw=4");
+    expect(bonus(5)).toHaveAttribute("href", "/bonus?gw=5");
+    expect(bonus(6)).toBeNull();
+  });
+
+  it("drops the difficulty chips once a match has kicked off, and keeps them for the rest", () => {
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    const rows = [...document.querySelectorAll("li")];
+    expect(within(rows[0]).queryAllByText(/difficulty \d of 5/)).toHaveLength(0);
+    expect(within(rows[1]).queryAllByText(/difficulty \d of 5/)).toHaveLength(0);
+    expect(within(rows[2]).getAllByText(/difficulty \d of 5/)).toHaveLength(2);
+  });
+
+  it("has no accessibility violations with linked scores", async () => {
+    const { container } = render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    await expectNoAxeViolations(container);
+  });
+});
+
+describe("FixtureFeed: times in the reader's time zone", () => {
+  const zone = (timeZone: string) => {
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions;
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone };
+    });
+  };
+  afterEach(() => vi.restoreAllMocks());
+  // GW1: 12:00 UK is 22:00 the same day in Sydney (AEDT, UTC+11); 20:00 UK is 06:00 the next morning there.
+  const g = buildFixtureFeed(events, clubs, [fixture(1, 1, { kickoff_time: "2026-10-01T11:00:00Z" }), fixture(2, 1, { kickoff_time: "2026-10-01T19:00:00Z", team_h: 3, team_a: 4 })]);
+  const dayHeadings = () => [...document.querySelectorAll("#gw-1 h3")].map((h) => h.textContent);
+
+  it("says the times are the reader's own", () => {
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    expect(screen.getByText("Times in your time zone")).toBeInTheDocument();
+  });
+
+  it("files a late UK kick-off under the reader's next day in Sydney", () => {
+    zone("Australia/Sydney");
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    expect(dayHeadings()).toHaveLength(2);
+  });
+
+  it("keeps UK days for a UK reader, and on the server", () => {
+    zone("Europe/London");
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    expect(dayHeadings()).toHaveLength(1);
+    zone("Australia/Sydney");
+    const html = renderToString(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    expect(html.match(/<h3/g)).toHaveLength(1);                                    // the server can't know the reader's zone
+  });
+
+  it("marks today by the reader's date, not the UK's", () => {
+    zone("Australia/Sydney");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-01T22:00:00Z"));                             // 2 October in Sydney, still 1 October in the UK
+    render(<FixtureFeed gameweeks={g} teams={teams} startIndex={0} />);
+    vi.useRealTimers();
+    const today = screen.getByText("Today").closest("h3")!;
+    expect(today).toBe(document.querySelectorAll("#gw-1 h3")[1]);
   });
 });

@@ -77,16 +77,16 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, 
       <dl className={styles.facts}>
         <Fact label={s.average}>{f.oneDecimal(stats.average)}</Fact>
         <Fact label={s.best}>
-          {stats.best.points} <small>{t.common.gw(stats.best.gw)}</small>
+          {f.number(stats.best.points)} <small>{t.common.gw(stats.best.gw)}</small>
         </Fact>
         <Fact label={s.worst}>
-          {stats.worst.points} <small>{t.common.gw(stats.worst.gw)}</small>
+          {f.number(stats.worst.points)} <small>{t.common.gw(stats.worst.gw)}</small>
         </Fact>
         <Fact label={s.behindLeader}>{stats.behindLeader === 0 ? s.leading : s.pts(stats.behindLeader)}</Fact>
         {stats.behindNext !== null ? <Fact label={s.behindNext}>{stats.behindNext === 0 ? s.level : s.pts(stats.behindNext)}</Fact> : null}
         <Fact label={s.teamValue}>{f.money(stats.value)}</Fact>
         <Fact label={s.bank}>{f.money(stats.bank)}</Fact>
-        <Fact label={s.benchPoints}>{stats.benchPoints}</Fact>
+        <Fact label={s.benchPoints}>{f.number(stats.benchPoints)}</Fact>
         {squad ? (
           <>
             <Fact label={s.xg} keepCase>{f.oneDecimal(squad.xg)}</Fact>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge, Card, ClubLink, Crest, English, FdrChip, LocalTime, PageHeader, StateMessage, getFormat, getIntlLocale, getT } from "@/components/ui";
+import { DAY, KICKOFF } from "@/components/ui/timeFormats";
 import { dash, pickVariant, scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
 import type { ClubMatchView, ClubModel, Outside } from "@/lib/services/models";
 import styles from "./club.module.css";
@@ -8,8 +9,12 @@ import insights from "./insights.module.css";
 
 type Ok = Extract<ClubModel, { kind: "ok" }>;
 
-const when: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
-const day: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
+// The site's shared clock formats, so a kick-off reads the same here as in the fixture feed.
+const when = KICKOFF;
+const day = DAY;
+
+/** The Champions League, however the source spells it ("UEFA Champions League"). */
+const isChampionsLeague = (competition: string) => /champions league/i.test(competition);
 
 function FormGuide({ form }: { form: Result[] }) {
   const t = getT().club;
@@ -179,6 +184,15 @@ function Lineup({ xi }: { xi: PredictedXI | null }) {
   );
 }
 
+/**
+ * The European card says what it covers: "Champions League" unless a match from another competition actually turns up
+ * (the source's free plan sees only the Champions League, so an empty card can't speak for Europe as a whole).
+ */
+function europeTitle(data: Ok["europe"]): string {
+  const c = getT().club;
+  return data.status === "ok" && data.items.some((m) => !isChampionsLeague(m.competition)) ? c.europe : c.championsLeague;
+}
+
 function Outside<T>({ title, data, children }: { title: string; data: Outside<T>; children: (items: T) => ReactNode }) {
   if (data.status === "off") return null; // not set up: nothing to show, and nothing to apologise for
   const c = getT().club;
@@ -230,7 +244,12 @@ export function ClubView({ model }: { model: Ok }) {
         meta={
           <>
             <FormGuide form={model.form} />
-            {upcoming ? (
+            {upcoming?.state === "live" ? (
+              <span>
+                <Badge tone="live">{t.common.live}</Badge> {c.playingNow(upcoming.home, upcoming.opponent.unknown ? t.common.unknownClub : upcoming.opponent.name)}{" "}
+                <strong>{scoreLine({ homeScore: upcoming.scored, awayScore: upcoming.conceded }) ?? "0–0"}</strong>
+              </span>
+            ) : upcoming ? (
               <span>
                 {c.next(upcoming.home, upcoming.opponent.unknown ? t.common.unknownClub : upcoming.opponent.name)}
                 <LocalTime iso={upcoming.kickoff} options={when} fallback={t.common.timeTbc.toLowerCase()} />
@@ -250,15 +269,16 @@ export function ClubView({ model }: { model: Ok }) {
         <TeamNews news={model.news} club={club} variety={model.variety} />
         <Lineup xi={model.lineup} />
 
-        <Outside title={c.europe} data={model.europe}>
+        <Outside title={europeTitle(model.europe)} data={model.europe}>
           {(matches) =>
             matches.length === 0 ? (
               <p className={insights.fact}>{c.europeEmpty}</p>
             ) : (
               <ul className={styles.list}>
-                {matches.map((m) => (
-                  <li key={m.id} className={styles.euroRow}>
-                    <span className={styles.comp}>{m.competition.replace(/^UEFA\s+/i, "")}</span>
+                {matches.map((m, _i, all) => (
+                  // Under a "Champions League" title, naming it on every row says nothing new.
+                  <li key={m.id} className={all.every((x) => isChampionsLeague(x.competition)) ? `${styles.euroRow} ${styles.euroPlain}` : styles.euroRow}>
+                    {all.every((x) => isChampionsLeague(x.competition)) ? null : <span className={styles.comp}>{m.competition.replace(/^UEFA\s+/i, "")}</span>}
                     <strong>
                       {m.home} {getT().common.vs} {m.away}
                     </strong>

@@ -70,7 +70,18 @@ describe("ClubView", () => {
   it("shows a match in progress as live with its score", () => {
     render(<ClubView model={base({ next: [match(2, { state: "live", scored: 1, conceded: 0 })] })} />);
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
-    expect(screen.getByText("1–0")).toBeInTheDocument();
+    expect(screen.getAllByText("1–0").length).toBeGreaterThan(0);
+  });
+
+  it("says Playing now in the header while the match is on, not Next with a kick-off that has passed", () => {
+    render(<ClubView model={base({ next: [match(2, { state: "live", scored: 1, conceded: 0, home: false }), match(3)] })} />);
+    const header = screen.getByRole("heading", { level: 1 }).closest("header")!;
+    expect(within(header).getByText(/Playing now: at Man City/)).toBeInTheDocument();
+    expect(within(header).getByText("1–0")).toBeInTheDocument();
+    expect(within(header).getByText("Live")).toBeInTheDocument();
+    expect(within(header).queryByText(/Next:/)).toBeNull();
+    expect(within(header).queryByRole("time")).toBeNull();
+    expect(header.querySelector("time")).toBeNull();
   });
 
   it("copes with no fixtures and no results at all", () => {
@@ -169,18 +180,31 @@ describe("ClubView", () => {
 
     it("shows no card at all for a source that isn't set up", () => {
       render(<ClubView model={base()} />);
-      expect(screen.queryByRole("heading", { name: "In Europe" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: /In Europe|Champions League/ })).toBeNull();
       expect(screen.queryByRole("heading", { name: "Headlines" })).toBeNull();
     });
-    it("lists European fixtures with the competition", () => {
+    it("calls the card Champions League when that is all it shows, without repeating it on every row", () => {
       render(<ClubView model={base({ europe: { status: "ok", items: [euro] } })} />);
+      const card = screen.getByRole("heading", { name: "Champions League" }).closest("section")!;
+      expect(within(card).getByText("Arsenal v Bayern")).toBeInTheDocument();
+      expect(within(card).queryAllByText("Champions League")).toHaveLength(1);          // the heading only
+      expect(screen.queryByRole("heading", { name: "In Europe" })).toBeNull();
+    });
+    it("calls it In Europe, naming each competition, once another competition turns up", () => {
+      render(<ClubView model={base({ europe: { status: "ok", items: [euro, { ...euro, id: 2, competition: "UEFA Europa League", away: "Roma" }] } })} />);
       const card = screen.getByRole("heading", { name: "In Europe" }).closest("section")!;
       expect(within(card).getByText("Champions League")).toBeInTheDocument();
-      expect(within(card).getByText("Arsenal v Bayern")).toBeInTheDocument();
+      expect(within(card).getByText("Europa League")).toBeInTheDocument();
     });
-    it("is straight about what an empty European list does and doesn't mean", () => {
+    it("is straight about what an empty list does and doesn't mean, under a title that doesn't claim all of Europe", () => {
       render(<ClubView model={base({ europe: { status: "ok", items: [] } })} />);
-      expect(screen.getByText(/Europa League and Conference League games are not included/)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Champions League" })).toBeInTheDocument();
+      expect(screen.getByText(/No Champions League fixtures coming up\. Europa League and Conference League games aren't covered/)).toBeInTheDocument();
+      expect(screen.queryByText(/No European fixtures/)).toBeNull();
+    });
+    it("keeps the Champions League title when the source is down", () => {
+      render(<ClubView model={base({ europe: { status: "unavailable" } })} />);
+      expect(screen.getByRole("heading", { name: "Champions League" })).toBeInTheDocument();
     });
     it("says a source is unavailable without breaking the page", () => {
       render(<ClubView model={base({ europe: { status: "unavailable" }, headlines: { status: "unavailable" } })} />);

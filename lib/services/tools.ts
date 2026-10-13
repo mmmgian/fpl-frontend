@@ -1,5 +1,5 @@
 import type { Pick as FplPick, PositionId, StandingRow } from "../domain";
-import { bestXI, buildLab, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, gwPhase, nextDeadline, opponentsIn, priceRows, transferPulse } from "../domain";
+import { bestXI, buildLab, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, gwPhase, matchPulse, nextDeadline, opponentsIn, priceRows, transferPulse } from "../domain";
 import type { Bootstrap, FplEvent } from "../domain/types";
 import { MAX_STATS_MANAGERS } from "../domain";
 import { attempt, buildPlanning, clip, saneBootstrap, sanePicks, saneSchedule, saneStandings } from "../domain/planning";
@@ -152,6 +152,10 @@ export function createToolsService(
     // The captain shortlist reuses the lab's simulation rather than running a second one.
     const planning = attempt(() => buildPlanning(bootstrap, schedule, next?.id ?? null, lab ? { lab: lab.captain, trials: LAB_TRIALS } : null));
 
+    const phase = gwPhase(bootstrap.events, at);
+    // FPL calls the week live from its deadline to sign-off, quiet days included; the schedule says whether a ball is
+    // actually being kicked, so the brief can say "paused until Saturday" rather than "on now".
+    const pulse = phase.phase === "live" && phase.gw !== null && schedule ? matchPulse(schedule.map((f) => ({ ...f, finished: f.finished || f.finished_provisional })), phase.gw, at) : null;
     const model: ToolsModel = {
       kind: "ok",
       now: at.toISOString(),
@@ -169,7 +173,8 @@ export function createToolsService(
       upside: attempt(() => upsidePicks(bootstrap, 8)),
       lab,
       planning,
-      phase: gwPhase(bootstrap.events, at),
+      phase,
+      matches: pulse && pulse.state !== "none" ? { state: pulse.state, nextKickoff: pulse.nextKickoff } : null,
       pulse: transferPulse(bootstrap, allPrices),
     };
     return { model, deferred, kept: keptFrom(bootstrap, rows, query) };

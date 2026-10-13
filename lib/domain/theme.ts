@@ -17,6 +17,12 @@ export const THEME_STORAGE_KEY = "lobster-theme";
 /** Browser chrome colour (status bar, tab strip) for each theme. Kept equal to each theme's --bg. */
 export const THEME_COLOR: Record<Theme, string> = { light: "#ffffff", night: "#16110c", dark: "#0b0b0b" };
 
+/** Browser chrome colour while the altered ("trip") view is on, whatever the theme: it paints every theme the same (app/trip.css --bg). */
+export const TRIP_THEME_COLOR = "#12001f";
+
+/** The chrome colour to show: the trip view's own when `<html data-trip="on">`, otherwise the theme's. */
+export const chromeColor = (theme: Theme, trip: boolean): string => (trip ? TRIP_THEME_COLOR : THEME_COLOR[theme]);
+
 export const THEME_LABEL: Record<Theme, string> = { light: "Regular", night: "Night reader", dark: "Dark" };
 
 export function isTheme(value: unknown): value is Theme {
@@ -34,9 +40,9 @@ export function resolveTheme(saved: unknown, prefersDark: boolean): Theme {
  * person hasn't chosen anything.
  */
 export const THEME_SCRIPT = `(function(){
-var K=${JSON.stringify(THEME_STORAGE_KEY)},C=${JSON.stringify(THEME_COLOR)},d=document,q=matchMedia("(prefers-color-scheme: dark)");
+var K=${JSON.stringify(THEME_STORAGE_KEY)},C=${JSON.stringify(THEME_COLOR)},T=${JSON.stringify(TRIP_THEME_COLOR)},d=document,q=matchMedia("(prefers-color-scheme: dark)");
 function saved(){try{var s=localStorage.getItem(K);return s&&C.hasOwnProperty(s)?s:null}catch(e){return null}}
-function show(t){d.documentElement.dataset.theme=t;var m=d.querySelector('meta[name="theme-color"][data-theme-color]');if(!m){m=d.createElement("meta");m.name="theme-color";m.setAttribute("data-theme-color","");d.head.prepend(m)}m.content=C[t];dispatchEvent(new Event("lobster-theme"))}
+function show(t){d.documentElement.dataset.theme=t;var m=d.querySelector('meta[name="theme-color"][data-theme-color]');if(!m){m=d.createElement("meta");m.name="theme-color";m.setAttribute("data-theme-color","");d.head.prepend(m)}m.content=d.documentElement.dataset.trip==="on"?T:C[t];dispatchEvent(new Event("lobster-theme"))}
 show(saved()||(q.matches?"dark":"light"));
 q.addEventListener&&q.addEventListener("change",function(){if(!saved())show(q.matches?"dark":"light")});
 })();`;

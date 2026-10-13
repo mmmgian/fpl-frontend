@@ -32,6 +32,8 @@ interface DataTableProps<T> {
    * (see DataTable.module.css). Returning null for a row means it has no detail.
    */
   detail?: (row: T, index: number) => ReactNode;
+  /** Keep the first column in view while a wide table scrolls sideways (e.g. the player name in a 7-column table). */
+  stickyFirst?: boolean;
 }
 
 export function DataTable<T>({
@@ -45,6 +47,7 @@ export function DataTable<T>({
   rowTone,
   dense,
   detail,
+  stickyFirst,
 }: DataTableProps<T>) {
   const captionId = useId();
   const cellClass = (c: Column<T>) =>
@@ -52,7 +55,7 @@ export function DataTable<T>({
 
   return (
     <div className={styles.region} role="region" aria-labelledby={captionId} tabIndex={0}>
-      <table className={`${styles.table} ${dense ? styles.dense : ""}`}>
+      <table className={`${styles.table} ${dense ? styles.dense : ""}${stickyFirst ? ` ${styles.stickyFirst}` : ""}`}>
         <caption id={captionId} className={hideCaption ? "sr-only" : styles.caption}>
           {caption}
         </caption>

@@ -59,6 +59,14 @@
   --space-6: 32px;
   --content-max: 1100px;
   --dot-gap: 60px;
+
+  /*
+   * How much of the sticky site header stays on screen once the page scrolls (SiteHeader.module.css). Anchors, focus
+   * and sticky things below the header offset by it. Wide screens pin the whole one-row header: 8 + 64 (logo) + 8 + 1
+   * (rule). Narrower ones let the brand row scroll away and pin only the nav: 8 + 44 (pills) + 8 + 1; two rows of pills
+   * add 44 + 6. The media queries under "Layout" below keep these in step with the header's own breakpoints.
+   */
+  --header-h: 81px;
 }
 
 /*
@@ -177,7 +185,11 @@
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* In-page links (#prices, #tables) and tabbing land below the pinned header, not under it. */
+  scroll-padding-top: calc(var(--header-h) + 8px);
+}
 body {
   min-height: 100dvh;
   font-family: var(--font-sans);
@@ -218,7 +230,10 @@ body::before {
 
 /* ---------- Links & focus ---------- */
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-a:hover { color: var(--accent); }
+/* Hover effects only where there is a real pointer: on a touch screen :hover sticks after a tap and looks selected. */
+@media (hover: hover) and (pointer: fine) {
+  a:hover { color: var(--accent); }
+}
 
 :focus-visible {
   outline: 2px solid var(--focus);
@@ -241,9 +256,18 @@ main:focus { outline: none; }
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 0 var(--space-4);
+  /* The page reaches under the notch in landscape (viewport-fit=cover, app/layout.tsx), so the gutters grow to clear it. */
+  padding: 0 max(var(--space-4), env(safe-area-inset-right, 0px)) 0 max(var(--space-4), env(safe-area-inset-left, 0px));
 }
-@media (min-width: 768px) { .container { padding: 0 var(--space-5); } }
+@media (min-width: 768px) {
+  .container { padding: 0 max(var(--space-5), env(safe-area-inset-right, 0px)) 0 max(var(--space-5), env(safe-area-inset-left, 0px)); }
+}
+
+/* ---------- Layout: the pinned header's height (see --header-h above and SiteHeader.module.css) ---------- */
+@media (max-width: 899px) { :root { --header-h: 61px; } }
+/* Two rows of nav pills: Spanish and French under 430px, every language under 360px. */
+@media (max-width: 429px) { :root:lang(es), :root:lang(fr) { --header-h: 111px; } }
+@media (max-width: 359px) { :root, :root:lang(es), :root:lang(fr) { --header-h: 111px; } }
 
 .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
 
@@ -271,4 +295,30 @@ main:focus { outline: none; }
 /* Windows high contrast: keep focus and borders visible */
 @media (forced-colors: active) {
   :focus-visible { outline: 2px solid CanvasText; }
+}
+
+/*
+ * Print and "Save as PDF": dark ink on white paper whatever the theme (printers drop backgrounds, so light-on-dark text
+ * would vanish), no backdrop, no glass, nothing moving. The site header, footer and the Times reader's controls hide
+ * themselves in their own modules. The altered view does the same in trip.css (it loads after this file).
+ */
+@media print {
+  :root, :root:not([data-theme]), :root[data-theme] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-head: #ffffff;
+    --surface-solid: #ffffff;
+    --surface-2: rgba(0, 0, 0, 0.045);
+    --text: #111111;
+    --text-muted: #4a4a4a;
+    --border: rgba(0, 0, 0, 0.18);
+    --border-strong: rgba(0, 0, 0, 0.35);
+    --accent: #b0006b;
+    --shadow: none;
+    --glass-blur: none;
+    --frost: none;
+  }
+  body::before { display: none; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

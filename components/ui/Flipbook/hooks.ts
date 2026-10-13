@@ -39,9 +39,16 @@ export function useControllableState<T>(value: T | undefined, defaultValue: T, o
   return [controlled ? value : inner, set];
 }
 
+/** Whether the reader has pinch-zoomed the page (the visual viewport is scaled up). */
+export function isZoomed(): boolean {
+  const scale = typeof window !== "undefined" ? window.visualViewport?.scale : undefined;
+  return typeof scale === "number" && scale > 1.01;
+}
+
 /**
  * Horizontal swipe detection for touch and pen (mouse drags are left alone so text stays selectable).
  * Calls `onSwipe(1)` for a swipe left (next page) and `onSwipe(-1)` for a swipe right.
+ * Ignored while the page is pinch-zoomed: a sideways drag then means "pan to the small print", not "turn the page".
  */
 export function useSwipe(onSwipe: (direction: 1 | -1) => void, { threshold = 48 }: { threshold?: number } = {}) {
   const start = useRef<{ x: number; y: number; id: number } | null>(null);
@@ -53,7 +60,7 @@ export function useSwipe(onSwipe: (direction: 1 | -1) => void, { threshold = 48 
     onPointerUp: (e: PointerEvent) => {
       const s = start.current;
       start.current = null;
-      if (!s || s.id !== e.pointerId) return;
+      if (!s || s.id !== e.pointerId || isZoomed()) return;
       const dx = e.clientX - s.x;
       const dy = e.clientY - s.y;
       if (Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe(dx < 0 ? 1 : -1);

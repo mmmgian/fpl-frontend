@@ -170,7 +170,7 @@ describe("the history shelf's wording", () => {
     const m = await shelf({});
     render(<HistoryListView snapshots={m.snapshots} shelf={m} />);
     expect(screen.getByText(MESSAGES.en.history.latest)).toBeInTheDocument();
-    const intro = document.querySelector("#tables p")?.textContent ?? "";
+    const intro = document.querySelector('section[aria-labelledby="tables-heading"] p')?.textContent ?? "";
     expect(MESSAGES.en.history.live.map((f) => f(6)).some((line) => intro.includes(line))).toBe(true);
   });
 
@@ -178,7 +178,7 @@ describe("the history shelf's wording", () => {
     const m = await shelf({ finished: true, data_checked: true });
     expect(m.status).toMatchObject({ latest: 5, gw: 6, pending: true });
     render(<HistoryListView snapshots={m.snapshots} shelf={m} />);
-    const intro = document.querySelector("#tables p")?.textContent ?? "";
+    const intro = document.querySelector('section[aria-labelledby="tables-heading"] p')?.textContent ?? "";
     expect(MESSAGES.en.history.pending.map((f) => f(6)).some((line) => intro.includes(line))).toBe(true);
   });
 

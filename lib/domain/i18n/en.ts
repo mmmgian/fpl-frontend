@@ -47,7 +47,7 @@ export const en = {
     unknownClub: "Unknown club",
     opensNewTab: "(opens in a new tab)",
     seeLiveTable: "See the live table",
-    backToTable: "Back to table",
+    backToTable: "Back to the table",
     leagueTable: "← League table",
     fixturesBack: "← Fixtures",
   },
@@ -55,7 +55,7 @@ export const en = {
 
 
   footer: {
-    disclaimer: "Data from the official Fantasy Premier League API. Not affiliated with the Premier League.",
+    disclaimer: "Points and tables from the official Fantasy Premier League API; club news from BBC Sport and football-data.org. Not affiliated with the Premier League.",
     credit: "Developed by a lobster · Est. 2025",
   },
 
@@ -91,11 +91,13 @@ export const en = {
   meta: {
     tools: "Tools",
     toolsDescription: "Price changes, team of the week and effective ownership for the Lobster League.",
-    description: "Live table, team sheets, bonus points and history for The Lobster League (Fantasy Premier League).",
+    description: "Live table, team sheets, bonus points, The Times and past tables for The Lobster League (Fantasy Premier League).",
     bonus: "Bonus points",
     fixtures: "Fixtures",
-    history: "History",
-    snapshot: (gw: number) => `GW${gw} standings`,
+    history: "Past tables",
+    snapshot: (gw: number) => `Table after GW${gw}`,
+    snapshotDescription: (gw: number, site: string) => `${site}: the table as it stood after Gameweek ${gw}.`,
+    teamDescription: (team: string, manager: string, site: string) => `${team}${manager ? `, managed by ${manager}` : ""}: this week's points, the squad and the season so far, in ${site}.`,
     times: "The Times",
     timesDescription: "Every weekly edition of The Lobster Times, one page at a time.",
     team: "Team",
@@ -118,6 +120,8 @@ export const en = {
     avg: (n: string) => `avg ${n}`,
     rankSr: (rank: number, team: string) => `Rank ${rank}, ${team}`,
     noFixture: "No fixture",
+    /** Under the grid's difficulty legend: how a blank week is scored. */
+    blankNote: "– no fixture, counted as 5 (the hardest)",
     tabsLabel: "Fixtures view",
     all: "All fixtures",
     next: (n: number) => `Next ${n}`,
@@ -139,7 +143,7 @@ export const en = {
     toughest: [
       (team: string, avg: string, from: number, to: number) => `${team} face the hardest road, GW${from}–GW${to} (difficulty ${avg}).`,
       (team: string, avg: string, from: number, to: number) => `Brace for ${team}: ${avg} a gameweek from GW${from} to GW${to}, the toughest run going.`,
-      (team: string, avg: string, from: number, to: number) => `The run to sell into: ${team}, ${avg} over GW${from}–GW${to}.`,
+      (team: string, avg: string, from: number, to: number) => `Toughest run: ${team}, ${avg} over GW${from}–GW${to}. Think twice before buying in.`,
     ],
     swing: [
       (team: string, before: string, after: string, gw: number) => `Fixture swing: ${team} go from ${before} to ${after} from GW${gw}. Plan the move a week early.`,
@@ -178,10 +182,18 @@ export const en = {
       "Nothing to rank until the first deadline passes and FPL locks in everyone's squad.",
       "The table fills in once Gameweek 1 kicks off. Until then, it's all team-planning.",
     ],
-    joined: (n: number) => ` ${n} managers have joined so far.`,
+    joined: (n: number) => (n === 1 ? " 1 manager has joined so far." : ` ${n} managers have joined so far.`),
+    /** The table is empty although the season is under way (a new league): standings come with FPL's next update. */
+    emptyInSeason: [
+      "Standings appear once FPL next updates the league.",
+      "FPL hasn't published standings for this league yet. They appear with its next update.",
+      "No table yet: it fills in when FPL next updates the league.",
+    ],
+    /** While FPL's game file can't be read (usually as the game updates around a deadline). */
+    updating: "FPL is updating the game. This page refreshes on its own.",
     summary: "League summary",
     leader: "Leader",
-    best: (gw: string) => `Best ${gw.replace(/^GW(\d)/, "GW $1")}`,
+    best: (gw: string) => `Best ${gw}`,
     managers: "Managers",
     truncated: "Showing first pages only",
     caption: (name: string) => `${name} standings`,
@@ -218,6 +230,26 @@ export const en = {
         (gw: number) => `GW${gw} is settled and checked. These totals stand.`,
       ],
     } as Record<"upcoming" | "live" | "provisional" | "final", ((gw: number) => string)[]>,
+    /** Live, but no match on right now: before and after the next kick-off, shown in the reader's own time. */
+    phasePaused: [
+      { before: (gw: number) => `GW${gw} is live, between matches. Next kick-off `, after: "." },
+      { before: (gw: number) => `A breather in GW${gw}: nothing on right now. Next kick-off `, after: "." },
+      { before: (gw: number) => `GW${gw} is under way, with a gap in the fixtures. Play resumes `, after: "." },
+    ],
+    /** Live, every match played: FPL has still to close the week. */
+    phaseAllPlayed: [
+      (gw: number) => `Every GW${gw} match has been played. FPL closes the week once the last points are in.`,
+      (gw: number) => `Full time on GW${gw}: all matches done, the final points still to land.`,
+      (gw: number) => `GW${gw}'s matches are all over; the table settles once FPL wraps up the week.`,
+    ],
+    /** The season's last gameweek, signed off by FPL. */
+    phaseOver: [
+      (gw: number) => `GW${gw} was the last of the season, and FPL has signed it off. That's the season.`,
+      (gw: number) => `The season is over: GW${gw} is final and these totals stand.`,
+      (gw: number) => `No more deadlines. GW${gw} closed the season and FPL has confirmed it.`,
+    ],
+    /** After a played week: before and after the next deadline, shown in the reader's own time. */
+    deadline: { before: (gw: number) => `GW${gw} deadline: `, after: "." },
     story: {
       newLeader: [
         (c: StoryCopy) => `${c.name} has taken top spot, up from ${ord(c.place)}.`,
@@ -258,6 +290,24 @@ export const en = {
         (c: StoryCopy) => (c.n === 0 ? `${c.name} props up the table, level with the team above.` : `${c.name} props up the table, ${c.figure} adrift.`),
         (c: StoryCopy) => (c.n === 0 ? `The foot of the table: ${c.name}, but only on the tiebreak.` : `${c.figure} is the gap ${c.name} must close to get off the bottom.`),
         (c: StoryCopy) => (c.n === 0 ? `${c.name} is last, though level on points with the team above.` : `Last place: ${c.name}, ${c.figure} behind the next team.`),
+      ],
+      /** Once the season is over: the winner and the margin over second. */
+      champion: [
+        (c: StoryCopy) => `Champions: ${c.name}, finishing ${c.figure} clear of ${c.other} in second.`,
+        (c: StoryCopy) => `The title goes to ${c.name}, ${c.figure} ahead of ${c.other} at the end.`,
+        (c: StoryCopy) => `${c.name} take the title, ${c.figure} clear of ${c.other} in second.`,
+      ],
+      /** Once the season is over, with the top two level on points (the table's order decides it). */
+      championLevel: [
+        (c: StoryCopy) => `${c.name} finish top, level on points with ${c.other} in second.`,
+        (c: StoryCopy) => `Nothing between them on points, but ${c.name} finish above ${c.other} in the final table.`,
+        (c: StoryCopy) => `Level on points with ${c.other}, ${c.name} end the season in first.`,
+      ],
+      /** Once the season is over: the team that finished last. */
+      bottomFinal: [
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} finish last, level on points with the team above.` : `${c.name} finish bottom, ${c.figure} adrift.`),
+        (c: StoryCopy) => (c.n === 0 ? `The wooden spoon goes to ${c.name}, but only on the tiebreak.` : `The wooden spoon goes to ${c.name}, ${c.figure} short of the team above.`),
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} end the season last, though level on points with the team above.` : `Last place at the end: ${c.name}, ${c.figure} behind the next team.`),
       ],
     },
   },
@@ -303,7 +353,7 @@ export const en = {
     leading: "Leading",
     behindNext: "Behind the team above",
     level: "Level on points",
-    pts: (n: number) => `${n} pts`,
+    pts: (n: number) => `${n} ${Math.abs(n) === 1 ? "pt" : "pts"}`,
     teamValue: "Team value",
     bank: "Of which in the bank",
     benchPoints: "Bench points",
@@ -315,7 +365,8 @@ export const en = {
     squadNote: (gw: string) => `XI xG, xA and DefCon are for the players who counted in ${gw}: expected goals and assists, and the +2 bonus for defensive actions.`,
     hits: "Transfer hits",
     none: "None",
-    hitsValue: (pts: number, transfers: number) => `−${pts} pts (${transfers} transfers)`,
+    /** The points lost to hits, then every transfer of the season (not only the ones that cost points). */
+    hitsValue: (pts: number, transfers: number) => `−${pts} ${pts === 1 ? "pt" : "pts"} · ${transfers} ${transfers === 1 ? "transfer" : "transfers"} in all`,
     overall: "Overall rank",
     chipsPlayed: "Chips played",
     noChips: "None yet",
@@ -406,9 +457,9 @@ export const en = {
       (c: AwardCopy) => `${c.figure} after hits ${c.when}. Nobody in the league did better than ${c.name}.`,
     ],
     woodenSpoon: [
-      (c: AwardCopy) => `${c.name} could only scrape together ${c.figure} ${c.when}. Next week, surely.`,
+      (c: AwardCopy) => `${c.name} could only scrape together ${c.figure} ${c.when}. One to forget.`,
       (c: AwardCopy) => `The league's lowest ${c.when}: ${c.figure} for ${c.name}.`,
-      (c: AwardCopy) => `${c.figure} ${c.when}. ${c.name} will want that one forgotten by the next deadline.`,
+      (c: AwardCopy) => `${c.figure} ${c.when}. ${c.name} will want that one forgotten.`,
     ],
     hotStreak: [
       (c: AwardCopy) => `${c.name} has beaten the league average ${c.figure} running.`,
@@ -445,8 +496,8 @@ export const en = {
   },
 
   history: {
-    eyebrow: "History",
-    title: "Past standings",
+    eyebrow: "Past tables",
+    title: "Past tables",
     intro: "The league table, frozen at the final whistle of each gameweek.",
     lede: [
       (latest: number, count: number) => `The league table, frozen at the final whistle of each gameweek: ${count} ${count === 1 ? "table" : "tables"} so far, Gameweek ${latest} the latest final one.`,
@@ -460,8 +511,8 @@ export const en = {
       (gw: number) => `Next on the shelf: Gameweek ${gw}, once its points are confirmed.`,
     ],
     pending: [
-      (gw: number) => `Gameweek ${gw} is over. Its table is filed at the daily 06:00 UTC run once FPL confirms the bonus.`,
-      (gw: number) => `Gameweek ${gw} has finished; its table arrives with the next morning's snapshot.`,
+      (gw: number) => `Gameweek ${gw} is over. Its table is filed the morning after FPL confirms the bonus.`,
+      (gw: number) => `Gameweek ${gw} has finished; its table arrives the next morning.`,
       (gw: number) => `The final whistle has gone on Gameweek ${gw}. Its table lands here after FPL signs off the points.`,
     ],
     filed: [
@@ -469,23 +520,23 @@ export const en = {
       (gw: number) => `Gameweek ${gw}'s final table is in. Nothing pending.`,
       (gw: number) => `The shelf is current through Gameweek ${gw}.`,
     ],
-    emptyTitle: "The archive is empty",
+    emptyTitle: "No past tables yet",
     emptyBody: [
-      "A snapshot is taken automatically once a gameweek is over and its bonus points are confirmed. Check back when the current one wraps up.",
+      "A table is saved automatically once a gameweek is over and its bonus points are confirmed. Check back when the current one wraps up.",
       "Nothing filed yet. The first table lands here the morning after a gameweek's points are confirmed.",
       "The shelf fills itself: one table per gameweek, saved once FPL has signed off the bonus.",
     ],
     rebuilt: "Rebuilt",
     saved: "Saved",
-    back: "← All snapshots",
-    missingTitle: (gw: number) => `No snapshot for Gameweek ${gw}`,
+    back: "← Past tables",
+    missingTitle: (gw: number) => `No table saved for Gameweek ${gw}`,
     missingBody: [
-      "No photo of this one yet. Snapshots are taken once a gameweek is over and its bonus points are confirmed.",
+      "Not saved yet. A table is saved once a gameweek is over and its bonus points are confirmed.",
       "This gameweek hasn't been filed. Tables are saved the morning after FPL confirms the points.",
       "Nothing saved for this one yet: a table is filed only once the gameweek is final.",
     ],
-    standings: (gw: number) => `Gameweek ${gw} standings`,
-    standingsAfter: (name: string, gw: number) => `${name} standings after Gameweek ${gw}`,
+    standings: (gw: number) => `Table after Gameweek ${gw}`,
+    standingsAfter: (name: string, gw: number) => `${name} table after Gameweek ${gw}`,
     rebuiltTitle: "Rebuilt after the gameweek",
     rebuiltBody: "This table wasn't saved at the time. It was rebuilt from each manager's FPL results: the points are FPL's own and the order is worked out from them. Managers level on points are ordered by overall rank, as FPL does.",
     /** Said in three parts so the middle word can be emphasised. */
@@ -509,7 +560,7 @@ export const en = {
   team: {
     /** The labels of the ruled facts row under the team name. */
     header: {
-      manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience", league: "League",
+      manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience", league: "League", deadline: "Next deadline",
       neighbours: {
         label: "Neighbouring managers",
         prev: (team: string, rank: number) => `Previous manager: ${team}, ranked ${rank}`,
@@ -519,6 +570,9 @@ export const en = {
     positions: { 1: "Goalkeepers", 2: "Defenders", 3: "Midfielders", 4: "Forwards" } as Record<number, string>,
     flags: { Doubtful: "Doubtful", Injured: "Injured", Suspended: "Suspended", Unavailable: "Unavailable" } as Record<string, string>,
     experience: (year: string, n: number) => `Playing since ${year} · ${n} earlier ${n === 1 ? "season" : "seasons"}`,
+    /** The shortcut back to the latest gameweek from an older one: its text, and its accessible name. */
+    latest: (gw: string) => `Latest: ${gw}`,
+    latestLabel: (gw: number) => `Go to the latest gameweek, Gameweek ${gw}`,
     summary: (gw: string) => `${gw} summary`,
     gwPoints: "GW points",
     gwPointsLive: "GW points (live)",
@@ -530,7 +584,8 @@ export const en = {
     noHit: "no hit",
     hitPts: (hit: number) => `−${hit} pts`,
     teamValue: "Team value",
-    inBank: (bank: string) => `${bank} in the bank`,
+    /** Under the team value, which (as FPL reports it) already includes the bank. */
+    inBank: (bank: string) => `incl. ${bank} in the bank`,
     noSeasonTitle: "The season hasn't started",
     noSeasonBody: "Team sheets appear after the Gameweek 1 deadline.",
     notStartedTitle: (team: string, gw: number) => `${team} starts in Gameweek ${gw}`,
@@ -548,11 +603,11 @@ export const en = {
       /** League position (the team's own league): rank, size, places moved since last gameweek, gap to the top (or the lead). */
       leagueSpot: [
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `Top of ${size}, ${gap} clear` : `${ord(rank)} of ${size}, ${gap} off the top`}${moved > 0 ? ` · up ${moved}` : moved < 0 ? ` · down ${-moved}` : ""}`,
+          `${rank === 1 ? (gap ? `Top of ${size}, ${gap} ${pts(gap)} clear` : `Top of ${size}, level with 2nd`) : gap ? `${ord(rank)} of ${size}, ${gap} ${pts(gap)} off the top` : `${ord(rank)} of ${size}, level with the leader`}${moved > 0 ? ` · up ${moved}` : moved < 0 ? ` · down ${-moved}` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `${rank === 1 ? `Leading ${size} teams by ${gap} ${pts(gap)}` : `${ord(rank)} of ${size}, ${gap} ${pts(gap)} behind the leader`}${moved ? `, ${moved > 0 ? "climbed" : "slipped"} ${Math.abs(moved)} this week` : ""}`,
+          `${rank === 1 ? (gap ? `Leading ${size} teams by ${gap} ${pts(gap)}` : `Joint top of ${size} teams`) : gap ? `${ord(rank)} of ${size}, ${gap} ${pts(gap)} behind the leader` : `${ord(rank)} of ${size}, level on points with the leader`}${moved ? `, ${moved > 0 ? "climbed" : "slipped"} ${Math.abs(moved)} this week` : ""}`,
         (rank: number, size: number, moved: number, gap: number) =>
-          `${ord(rank)}/${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} ahead` : `, ${gap} to make up`}`,
+          `${ord(rank)}/${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? (gap ? `, ${gap} ${pts(gap)} ahead` : ", level at the top") : gap ? `, ${gap} ${pts(gap)} to make up` : ", level with the leader"}`,
       ],
     },
   },
@@ -792,6 +847,8 @@ export const en = {
     result: { W: "Won", D: "Drew", L: "Lost" } as Record<string, string>,
     pip: { W: "W", D: "D", L: "L" } as Record<string, string>,
     next: (home: boolean, opponent: string) => `Next: ${home ? "" : "at "}${opponent}, `,
+    /** In the header while the club's match is on, in place of "Next" and a kick-off time that has passed. */
+    playingNow: (home: boolean, opponent: string) => `Playing now: ${home ? "" : "at "}${opponent}`,
     noFixture: "No fixture scheduled",
     upNext: "Up next",
     recent: "Recent results",
@@ -823,8 +880,11 @@ export const en = {
       `This is a prediction, not an official line-up. It is built from who FPL says is available and how often each player has started this season (the most-used player has started ${matches} ${matches === 1 ? "match" : "matches"})${early ? ", so it is early days: treat it loosely" : ""}. Managers rotate; the real team is only announced about an hour before kick-off.`,
     xiEmpty: "No prediction yet: it needs a few matches played and enough fit players to name most of a side.",
     unavailable: "This is unavailable right now. The rest of the page is unaffected; try again in a few minutes.",
+    /** The European card's title when it can only show the Champions League (the usual case: the source's free plan). */
+    championsLeague: "Champions League",
+    /** Its title when other competitions turn up too. */
     europe: "In Europe",
-    europeEmpty: "No European fixtures coming up. (This source covers the Champions League; Europa League and Conference League games are not included.)",
+    europeEmpty: "No Champions League fixtures coming up. Europa League and Conference League games aren't covered here.",
     dateTbc: "Date to be confirmed",
     headlines: "Headlines",
     headlinesEmpty: "Nothing new from BBC Sport for this club at the moment.",
@@ -899,7 +959,10 @@ export const en = {
       confirmed: { label: "Confirmed", help: "Official bonus, added to scores." },
       provisional: { label: "Provisional", help: "FPL's provisional bonus; may change until confirmed." },
       projected: { label: "Projected", help: "Calculated from live BPS; will change as the match goes on." },
+      projectedFt: { label: "Projected", help: "Worked out from the final BPS; FPL adds the official bonus soon after full time." },
     },
+    /** In the header while the week is live but no match is on. */
+    paused: "Between matches",
     noBonusYet: "No bonus yet.",
     bonusList: (club: string) => `Bonus points, ${club}`,
     bonusSr: (n: number) => `${n} bonus ${n === 1 ? "point" : "points"}:`,
@@ -929,6 +992,12 @@ export const en = {
         (gw: string, player: string, club: string, bps: number, _bestClub: string, _bonus: number) => `${gw} in play. Top BPS so far: ${player} (${club}) on ${bps}. Projected and provisional bonus can still change.`,
         (gw: string, player: string, _club: string, bps: number, bestClub: string, bonus: number) => `${player} leads ${gw} with ${bps} BPS. ${bestClub} players hold ${bonus} bonus ${bonus === 1 ? "point" : "points"} between them, for now.`,
         (gw: string, player: string, _club: string, bps: number, _bestClub: string, _bonus: number) => `Live bonus for ${gw}: nothing is confirmed until a match finishes. ${player} is the man to beat on ${bps} BPS.`,
+      ],
+      /** Live week, no match on right now; `when` is the next kick-off (rendered in the reader's time). */
+      paused: [
+        (gw: string, when: string) => `${gw} is paused between matches. The bonus race picks up again at ${when}; finished matches below await FPL's sign-off.`,
+        (gw: string, when: string) => `No ${gw} match on right now. Next kick-off: ${when}. Until then, nothing here moves.`,
+        (gw: string, when: string) => `A quiet spell in ${gw}: the next bonus race starts at ${when}.`,
       ],
       provisional: [
         (gw: string, player: string, club: string, bps: number, _bestClub: string, _bonus: number) => `Every ${gw} match is played; FPL hasn't confirmed the data yet, so bonus is provisional. ${player} (${club}) topped the BPS with ${bps}.`,
@@ -978,7 +1047,17 @@ export const en = {
 
   notFound: {
     title: "Page not found",
-    body: "We've drawn a blank: that page, team or club doesn't exist. Team links use the numeric FPL entry ID, e.g. /team/2379133.",
+    body: "We've drawn a blank: there's nothing at this address. The link may be mistyped or out of date.",
+    team: {
+      title: "We couldn't find that team",
+      body: "Team links follow the team's name, so a link stops working if the manager renames the team after it was shared.",
+      table: "Go to the table",
+      pick: "Pick a team",
+    },
+    times: {
+      title: "We couldn't find that issue",
+      body: "The link may be mistyped, or the issue is no longer on the shelf. Every edition is on The Times front page.",
+    },
   },
 
   captainBadge: { captain: "Captain", vice: "Vice-captain", triple: "Triple captain" },
@@ -1034,6 +1113,8 @@ export const en = {
   tools: {
     positionShort: { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" } as Record<number, string>,
     heading: "Tools",
+    /** The page's sections, in the order a manager needs them. */
+    groups: { deadline: "Before the deadline", transfers: "Transfers", league: "Your league" },
     /** The week at a glance above the tools: where the season stands and what the crowd is doing. Three wordings each. */
     brief: {
       title: "The week in FPL",
@@ -1047,6 +1128,12 @@ export const en = {
         (gw: string, next: string) => `${gw} is live: points are moving and bonus is still provisional. Next stop: ${next}.`,
         (gw: string, next: string) => `${gw} is under way, so nothing you change now scores this week. Up next: ${next}.`,
         (gw: string, next: string) => `Matches of ${gw} are on and the table moves by the minute. After that: ${next}.`,
+      ],
+      /** The gameweek is live but no match is on; `when` is the next kick-off, shown in the reader's own time. */
+      paused: [
+        (gw: string, when: string, next: string) => `${gw} is paused between matches: the next kick-off is ${when}. Changes you make now count from ${next}.`,
+        (gw: string, when: string, next: string) => `No ${gw} match on right now. Play resumes ${when}; after that comes ${next}.`,
+        (gw: string, when: string, next: string) => `A breather in ${gw}. Points move again from ${when}, and ${next} is next.`,
       ],
       provisional: [
         (gw: string, next: string) => `${gw}'s matches are over; FPL is still confirming the bonus. Then: ${next}.`,
@@ -1124,7 +1211,7 @@ export const en = {
       byMean: "Highest expected points",
       byHaul: "Best chance of 10+",
       byCeiling: "Best chance of 15+ (Triple Captain punts)",
-      cols: { player: "Player", owned: "Owned", sim: "Sim xP", double: "As captain", p10: "10+", p15: "15+", fixture: "Fixture", pair: "Pair", average: "Avg FDR", picks: "Play whoever has the easier game", yellows: "Yellows", toBan: "To a ban", per90: "Per 90", share: "Of the bonus" },
+      cols: { player: "Player", owned: "Owned", sim: "Sim xP", double: "As captain", p10: "10+ pts %", p15: "15+ pts %", fixture: "Fixture", pair: "Pair", average: "Avg FDR", picks: "Play whoever has the easier game", yellows: "Yellows", toBan: "To a ban", per90: "Per 90", share: "Of the bonus" },
       rotationTitle: "Rotation pairs",
       rotationNote: [
         (span: number, pair: string, avg: string) => `Two clubs whose defenders you can share: take the easier fixture each week. Over the next ${span} gameweeks, ${pair} is kindest (average FDR ${avg}).`,
@@ -1164,7 +1251,7 @@ export const en = {
         ],
         method: (trials: string) => `A simulation, not a prediction: ${trials} runs per player from FPL's own numbers (minutes, xG and xA, fixture difficulty, clean sheets, DefCon, cards, bonus). Points are for one player; an armband doubles them. Players under a 75% chance of playing and clubs without a fixture are left out. FPL ownership is shown apart from the simulation.`,
         views: { safest: "Safest: highest expected points", haul: "Haul chance: 10+ points", punt: "Triple Captain punt: 15+ points" },
-        cols: { player: "Player", fixture: "Fixture", mean: "Sim points", p10: "10+", p15: "15+", owned: "FPL owned" },
+        cols: { player: "Player", fixture: "Fixture", mean: "Sim points", p10: "10+ pts %", p15: "15+ pts %", owned: "FPL owned" },
         blanks: (count: number, clubs: string, gw: string) => `${count === 1 ? "One club has" : `${count} clubs have`} no fixture in ${gw} (${clubs}), so their players are left out.`,
         doubles: (count: number, clubs: string, gw: string) => `${count === 1 ? "One club plays" : `${count} clubs play`} twice in ${gw} (${clubs}): their players' figures cover both matches.`,
         none: ["Nobody qualifies yet.", "No one to shortlist yet.", "Not enough minutes played to simulate yet."],
@@ -1176,7 +1263,7 @@ export const en = {
           (soon: string, later: string) => `${soon} against ${later}: the clubs whose run changes colour. Green turns get easier, red turns get harder.`,
           (soon: string, later: string) => `Turning points between ${soon} and ${later}, by FPL's own difficulty ratings, averaged per match.`,
         ],
-        method: "FPL's difficulty ratings (1 easiest, 5 hardest), averaged per match. A blank gameweek is shown, not scored; a double counts both matches. Clubs without a match on one side are left out.",
+        method: "FPL's difficulty ratings (1 easiest, 5 hardest), averaged per match. A blank gameweek counts as 5, the hardest, since it scores nothing; a double counts both matches.",
         easing: "Turning green: fixtures ease",
         hardening: "Turning red: fixtures get harder",
         cols: { club: "Club", soon: "Soon", later: "Later", change: "Change", run: "Run" },
@@ -1212,7 +1299,11 @@ export const en = {
       },
     },
     xi: {
-      title: (gw: string) => `Team of the Week · ${gw}`,
+      title: (gw: string) => `Projected XI · ${gw}`,
+      /** Beside the title: this is a forecast, not a week already played. */
+      badge: "Projection",
+      /** When FPL's expected points crown a different captain from the simulation's safest armband. */
+      captainDiffers: (xi: string, safe: string) => `Why not ${safe}? This eleven follows FPL's expected points alone, which put ${xi} top. The captain shortlist's safest armband, ${safe}, comes from our simulation, which also weighs minutes, clean sheets and bonus.`,
       note: [
         (captain: string, formation: string, total: string) => `${captain} wears the armband in this ${formation}, the best legal eleven by FPL's expected points for the next gameweek (${total}, captain doubled). Injured and doubtful players are left out.`,
         (captain: string, formation: string, total: string) => `FPL's own expected points pick a ${formation} worth ${total} with the captain doubled, and ${captain} as captain. Only players likely to play are considered.`,
@@ -1260,7 +1351,7 @@ export const en = {
       ],
       groups: "Group",
       tiers: { top4: "Top 4", top10: "Top 10", all: "Everyone" } as Record<string, string>,
-      by: { eo: "EO", captain: "Captains" },
+      by: { eo: "Highest EO", captain: "Most captained" },
       cols: { player: "Player", eo: "EO", started: "Starting", captained: "Captain", owned: "FPL owned" },
       none: ["No picks to work from yet.", "No team sheets to read yet.", "Nothing picked yet, so nothing to count."],
     },
@@ -1268,6 +1359,10 @@ export const en = {
     leagueTools: {
       scope: (covered: number, total: number) => `Counting the top ${covered} of ${total} managers.`,
       unavailable: "Unavailable",
+      /** League picks come from the last deadline; the next one's stay hidden until it passes. */
+      picksFrom: (gw: string, next: string) => `As picked for ${gw}. ${next} picks appear after its deadline.`,
+      nextHidden: (next: string) => `${next} picks appear after its deadline.`,
+      chipsFrom: (gw: string, next: string) => `Chips played up to ${gw}. Anything played for ${next} shows after its deadline.`,
       squadsFrom: (gw: string, read: number, of: number) => (read === of ? `Squads as picked for ${gw}.` : `Squads as picked for ${gw}: ${read} of ${of} could be read; the rest are left out.`),
       bench: "bench",
       chips: {
@@ -1288,6 +1383,7 @@ export const en = {
           (managers: number) => `Season done: every chip ${managers} ${managers === 1 ? "manager" : "managers"} played, by gameweek.`,
         ],
         holders: "In hand at the next deadline",
+        legend: "Chip codes",
         holding: (n: number, managers: number) => `${n} of ${managers}`,
         cols: { manager: "Team", played: "Played", left: "Still to play" },
         open: (gw: string) => `Until ${gw}`,
@@ -1385,16 +1481,20 @@ export const en = {
       mood === "live"
         ? `${manager} of ${team} faces the press during ${gw}.`
         : mood === "provisional"
-          ? `${manager} of ${team} faces the press after ${gw}, while FPL settles the bonus.`
+          ? `${manager} of ${team} faces the press after ${gw}, while FPL runs its final check.`
           : mood === "ahead" && next
             ? `${manager} of ${team} faces the press after ${gw}, with the ${next} deadline ahead.`
             : `${manager} of ${team} faces the press after ${gw}.`,
     /** Shown while the gameweek is being played: the conference is redrawn each day. */
-    liveNote: "*Changes every day during the gameweek.",
-    /** Shown while FPL's bonus is provisional: the conference is redrawn each day, and again once FPL confirms the scores. */
-    provisionalNote: (gw: string) => `*Bonus for ${gw} is still provisional: new questions every day, and again once FPL confirms the scores.`,
-    /** Shown once FPL has confirmed the gameweek: the scores are settled, the questions still change daily. */
+    liveNote: "New questions every day during the gameweek.",
+    /** Shown while the played week awaits FPL's final check: the conference is redrawn each day, and again once FPL confirms the scores. */
+    provisionalNote: (gw: string) => `${gw} awaits FPL's final check: new questions every day, and again once FPL confirms the scores.`,
+    /** Shown once FPL has confirmed the latest gameweek: the scores are settled, the questions still change daily. */
     finalNote: (gw: string) => `FPL has confirmed the scores for ${gw}. New questions every day until the next deadline.`,
+    /** Beside an older, confirmed gameweek. */
+    pastNote: (gw: string) => `FPL confirmed the scores for ${gw}. New questions every day.`,
+    /** After the season's last gameweek. */
+    seasonOverNote: (gw: string) => `FPL has confirmed the scores for ${gw}, the last of the season. New questions every day until next season.`,
     /** Ways a journalist introduces a question; each names the manager or the team. */
     openers: [
       (c, q) => `${c.first}, a question for you: ${q}`,
@@ -1420,9 +1520,9 @@ export const en = {
         (c, q) => `While the scores are still moving, ${c.team} fans ask: ${q}`,
       ],
       provisional: [
-        (c, q) => `Before FPL confirms the bonus, ${c.first}: ${q}`,
+        (c, q) => `Before FPL's final check, ${c.first}: ${q}`,
         (c, q) => `With the scores still provisional, ${c.manager}: ${q}`,
-        (c, q) => `While the bonus is being counted, ${c.team} supporters ask: ${q}`,
+        (c, q) => `While FPL checks the scores, ${c.team} supporters ask: ${q}`,
       ],
       final: [
         (c, q) => `Now that FPL has confirmed the scores, ${c.first}: ${q}`,
@@ -2622,7 +2722,7 @@ export const en = {
         mood === "live"
           ? `${manager} of ${team} dissolves into the press room mid-${gw}. The walls breathe.`
           : mood === "provisional"
-            ? `${manager} of ${team} dissolves into the press room after ${gw}. The bonus shimmers, not yet solid.`
+            ? `${manager} of ${team} dissolves into the press room after ${gw}. The scores shimmer, not yet solid.`
             : mood === "ahead" && next
               ? `${manager} of ${team} dissolves into the press room after ${gw}. The ${next} deadline glows on the horizon.`
               : `${manager} of ${team} dissolves into the press room after ${gw}. The walls breathe.`,
@@ -2654,7 +2754,7 @@ export const en = {
       /** Introductions of the moment, per mood (TRIP_MOOD_OPENERS each), suiting any voice; each names the manager or the team once. */
       moodOpeners: {
         live: [(c, q) => `While the matches still ripple, ${c.first}: ${q}`, (c, q) => `The live scores swirl around ${c.team}: ${q}`],
-        provisional: [(c, q) => `The bonus is still liquid, ${c.manager}: ${q}`, (c, q) => `Before the numbers set like jelly, ${c.first}: ${q}`],
+        provisional: [(c, q) => `The scores are still liquid, ${c.manager}: ${q}`, (c, q) => `Before the numbers set like jelly, ${c.first}: ${q}`],
         final: [(c, q) => `The scores have crystallised, ${c.first}: ${q}`, (c, q) => `Carved into the walls now, ${c.team}: ${q}`],
         ahead: [(c, q) => `The ${c.nextGw} deadline hums closer, ${c.first}: ${q}`, (c, q) => `Tomorrow's fixtures shimmer, ${c.manager}: ${q}`],
       } as Record<InterviewMood, InterviewOpener[]>,
@@ -3106,13 +3206,14 @@ export const en = {
     /** The Tools page's parts that read every squad in the league, which arrive after the rest. */
     eo: ["Counting the league's picks", "Working out effective ownership", "Reading this week's squads"],
     league: ["Reading the league's squads and chips", "Checking every squad in the league", "Gathering chips, injuries and templates"],
+    injuries: ["Checking the league's squads for knocks", "Reading FPL's injury flags", "Looking for flagged players in league squads"],
     /** The League page's form, awards and storylines, which arrive just after its table. */
     leagueExtras: ["Loading form, awards and stats", "Reading every manager's season", "Handing out this week's awards"],
     team: "Loading team",
     club: "Loading club",
     fixtures: "Loading fixtures",
     bonus: "Loading bonus points",
-    history: ["Loading history", "Fetching past tables", "Opening the archive"],
+    history: ["Loading past tables", "Fetching past tables", "Opening past tables"],
     historySlow: "Waking up the history server. It sleeps when idle, so the first visit can take up to a minute.",
     times: ["Loading The Times", "Fetching the latest edition", "Unfolding The Times"],
     issue: ["Opening the issue", "Turning to page one", "Fetching the pages"],
@@ -3163,7 +3264,7 @@ export const en = {
       woodenSpoon: [
         (c: AwardCopy) => `${c.name} landed softly on ${c.figure} ${c.when}. Breathe. The wave comes back.`,
         (c: AwardCopy) => `${c.figure} ${c.when}, the lowest in the league. ${c.name} is lying on the floor, looking at the ceiling.`,
-        (c: AwardCopy) => `${c.name} came down to ${c.figure} ${c.when}. Drink some water. A new deadline is coming.`,
+        (c: AwardCopy) => `${c.name} came down to ${c.figure} ${c.when}. Drink some water. The colours come back.`,
       ],
       hotStreak: [
         (c: AwardCopy) => `${c.name} has floated above the league average ${c.figure} running.`,

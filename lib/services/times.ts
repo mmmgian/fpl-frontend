@@ -52,7 +52,9 @@ export function createTimesService(times: TimesPort, { fpl, now = () => new Date
       const issue = await times.issue(id);
       if (!issue) return { kind: "not-found" };
       const sorted = sortIssues(await times.library());
-      return { kind: "ok", issue, page: parsePageNumber(page, issue.pageCount), ...neighbours(sorted, issue.id) };
+      // "Previous / next issue" walks one series: after a newspaper comes the next newspaper, not a dossier from the same week.
+      const series = filterIssues(sorted, issue.kind);
+      return { kind: "ok", issue, page: parsePageNumber(page, issue.pageCount), ...neighbours(series, issue.id) };
     },
   };
 }

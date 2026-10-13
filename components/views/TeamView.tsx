@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge, GameweekPager, LiveRefresh, StateMessage, StatList, gameweekName, getFormat, getT } from "@/components/ui";
+import { Badge, ButtonLink, GameweekPager, LiveRefresh, LocalTime, StateMessage, StatList, gameweekName, getFormat, getT } from "@/components/ui";
 import { refreshIntervalMs, varietyKey } from "@/lib/domain";
 import type { TeamGameweek, TeamIdentity, TeamModel, TeamSummary } from "@/lib/services/models";
 import { InterviewPanel } from "./InterviewPanel";
@@ -13,13 +13,28 @@ type TeamState = Exclude<TeamModel, { kind: "not-found" }>;
 
 const header = (team: TeamIdentity, facts?: HeaderFact[], actions?: ReactNode, gw?: number) => <TeamHeader team={team} facts={facts} actions={actions} gw={gw} />;
 
-/** "Playing since 2019 · 7 earlier seasons": the manager's experience, for the header. */
-const experience = (season: { tenure: { seasons: number; firstSeason: string | null } } | null): string | null =>
-  season && season.tenure.firstSeason ? getT().team.experience(season.tenure.firstSeason.split("/")[0], season.tenure.seasons) : null;
+const hrefFor = (team: TeamIdentity) => (n: number) => `/team/${team.slug ?? team.entryId}?gw=${n}`;
 
-const pagerFor = (team: TeamIdentity, gw: TeamGameweek) => (
-  <GameweekPager gw={gw.gw} min={gw.min} max={gw.max} href={(n) => `/team/${team.slug ?? team.entryId}?gw=${n}`} />
-);
+/**
+ * The pager, and a way straight back to the latest gameweek from deep in the past (one step back is already the pager's
+ * own "next" button, so the shortcut only shows from two weeks back).
+ */
+const pagerFor = (team: TeamIdentity, gw: TeamGameweek) => {
+  const t = getT().team;
+  return (
+    <>
+      <GameweekPager gw={gw.gw} min={gw.min} max={gw.max} href={hrefFor(team)} />
+      {gw.gw < gw.max - 1 ? (
+        <ButtonLink size="sm" variant="ghost" href={hrefFor(team)(gw.max)} aria-label={t.latestLabel(gw.max)} scroll={false}>
+          {t.latest(getT().common.gw(gw.max))}
+        </ButtonLink>
+      ) : null}
+    </>
+  );
+};
+
+/** Local time of a deadline: weekday, date and time, in the reader's timezone. */
+const DEADLINE_TIME: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
 
 function Summary({ summary, gw, gameweekName: gwName, pick }: { summary: TeamSummary; gw: TeamGameweek; gameweekName: string; pick: Choose }) {
   const t = getT().team;
@@ -35,7 +50,7 @@ function Summary({ summary, gw, gameweekName: gwName, pick }: { summary: TeamSum
       items={[
         {
           label: isLive ? t.gwPointsLive : t.gwPoints,
-          value: summary.gwPoints,
+          value: f.number(summary.gwPoints),
           tone: "accent" as const,
           hint: [hit ? t.inclHit(hit) : null, isLive ? t.beforeAutoSubs : null, phase].filter(Boolean).join(" · ") || undefined,
         },
@@ -48,8 +63,12 @@ function Summary({ summary, gw, gameweekName: gwName, pick }: { summary: TeamSum
   );
 }
 
-/** The ruled row under the name: which gameweek and its state, the chip if one is played, and the manager's experience. */
-function factsFor(gw: TeamGameweek, extra: { chip?: string | null; experience?: string | null; league?: string | null } = {}): HeaderFact[] {
+/**
+ * The ruled row under the name: which gameweek and its state, the chip if one is played, the league position (only on
+ * the latest gameweek: it is today's table) and, once the latest week is played, the next deadline in the reader's time.
+ * The manager's experience is not repeated here: the Experience card says it, with more.
+ */
+function factsFor(gw: TeamGameweek, extra: { chip?: string | null; league?: string | null } = {}): HeaderFact[] {
   const t = getT();
   const h = t.team.header;
   return [
@@ -64,14 +83,28 @@ function factsFor(gw: TeamGameweek, extra: { chip?: string | null; experience?: 
     },
     ...(extra.chip ? [{ label: h.chip, value: <Badge tone="accent">{(t.chips as Record<string, string>)[extra.chip] ?? extra.chip}</Badge> }] : []),
     ...(extra.league ? [{ label: h.league, value: extra.league }] : []),
-    ...(extra.experience ? [{ label: h.experience, value: extra.experience }] : []),
+    ...(gw.nextDeadline
+      ? [
+          {
+            label: h.deadline,
+            value: (
+              <>
+                <span>{t.common.gw(gw.nextDeadline.gw)}</span> <LocalTime iso={gw.nextDeadline.at} options={DEADLINE_TIME} />
+              </>
+            ),
+          },
+        ]
+      : []),
   ];
 }
 
-/** The team's place in the league: position, movement since last gameweek, and the gap to the top (or the lead). */
-function leagueLine(team: TeamIdentity, pick: Choose): string | null {
+/**
+ * The team's place in the league: position, movement since last gameweek, and the gap to the top (or the lead). Only
+ * beside the latest gameweek: it is today's table, and would read as that week's beside an older one.
+ */
+function leagueLine(team: TeamIdentity, gw: TeamGameweek, pick: Choose): string | null {
   const spot = team.league;
-  if (!spot) return null;
+  if (!spot || gw.gw !== gw.max) return null;
   const gap = spot.rank === 1 ? spot.points - (spot.next?.points ?? spot.points) : spot.leader.points - spot.points;
   return pick(getT().team.vary.leagueSpot, 42)(spot.rank, spot.size, spot.moved, gap);
 }
@@ -128,7 +161,7 @@ export function TeamView({ model, now }: { model: TeamState; now?: Date }) {
         <>
           {header(
             team,
-            factsFor(gw, { chip: model.chip, experience: experience(model.insights.season), league: leagueLine(team, pick) }),
+            factsFor(gw, { chip: model.chip, league: leagueLine(team, gw, pick) }),
             <>
               {pagerFor(team, gw)}
               {refreshEvery(gw) ? <LiveRefresh enabled intervalMs={refreshEvery(gw)!} /> : null}
@@ -163,6 +196,9 @@ export function TeamView({ model, now }: { model: TeamState; now?: Date }) {
   }
 }
 
-/** Only the latest gameweek moves: every minute while live, slowly while provisional until FPL marks it final. */
+/**
+ * Only the latest gameweek moves. The service's plan (refreshPlan: every minute while a match is on, asleep through quiet
+ * gaps, slowly while FPL signs it off); without one (hand-built models), every minute while live, slowly while provisional.
+ */
 const refreshEvery = (gw: TeamGameweek): number | null =>
-  gw.isLive ? 60_000 : gw.gw === gw.max ? refreshIntervalMs(gw.status) : null;
+  gw.gw !== gw.max ? null : (gw.refreshMs ?? (gw.isLive ? 60_000 : refreshIntervalMs(gw.status)));

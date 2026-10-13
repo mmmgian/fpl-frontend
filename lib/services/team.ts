@@ -1,7 +1,8 @@
-import type { Entry } from "../domain";
-import { buildTeamSheet, entryOfSlug, entrySlugs, currentEvent, gameweekPoints, selectGameweek, varietyKey } from "../domain";
+import type { Entry, ScheduledFixture } from "../domain";
+import { buildTeamSheet, entryOfSlug, entrySlugs, currentEvent, gameweekPoints, nextDeadline, refreshPlan, seasonOver, selectGameweek, varietyKey } from "../domain";
 import type { LeagueSpot, TeamGameweek, TeamIdentity, TeamModel } from "./models";
 import type { AvatarPort, FplPort, MascotPort, ServiceOptions } from "./ports";
+import { ifAlreadyIn, pulseOf } from "./shared";
 import { buildInsights } from "./teamInsights";
 
 /** FPL sometimes leaves a name out or blank; never let that read as "undefined" or "null". */
@@ -61,10 +62,13 @@ export function createTeamService(
      * What an address means: a team number ("2379133") or a team's name as written in the address ("gaucho-f-c").
      * `slug` is the team's readable address if there is one, so an address with a number can be sent on to it.
      * Null if nothing in the league has that name and it isn't a number.
+     * Throws if a name can't be looked up because the league table is unavailable (FPL updating between gameweeks):
+     * that is an outage to retry, not a page that doesn't exist.
      */
     async resolve(param: string): Promise<{ entryId: number; slug: string | null } | null> {
       const table = await leagueTable();
       if (/^[1-9]\d{0,9}$/.test(param)) return { entryId: Number(param), slug: table?.slugs.get(Number(param)) ?? null };
+      if (!table && leagueId) throw new Error("The league table is unavailable, so the team's name can't be looked up");
       const id = table ? entryOfSlug(table.slugs, param) : null;
       // The canonical address, so "/team/Gaucho-F-C" is sent on to "/team/gaucho-f-c".
       return id === null ? null : { entryId: id, slug: table!.slugs.get(id) ?? param };
@@ -76,6 +80,13 @@ export function createTeamService(
         .entry(entryId)
         .then((entry) => (entry ? identityOf(entry, avatars, mascots) : null))
         .catch(() => null);
+    },
+
+    /** Every team in the league, in table order, with its address: for picking a team when a link leads nowhere. Null if unavailable. */
+    async directory(): Promise<{ slug: string; teamName: string; manager: string }[] | null> {
+      const table = await leagueTable();
+      if (!table || table.rows.length === 0) return null;
+      return table.rows.map((r) => ({ slug: table.slugs.get(r.entry) ?? String(r.entry), teamName: text(r.entry_name) || `#${r.entry}`, manager: text(r.player_name) }));
     },
 
     async load(entryId: number, requestedGw: string | string[] | undefined): Promise<TeamModel> {
@@ -121,8 +132,25 @@ export function createTeamService(
         isLive: selection.status === "live" && selection.gw === selection.latest.id,
         variety: varietyKey(selection.gw, selection.status, now()),
       };
-      // Picks without a squad list are as good as none.
-      if (!picks || !Array.isArray(picks.picks)) return { kind: "no-picks", team, gameweek };
+      /**
+       * What only the latest gameweek has: how often the page refreshes (from whether a match is on, when the schedule
+       * is known), the next deadline once the week has been played, and whether that was the season's last.
+       */
+      const timed = (schedule: ScheduledFixture[] | null): TeamGameweek => {
+        if (selection.gw !== selection.latest.id) return { ...gameweek, refreshMs: null, pulse: null, nextDeadline: null, seasonOver: false };
+        const at = now();
+        const pulse = selection.status === "live" ? pulseOf(schedule, selection.gw, at) : null;
+        const next = nextDeadline(bootstrap.events, at);
+        return {
+          ...gameweek,
+          refreshMs: refreshPlan(selection.status, pulse, at),
+          pulse,
+          nextDeadline: next && selection.status !== "live" ? { gw: next.gw, at: next.at } : null,
+          seasonOver: seasonOver(selection.status, next, bootstrap.events),
+        };
+      };
+      // Picks without a squad list are as good as none. The schedule is only used here if it is already in.
+      if (!picks || !Array.isArray(picks.picks)) return { kind: "no-picks", team, gameweek: timed(await ifAlreadyIn(scheduleRequest)) };
 
       const sheet = buildTeamSheet(picks, bootstrap, live);
       const raw = picks.entry_history ?? ({} as Partial<typeof picks.entry_history>);
@@ -137,6 +165,7 @@ export function createTeamService(
         bank: n(raw.bank),
         overall_rank: typeof raw.overall_rank === "number" && raw.overall_rank > 0 ? raw.overall_rank : null,
       } as typeof picks.entry_history;
+      const schedule = await scheduleRequest;
       const { insights, next } = buildInsights({
         sheet,
         picks,
@@ -144,13 +173,13 @@ export function createTeamService(
         gameweek,
         latest: selection.latest.id,
         history: await historyRequest,
-        schedule: await scheduleRequest,
+        schedule,
         gwFixtures,
       });
       return {
         kind: "ok",
         team,
-        gameweek,
+        gameweek: timed(schedule),
         chip: picks.active_chip,
         summary: {
           gwPoints: gameweekPoints(sheet, gwHistory, Boolean(live)),

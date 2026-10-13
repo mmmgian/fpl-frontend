@@ -2,14 +2,15 @@
 .bar { fill: var(--text-muted); opacity: 0.55; }
 .latest { fill: var(--accent); }
 .reference { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.8; }
-.value, .valueBest, .axis { fill: var(--text-muted); font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.value, .valueBest, .axis { fill: var(--text-muted); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .valueBest { fill: var(--text); font-weight: 800; }
-.axis { font-size: 8px; font-weight: 500; }
+/* SVG labels render at 1:1 here, so 10px is the floor and the large-bar labels get 11px. */
+.axis { font-size: 10px; font-weight: 500; }
 @media (forced-colors: active) {
   .bar, .latest { fill: CanvasText; }
   .reference { stroke: CanvasText; }
 }
-.axisBig { fill: var(--text-muted); font-size: 10px; font-weight: 500; }
+.axisBig { fill: var(--text-muted); font-size: 11px; font-weight: 500; }
 
 /* The altered view: the bars breathe and dance through the rainbow, each a beat apart, and the average line wobbles.
  * Global trip.css stops all of it for prefers-reduced-motion. */

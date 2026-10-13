@@ -12,8 +12,15 @@ export const FDR_WINDOWS = [3, 5, 10] as const;
 export type FdrWindow = (typeof FDR_WINDOWS)[number];
 export const DEFAULT_FDR_WINDOW: FdrWindow = 5;
 
-/** A gameweek with no fixture counts as this for ranking, so a blank neither helps nor hurts a team. */
+/** A difficulty FPL didn't give (missing or out of range) is read as this middle value. */
 export const NEUTRAL_DIFFICULTY = 3;
+
+/**
+ * A blank gameweek counts as this, the hardest rating: a week without a match scores nothing, so it can never make a
+ * run look easier. Rotation pairs and fixture swings use the same rule. A gameweek where nobody is scheduled yet isn't
+ * a blank and isn't counted at all.
+ */
+export const BLANK_DIFFICULTY = 5;
 
 export type FdrBand = 1 | 2 | 3 | 4 | 5;
 
@@ -28,9 +35,20 @@ export function fdrBand(difficulty: number): FdrBand {
   return rounded >= 1 && rounded <= 5 ? (rounded as FdrBand) : (NEUTRAL_DIFFICULTY as FdrBand);
 }
 
-/** Where the matrix starts by default: the current gameweek, or the next one if the current one is over. */
-export function defaultFdrStart(events: FplEvent[]): number | null {
+/**
+ * Where the matrix starts by default. Given `now`, the gameweek of the next deadline: a gameweek already under way is
+ * locked, so planning starts after it. Without `now`, or once no deadline is left, the current gameweek (or the next
+ * one if the current one is over).
+ */
+export function defaultFdrStart(events: FplEvent[], now?: Date): number | null {
   if (events.length === 0) return null;
+  if (now) {
+    const t = now.getTime();
+    const next = events
+      .filter((e) => Date.parse(e.deadline_time) > t)
+      .sort((a, b) => Date.parse(a.deadline_time) - Date.parse(b.deadline_time))[0];
+    if (next) return next.id;
+  }
   const current = events.findIndex((e) => e.is_current);
   if (current !== -1) {
     const event = events[current];
@@ -57,7 +75,7 @@ export interface FdrRow {
   cells: FdrCell[];
   /** Sum of each gameweek's difficulty (a double counts as the average of its two). Lower = easier. */
   score: number;
-  /** `score` per gameweek: the figure rows are ranked by, so what is shown matches the order. A blank counts as 3. */
+  /** `score` per scheduled gameweek: the figure rows are ranked by, so what is shown matches the order. A blank counts as 5. */
   average: number;
 }
 
@@ -74,6 +92,9 @@ const rating = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= 5 ? value : NEUTRAL_DIFFICULTY;
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+/** One gameweek's difficulty for a club: a double is the mean of its two, a blank the hardest. */
+const cellDifficulty = (c: FdrCell) => (c.matches.length ? mean(c.matches.map((m) => m.difficulty)) : BLANK_DIFFICULTY);
 
 /** Each club's matches in one gameweek (empty = blank, two = double), keyed by FPL team id. */
 export function matchesByTeam(fixtures: ScheduledFixture[], gw: number): Map<number, FdrMatch[]> {
@@ -103,11 +124,14 @@ export function buildFdrMatrix(
   const gameweeks = events.slice(from, from + window).map((e) => e.id);
 
   const byGw = new Map(gameweeks.map((gw) => [gw, matchesByTeam(fixtures, gw)]));
+  // Only gameweeks with at least one fixture count: an unscheduled week is unknown, not a blank for everyone.
+  const scheduled = new Set(gameweeks.filter((gw) => (byGw.get(gw)?.size ?? 0) > 0));
 
   const rows = teams.map<FdrRow>((team) => {
     const cells = gameweeks.map<FdrCell>((gw) => ({ gw, matches: byGw.get(gw)?.get(team.id) ?? [] }));
-    const score = cells.reduce((sum, c) => sum + (c.matches.length ? mean(c.matches.map((m) => m.difficulty)) : NEUTRAL_DIFFICULTY), 0);
-    return { teamId: team.id, cells, score, average: gameweeks.length ? score / gameweeks.length : NEUTRAL_DIFFICULTY };
+    const counted = cells.filter((c) => scheduled.has(c.gw));
+    const score = counted.reduce((sum, c) => sum + cellDifficulty(c), 0);
+    return { teamId: team.id, cells, score, average: counted.length ? score / counted.length : NEUTRAL_DIFFICULTY };
   });
 
   const name = new Map(teams.map((t) => [t.id, t.short_name || t.name]));
@@ -117,7 +141,7 @@ export function buildFdrMatrix(
 
 export interface FdrRun {
   teamId: number;
-  /** Difficulty per gameweek over the stretch (a blank counts as 3). */
+  /** Difficulty per gameweek over the stretch (a blank counts as 5). */
   average: number;
 }
 
@@ -132,18 +156,23 @@ export interface FdrHighlights {
   blank: { gw: number; teams: number[] } | null;
 }
 
-const cellDifficulty = (c: FdrCell) => (c.matches.length ? mean(c.matches.map((m) => m.difficulty)) : NEUTRAL_DIFFICULTY);
-
 /** The facts worth a sentence in a difficulty matrix: best and worst run, the biggest swing, the first double and blank. */
 export function fdrHighlights(matrix: FdrMatrix): FdrHighlights | null {
   const { rows, gameweeks } = matrix;
   if (rows.length === 0 || gameweeks.length === 0) return null;
   const split = Math.floor(gameweeks.length / 2);
+  // As in the ranking, a gameweek nobody is scheduled in yet is left out of both halves.
+  const scheduled = gameweeks.map((_, i) => rows.some((r) => r.cells[i].matches.length > 0));
+  const half = (row: FdrRow, from: number, to: number) => {
+    const cells = row.cells.slice(from, to).filter((_, i) => scheduled[from + i]);
+    return cells.length ? mean(cells.map(cellDifficulty)) : null;
+  };
   let swing: FdrHighlights["swing"] = null;
   if (split > 0) {
     for (const row of rows) {
-      const before = mean(row.cells.slice(0, split).map(cellDifficulty));
-      const after = mean(row.cells.slice(split).map(cellDifficulty));
+      const before = half(row, 0, split);
+      const after = half(row, split, gameweeks.length);
+      if (before === null || after === null) continue;
       if (before - after >= 1 && (!swing || before - after > swing.before - swing.after)) swing = { teamId: row.teamId, before, after, from: gameweeks[split] };
     }
   }

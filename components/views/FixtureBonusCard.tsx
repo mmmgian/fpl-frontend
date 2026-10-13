@@ -12,10 +12,19 @@ const STATE_BADGE: Record<FixtureState, { key: "live" | "ft"; tone: BadgeTone } 
 
 const SOURCE_TONE: Record<Exclude<BonusSource, "none">, BadgeTone> = { confirmed: "positive", provisional: "warning", projected: "warning" };
 
-/** The label and help text for where a fixture's bonus comes from, in the page's language; null when there is none. */
-export function sourceNote(source: BonusSource): { label: string; tone: BadgeTone; help: string } | null {
+/** Which explanation a card needs: projected bonus reads differently once the match is over (it can no longer move). */
+export type SourceKey = Exclude<BonusSource, "none"> | "projectedFt";
+
+export function sourceKey(source: BonusSource, state: FixtureState): SourceKey | null {
   if (source === "none") return null;
-  return { ...getT().bonus.sources[source], tone: SOURCE_TONE[source] };
+  return source === "projected" && (state === "provisional" || state === "final") ? "projectedFt" : source;
+}
+
+/** The label and help text for where a fixture's bonus comes from, in the page's language; null when there is none. */
+export function sourceNote(source: BonusSource, state: FixtureState = "live"): { key: SourceKey; label: string; tone: BadgeTone; help: string } | null {
+  const key = sourceKey(source, state);
+  if (key === null || source === "none") return null;
+  return { key, ...getT().bonus.sources[key], tone: SOURCE_TONE[source] };
 }
 
 /** A club's crest and short name in a match heading, linked to its page when we know which club it is. */
@@ -105,7 +114,7 @@ export function FixtureBonusCard({ card, variety = 0 }: { card: FixtureCard; var
   const b = getT().bonus;
   const { home, away, state, score, events } = card;
   const badge = STATE_BADGE[state];
-  const note = sourceNote(card.bonus.source);
+  const note = sourceNote(card.bonus.source, state);
   const noBonusData = card.bonus.home.length === 0 && card.bonus.away.length === 0;
   const eventRows = [
     [b.goals, events.goals],

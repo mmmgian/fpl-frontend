@@ -1,6 +1,8 @@
 .title { display: inline-flex; align-items: center; gap: var(--space-3); }
 /* The cards hold rows of name + date + score, so they need real width: one column on a phone, two beside each other
    on a wide screen, with the longer cards (news, line-up, headlines) across both. */
+/* Form, run, top scorer and absentees in a few sentences. */
+.lede { margin: 0 0 var(--space-4); max-width: 75ch; color: var(--text-muted); text-wrap: pretty; }
 .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 @media (min-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .wide { grid-column: 1 / -1; }

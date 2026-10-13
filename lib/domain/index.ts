@@ -4,6 +4,7 @@
  */
 export * from "./avatar";
 export * from "./bonus";
+export * from "./brief";
 export * from "./club";
 export * from "./fdr";
 export * from "./fixtureFeed";

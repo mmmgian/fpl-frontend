@@ -1,5 +1,5 @@
 import { Badge, Card, ClubLink, Crest, LocalTime, getT, type BadgeTone } from "@/components/ui";
-import type { BonusSource, FixtureState } from "@/lib/domain";
+import { pickVariant, type BonusSource, type FixtureState } from "@/lib/domain";
 import type { BonusLine, ClubSide, EventLine, FixtureCard } from "@/lib/services/models";
 import styles from "./bonus.module.css";
 
@@ -79,10 +79,29 @@ function Side({ club, lines, hidden }: { club: ClubSide; lines: BonusLine[]; hid
   );
 }
 
+/**
+ * One or two sentences on how the match's bonus race stands: who leads and by how much (or who is level), and who is
+ * on the bonus line when it is close. The wording is drawn per match, so neighbouring cards read differently.
+ */
+function raceLine(card: FixtureCard, variety: number): string | null {
+  const b = getT().bonus;
+  const { race, id } = card;
+  const source = card.bonus.source;
+  if (!race || source === "none" || card.state === "upcoming") return null;
+  const parts: string[] = [];
+  if (race.runnerUp !== null && race.lead === 0) parts.push(pickVariant(b.race.level, variety, id)(race.leader, race.runnerUp, race.bps));
+  else if (race.runnerUp !== null && race.lead !== null) parts.push(pickVariant(b.race[source], variety, id)(race.leader, race.bps, race.lead, race.runnerUp));
+  if (race.bubble) {
+    const settled = source !== "projected";
+    parts.push(pickVariant(settled ? b.race.bubbleShut : b.race.bubbleOpen, variety, id + 7919)(race.bubble.inside, race.bubble.outside, race.bubble.gap));
+  }
+  return parts.length ? parts.join(" ") : null;
+}
+
 const list = (items: EventLine[]) => items.map((e) => (e.count > 1 ? `${e.player} ×${e.count}` : e.player)).join(", ");
 
 /** Renders one fixture. Everything it shows has already been resolved by the bonus service. */
-export function FixtureBonusCard({ card }: { card: FixtureCard }) {
+export function FixtureBonusCard({ card, variety = 0 }: { card: FixtureCard; variety?: number }) {
   const b = getT().bonus;
   const { home, away, state, score, events } = card;
   const badge = STATE_BADGE[state];
@@ -94,6 +113,7 @@ export function FixtureBonusCard({ card }: { card: FixtureCard }) {
     [b.redCards, events.redCards],
   ] as const;
   const hasEvents = eventRows.some(([, items]) => items.length > 0);
+  const story = raceLine(card, variety);
 
   const title = (
     <span className={styles.title}>
@@ -141,14 +161,17 @@ export function FixtureBonusCard({ card }: { card: FixtureCard }) {
       </header>
 
       {state === "upcoming" ? (
-        <p className={styles.muted}>{b.upcomingNote}</p>
+        <p className={styles.muted}>{pickVariant(b.upcomingNote, variety, card.id)(home.name, away.name)}</p>
       ) : noBonusData ? (
         <p className={styles.muted}>{b.noData}</p>
       ) : (
-        <div className={styles.sides}>
+        <>
+          {story ? <p className={styles.race}>{story}</p> : null}
+          <div className={styles.sides}>
           <Side club={home} lines={card.bonus.home} hidden={card.bonus.hidden.home} />
           <Side club={away} lines={card.bonus.away} hidden={card.bonus.hidden.away} />
-        </div>
+          </div>
+        </>
       )}
 
       {hasEvents && state !== "upcoming" ? (

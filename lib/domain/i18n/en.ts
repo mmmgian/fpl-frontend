@@ -3,7 +3,8 @@
  * and not translated fails the type check. Strings that need numbers or names are functions; each language decides
  * its own plural rules.
  */
-import type { AnswerKind, AskKind, GenericAnswer, InterviewContext, InterviewTopic, InterviewVoice, TopicId, TripTipId, TripVoice } from "../interview";
+import type { AnswerKind, AskKind, GenericAnswer, InterviewContext, InterviewMood, InterviewOpener, InterviewTopic, InterviewTopicalVoice, InterviewVoice, TopicId, TripTipId, TripVoice } from "../interview";
+import type { AngleCopy, AwardCopy, StoryCopy } from "../leagueStats";
 import { clientEn } from "./client/en";
 
 const gw = (n: number) => `GW${n}`;
@@ -105,7 +106,11 @@ export const en = {
     none: "No fixtures yet",
     noneBody: "The fixture list appears once FPL publishes the season.",
     feedEyebrow: "Every fixture, all season",
-    feedIntro: "Scroll through the lot. Doubles and blanks are flagged, and each side carries its difficulty from 1 (a gift) to 5 (a nightmare).",
+    feedIntro: [
+      "Scroll through the lot. Doubles and blanks are flagged, and each side carries its difficulty from 1 (a gift) to 5 (a nightmare).",
+      "Every match, gameweek by gameweek. The number by each club is FPL's difficulty for it: 1 is a stroll, 5 is the champions away.",
+      "The whole season in one scroll. Doubles and blanks get a flag; each side's FPL difficulty runs from 1 (easy) to 5 (brutal).",
+    ],
     gridEyebrow: "Fixture difficulty",
     gridIntro: (from: number, to: number) => `Easiest run first, over GW${from}–GW${to}`,
     gridRegion: "Fixture difficulty table",
@@ -118,6 +123,39 @@ export const en = {
     next: (n: number) => `Next ${n}`,
     homeShort: "H",
     awayShort: "A",
+    /** How long until a deadline, from whole hours. */
+    until: (h: number) => (h < 1 ? "under an hour" : h < 48 ? `${h} ${h === 1 ? "hour" : "hours"}` : `${Math.floor(h / 24)} days`),
+    deadline: [
+      (gw: number, until: string, matches: number) => `GW${gw} deadline in ${until}: ${matches} ${matches === 1 ? "match" : "matches"} to plan for.`,
+      (gw: number, until: string, matches: number) => `${until} until the GW${gw} deadline, ${matches} ${matches === 1 ? "fixture" : "fixtures"} on the card. Transfers in yet?`,
+      (gw: number, until: string, matches: number) => `Next up: GW${gw}, locking in ${until}, with ${matches} ${matches === 1 ? "match" : "matches"} to pick from.`,
+    ],
+    seasonOver: "The last deadline has gone: nothing left to plan this season, only results to look back on.",
+    easiest: [
+      (team: string, avg: string, from: number, to: number) => `${team} have the kindest run, GW${from}–GW${to} (difficulty ${avg}).`,
+      (team: string, avg: string, from: number, to: number) => `Softest schedule from GW${from} to GW${to}: ${team}, averaging ${avg}. Their attackers are worth a look.`,
+      (team: string, avg: string, from: number, to: number) => `If you're buying, ${team} (${avg} over GW${from}–GW${to}) have the fixtures.`,
+    ],
+    toughest: [
+      (team: string, avg: string, from: number, to: number) => `${team} face the hardest road, GW${from}–GW${to} (difficulty ${avg}).`,
+      (team: string, avg: string, from: number, to: number) => `Brace for ${team}: ${avg} a gameweek from GW${from} to GW${to}, the toughest run going.`,
+      (team: string, avg: string, from: number, to: number) => `The run to sell into: ${team}, ${avg} over GW${from}–GW${to}.`,
+    ],
+    swing: [
+      (team: string, before: string, after: string, gw: number) => `Fixture swing: ${team} go from ${before} to ${after} from GW${gw}. Plan the move a week early.`,
+      (team: string, before: string, after: string, gw: number) => `${team}'s fixtures turn at GW${gw}: difficulty ${before} before, ${after} after.`,
+      (team: string, before: string, after: string, gw: number) => `Watch ${team}: their run eases from ${before} to ${after} once GW${gw} comes round.`,
+    ],
+    double: [
+      (gw: number, teams: string) => `Double in GW${gw}: ${teams} play twice.`,
+      (gw: number, teams: string) => `GW${gw} is a double for ${teams}. Two matches, two chances to score.`,
+      (gw: number, teams: string) => `Chip territory: ${teams} have two matches in GW${gw}.`,
+    ],
+    blank: [
+      (gw: number, teams: string) => `Blank in GW${gw}: ${teams} don't play.`,
+      (gw: number, teams: string) => `${teams} sit out GW${gw}. Check your bench before the deadline.`,
+      (gw: number, teams: string) => `GW${gw} has a blank for ${teams}: their players score nothing that week.`,
+    ],
   },
 
   chips: {
@@ -135,7 +173,11 @@ export const en = {
     notFoundTail: " environment variable.",
     preSeason: "Pre-season",
     emptyTitle: "The table is empty for now",
-    emptyBody: "Standings appear after the first gameweek deadline.",
+    emptyBodies: [
+      "Standings appear after the first gameweek deadline.",
+      "Nothing to rank until the first deadline passes and FPL locks in everyone's squad.",
+      "The table fills in once Gameweek 1 kicks off. Until then, it's all team-planning.",
+    ],
     joined: (n: number) => ` ${n} managers have joined so far.`,
     summary: "League summary",
     leader: "Leader",
@@ -144,6 +186,80 @@ export const en = {
     truncated: "Showing first pages only",
     caption: (name: string) => `${name} standings`,
     awardsHeading: "League awards",
+    /** The leader's hint in the summary, with their margin over second place. */
+    leaderHint: [
+      (name: string, gap: string) => `${name}, ${gap} clear`,
+      (name: string, gap: string) => `${name}, up by ${gap}`,
+      (name: string, gap: string) => `${name}, ${gap} ahead of second`,
+    ],
+    /** The week's best score while matches are still being played. */
+    bestLive: (name: string) => `${name}, so far`,
+    storyLabel: "This week in the league",
+    /** Where the current gameweek stands in FPL, at the head of the storylines. */
+    phase: {
+      upcoming: [
+        (gw: number) => `GW${gw} deadline still ahead: transfers are open.`,
+        (gw: number) => `GW${gw} hasn't started; there's still time to fix that squad.`,
+        (gw: number) => `Waiting on the GW${gw} deadline. Captains not locked yet.`,
+      ],
+      live: [
+        (gw: number) => `GW${gw} is live: totals move with every goal, card and clean sheet.`,
+        (gw: number) => `GW${gw} in play, so read this table in pencil.`,
+        (gw: number) => `Matches still running in GW${gw}; the order can turn by full time.`,
+      ],
+      provisional: [
+        (gw: number) => `GW${gw} is over but provisional: FPL hasn't run its final check yet.`,
+        (gw: number) => `GW${gw} points are in, pending FPL's final data check.`,
+        (gw: number) => `Provisional GW${gw}: bonus is in, FPL's sign-off still to come.`,
+      ],
+      final: [
+        (gw: number) => `GW${gw} is final: FPL has signed it off.`,
+        (gw: number) => `Confirmed by FPL: GW${gw} is in the books.`,
+        (gw: number) => `GW${gw} is settled and checked. These totals stand.`,
+      ],
+    } as Record<"upcoming" | "live" | "provisional" | "final", ((gw: number) => string)[]>,
+    story: {
+      newLeader: [
+        (c: StoryCopy) => `${c.name} has taken top spot, up from ${ord(c.place)}.`,
+        (c: StoryCopy) => `New name at the top: ${c.name}, who started the week ${ord(c.place)}.`,
+        (c: StoryCopy) => `${c.name} climbs from ${ord(c.place)} to 1st. The crown has moved.`,
+      ],
+      titleRace: [
+        (c: StoryCopy) => `${c.name} leads ${c.other} by ${c.figure}.`,
+        (c: StoryCopy) => `${c.figure} separate ${c.name} at the top from ${c.other} in second.`,
+        (c: StoryCopy) => `${c.other} is ${c.figure} off ${c.name}'s lead${c.n <= 10 ? ": one captaincy swing" : ""}.`,
+      ],
+      level: [
+        (c: StoryCopy) => `${c.name} and ${c.other} are level on points at the top.`,
+        (c: StoryCopy) => `Nothing between ${c.name} and ${c.other}: dead level for first.`,
+        (c: StoryCopy) => `A shared summit: ${c.name} and ${c.other} on identical totals.`,
+      ],
+      riser: [
+        (c: StoryCopy) => `${c.name} jumped ${c.figure} to ${ord(c.place)}.`,
+        (c: StoryCopy) => `Mover of the week: ${c.name}, up ${c.figure} into ${ord(c.place)}.`,
+        (c: StoryCopy) => `${c.name} is now ${ord(c.place)} after climbing ${c.figure}.`,
+      ],
+      faller: [
+        (c: StoryCopy) => `${c.name} slid ${c.figure} to ${ord(c.place)}.`,
+        (c: StoryCopy) => `A rough one for ${c.name}: down ${c.figure}, now ${ord(c.place)}.`,
+        (c: StoryCopy) => `${c.name} dropped to ${ord(c.place)}, ${c.figure} lower than last week.`,
+      ],
+      weekHigh: [
+        (c: StoryCopy) => `${c.name} topped GW${c.gw} with ${c.figure} after hits.`,
+        (c: StoryCopy) => `GW${c.gw}'s best score in the league: ${c.figure}, from ${c.name}.`,
+        (c: StoryCopy) => `Nobody beat ${c.name}'s ${c.figure} in GW${c.gw}.`,
+      ],
+      chips: [
+        (c: StoryCopy) => `${c.n === 1 ? "One chip" : `${c.n} chips`} played in GW${c.gw}; ${c.name}'s ${c.chip} returned ${c.figure}.`,
+        (c: StoryCopy) => `${c.name} went ${c.chip} in GW${c.gw} and banked ${c.figure}${c.n > 1 ? ` (${c.n} chips played in all)` : ""}.`,
+        (c: StoryCopy) => `Chip watch, GW${c.gw}: ${c.name}'s ${c.chip} brought ${c.figure}.`,
+      ],
+      bottom: [
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} props up the table, level with the team above.` : `${c.name} props up the table, ${c.figure} adrift.`),
+        (c: StoryCopy) => (c.n === 0 ? `The foot of the table: ${c.name}, but only on the tiebreak.` : `${c.figure} is the gap ${c.name} must close to get off the bottom.`),
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} is last, though level on points with the team above.` : `Last place: ${c.name}, ${c.figure} behind the next team.`),
+      ],
+    },
   },
 
   table: {
@@ -203,8 +319,54 @@ export const en = {
     overall: "Overall rank",
     chipsPlayed: "Chips played",
     noChips: "None yet",
-    hotLine: (n: number) => n === 1 ? "Hot: above average this week" : `Hot: ${n} weeks above average`,
-    coldLine: (n: number) => n === 1 ? "Cold: below average this week" : `Cold: ${n} weeks below average`,
+    hotLines: [
+      (n: number) => n === 1 ? "Hot: above average this week" : `Hot: ${n} weeks above average`,
+      (n: number) => n === 1 ? "Beat the league average this week" : `On fire: ${n} straight weeks above average`,
+      (n: number) => n === 1 ? "Above the league average this time" : `${n} weeks running above the league average`,
+    ],
+    coldLines: [
+      (n: number) => n === 1 ? "Cold: below average this week" : `Cold: ${n} weeks below average`,
+      (n: number) => n === 1 ? "Under the league average this week" : `Stuck: ${n} straight weeks below average`,
+      (n: number) => n === 1 ? "Below the league average this time" : `${n} weeks running below the league average`,
+    ],
+    /** One talking point under a manager's bars, from their own numbers. */
+    angles: {
+      chase: [
+        (c: AngleCopy) => `${c.figure} behind the team above: one captain haul covers it.`,
+        (c: AngleCopy) => `Within ${c.figure} of the next place up.`,
+        (c: AngleCopy) => `The team above is only ${c.figure} away.`,
+      ],
+      overallUp: [
+        (c: AngleCopy) => `Climbed ${c.figure} in the overall rankings since the previous gameweek.`,
+        (c: AngleCopy) => `Overall rank up by ${c.figure} last gameweek.`,
+        (c: AngleCopy) => `A green arrow overall: ${c.figure} gained.`,
+      ],
+      overallDown: [
+        (c: AngleCopy) => `Lost ${c.figure} in the overall rankings since the previous gameweek.`,
+        (c: AngleCopy) => `Overall rank down by ${c.figure} last gameweek.`,
+        (c: AngleCopy) => `A red arrow overall: ${c.figure} dropped.`,
+      ],
+      peak: [
+        (c: AngleCopy) => `GW${c.gw} was their best week of the season: ${c.figure}.`,
+        (c: AngleCopy) => `Season high in GW${c.gw}, with ${c.figure}.`,
+        (c: AngleCopy) => `${c.figure} in GW${c.gw}, their best yet.`,
+      ],
+      low: [
+        (c: AngleCopy) => `GW${c.gw} was their lowest week of the season: ${c.figure}.`,
+        (c: AngleCopy) => `Season low in GW${c.gw}, with ${c.figure}.`,
+        (c: AngleCopy) => `Only ${c.figure} in GW${c.gw}, their worst yet.`,
+      ],
+      bench: [
+        (c: AngleCopy) => `${c.figure} left on the bench this season, Bench Boost weeks aside.`,
+        (c: AngleCopy) => `Points that never counted: ${c.figure} on the bench so far.`,
+        (c: AngleCopy) => `${c.figure} wasted on the bench this season.`,
+      ],
+      clean: [
+        (c: AngleCopy) => `${c.n} transfers this season and not a single hit.`,
+        (c: AngleCopy) => `Patient: ${c.n} transfers, all of them free.`,
+        (c: AngleCopy) => `No points paid for any of their ${c.n} transfers.`,
+      ],
+    },
   },
 
   awards: {
@@ -220,14 +382,64 @@ export const en = {
     },
     inGw: (gw: number) => `in GW${gw}`,
     thisWeek: "this week",
-    weekWinner: (name: string, pts: string, when: string) => `${name} hauled ${pts} after hits, the best score in the league ${when}.`,
-    woodenSpoon: (name: string, pts: string, when: string) => `${name} could only scrape together ${pts} ${when}. Next week, surely.`,
-    hotStreak: (name: string, weeks: string) => `${name} has beaten the league average ${weeks} running.`,
-    climber: (name: string, places: string) => `${name} climbed ${places} up the table.`,
-    rollercoaster: (name: string, n: string) => `${name}'s weekly score swings about ${n} points either side of their average. Hold on tight.`,
-    benchDisaster: (name: string, pts: string) => `${name} has left ${pts} sitting on the bench this season.`,
-    hitMachine: (name: string, pts: string) => `${name} has handed back ${pts} in transfer hits this season.`,
-    deepPockets: (name: string, money: string) => `${name}'s squad and bank add up to ${money}, the most in the league.`,
+    /** Under the heading: which week the awards are for, and how settled it is. `live` is the gameweek in play. */
+    phase: {
+      live: [
+        (gw: number, live: number) => `For GW${gw}, the last finished week. GW${live} is still being played.`,
+        (gw: number, live: number) => `GW${gw}'s honours, standing until GW${live} is done.`,
+        (gw: number, live: number) => `Handed out on GW${gw}. GW${live} gets its turn at full time.`,
+      ],
+      provisional: [
+        (gw: number, _live: number) => `GW${gw}, provisional until FPL's final check.`,
+        (gw: number, _live: number) => `GW${gw} is in but not yet signed off by FPL. Small changes are still possible.`,
+        (gw: number, _live: number) => `Provisional GW${gw}: FPL still has to confirm the numbers.`,
+      ],
+      final: [
+        (gw: number, _live: number) => `GW${gw}, checked and final.`,
+        (gw: number, _live: number) => `GW${gw} is signed off by FPL. These stand.`,
+        (gw: number, _live: number) => `Final for GW${gw}: no more changes coming.`,
+      ],
+    } as Record<"live" | "provisional" | "final", ((gw: number, live: number) => string)[]>,
+    weekWinner: [
+      (c: AwardCopy) => `${c.name} hauled ${c.figure} after hits, the best score in the league ${c.when}.`,
+      (c: AwardCopy) => `Top of the week ${c.when}: ${c.name} with ${c.figure} after hits. Now ${ord(c.place)} in the table.`,
+      (c: AwardCopy) => `${c.figure} after hits ${c.when}. Nobody in the league did better than ${c.name}.`,
+    ],
+    woodenSpoon: [
+      (c: AwardCopy) => `${c.name} could only scrape together ${c.figure} ${c.when}. Next week, surely.`,
+      (c: AwardCopy) => `The league's lowest ${c.when}: ${c.figure} for ${c.name}.`,
+      (c: AwardCopy) => `${c.figure} ${c.when}. ${c.name} will want that one forgotten by the next deadline.`,
+    ],
+    hotStreak: [
+      (c: AwardCopy) => `${c.name} has beaten the league average ${c.figure} running.`,
+      (c: AwardCopy) => `${c.figure} in a row above the league average for ${c.name}.`,
+      (c: AwardCopy) => `${c.name}, ${ord(c.place)} in the table, has been above average ${c.figure} straight.`,
+    ],
+    climber: [
+      (c: AwardCopy) => `${c.name} climbed ${c.figure} up the table.`,
+      (c: AwardCopy) => `Up ${c.figure} for ${c.name}, now ${ord(c.place)}.`,
+      (c: AwardCopy) => `${c.name} gained ${c.figure} and sits ${ord(c.place)}.`,
+    ],
+    rollercoaster: [
+      (c: AwardCopy) => `${c.name}'s weekly score swings about ${c.figure} points either side of their average. Hold on tight.`,
+      (c: AwardCopy) => `The league's most unpredictable: ${c.name}, typically ${c.figure} points off their average.`,
+      (c: AwardCopy) => `Boom or bust: ${c.name}'s weeks land about ${c.figure} points from their average.`,
+    ],
+    benchDisaster: [
+      (c: AwardCopy) => `${c.name} has left ${c.figure} sitting on the bench this season.`,
+      (c: AwardCopy) => `${c.figure} on ${c.name}'s bench this season that never counted.`,
+      (c: AwardCopy) => `Nobody has wasted more on the bench: ${c.figure} for ${c.name}.`,
+    ],
+    hitMachine: [
+      (c: AwardCopy) => `${c.name} has handed back ${c.figure} in transfer hits this season.`,
+      (c: AwardCopy) => `More hits than anyone: ${c.name} has paid ${c.figure} for extra transfers.`,
+      (c: AwardCopy) => `${c.figure} spent on hits this season, the most in the league, by ${c.name}.`,
+    ],
+    deepPockets: [
+      (c: AwardCopy) => `${c.name}'s squad and bank add up to ${c.figure}, the most in the league.`,
+      (c: AwardCopy) => `The richest squad in the league: ${c.name}, at ${c.figure} with the bank.`,
+      (c: AwardCopy) => `Squad value plus bank: ${c.figure} for ${c.name}, ${ord(c.place)} in the table and first in the wallet.`,
+    ],
     weeksFigure: (n: number) => `${n} wk`,
     shared: (n: number) => `Shared with ${n} ${n === 1 ? "other" : "others"}`,
   },
@@ -236,13 +448,42 @@ export const en = {
     eyebrow: "History",
     title: "Past standings",
     intro: "The league table, frozen at the final whistle of each gameweek.",
+    lede: [
+      (latest: number, count: number) => `The league table, frozen at the final whistle of each gameweek: ${count} ${count === 1 ? "table" : "tables"} so far, Gameweek ${latest} the latest final one.`,
+      (latest: number, count: number) => `Gameweek ${latest} is the newest final table on the shelf, ${count} in all.`,
+      (latest: number, count: number) => `${count} ${count === 1 ? "gameweek" : "gameweeks"} saved, newest first. The latest final table: Gameweek ${latest}.`,
+    ],
+    latest: "Latest final",
+    live: [
+      (gw: number) => `Gameweek ${gw} is being played; its table joins the shelf once it is final.`,
+      (gw: number) => `Gameweek ${gw} is still live, so its table isn't here yet.`,
+      (gw: number) => `Next on the shelf: Gameweek ${gw}, once its points are confirmed.`,
+    ],
+    pending: [
+      (gw: number) => `Gameweek ${gw} is over. Its table is filed at the daily 06:00 UTC run once FPL confirms the bonus.`,
+      (gw: number) => `Gameweek ${gw} has finished; its table arrives with the next morning's snapshot.`,
+      (gw: number) => `The final whistle has gone on Gameweek ${gw}. Its table lands here after FPL signs off the points.`,
+    ],
+    filed: [
+      (gw: number) => `Up to date: Gameweek ${gw} is final and filed.`,
+      (gw: number) => `Gameweek ${gw}'s final table is in. Nothing pending.`,
+      (gw: number) => `The shelf is current through Gameweek ${gw}.`,
+    ],
     emptyTitle: "The archive is empty",
-    emptyBody: "A snapshot is taken automatically once a gameweek is over and its bonus points are confirmed. Check back when the current one wraps up.",
+    emptyBody: [
+      "A snapshot is taken automatically once a gameweek is over and its bonus points are confirmed. Check back when the current one wraps up.",
+      "Nothing filed yet. The first table lands here the morning after a gameweek's points are confirmed.",
+      "The shelf fills itself: one table per gameweek, saved once FPL has signed off the bonus.",
+    ],
     rebuilt: "Rebuilt",
     saved: "Saved",
     back: "← All snapshots",
     missingTitle: (gw: number) => `No snapshot for Gameweek ${gw}`,
-    missingBody: "No photo of this one yet. Snapshots are taken once a gameweek is over and its bonus points are confirmed.",
+    missingBody: [
+      "No photo of this one yet. Snapshots are taken once a gameweek is over and its bonus points are confirmed.",
+      "This gameweek hasn't been filed. Tables are saved the morning after FPL confirms the points.",
+      "Nothing saved for this one yet: a table is filed only once the gameweek is final.",
+    ],
     standings: (gw: number) => `Gameweek ${gw} standings`,
     standingsAfter: (name: string, gw: number) => `${name} standings after Gameweek ${gw}`,
     rebuiltTitle: "Rebuilt after the gameweek",
@@ -254,12 +495,21 @@ export const en = {
     levelGroup: (names: string, pts: string) => `${names} (${pts} pts)`,
     and: " and ",
     movementNote: "A ≈ beside a rise, fall or dash means one of the two ranks it compares is approximate, so the change may be a place out.",
+    /** One line about the saved table, in parts, each worded three ways. */
+    summary: {
+      leader: [(name: string, pts: string) => `${name} led on ${pts}.`, (name: string, pts: string) => `Top of the table: ${name}, ${pts}.`, (name: string, pts: string) => `${name} was the one to catch, on ${pts}.`],
+      gap: [(pts: string) => `${pts} clear of second.`, (pts: string) => `The gap to second: ${pts}.`, (pts: string) => `Second place was ${pts} behind.`],
+      level: ["Level with second on points.", "Second place had the same total.", "Nobody clear: first and second were level."],
+      best: [(name: string, pts: string) => `Top score of the week: ${name}, ${pts}.`, (name: string, pts: string) => `${name} had the best week, ${pts}.`, (name: string, pts: string) => `${pts} for ${name}, the gameweek's best.`],
+      climber: [(name: string, places: string) => `Biggest climb: ${name}, up ${places}.`, (name: string, places: string) => `${name} rose ${places}, more than anyone.`, (name: string, places: string) => `${name} made the biggest move up: ${places}.`],
+      faller: [(name: string, places: string) => `Biggest drop: ${name}, down ${places}.`, (name: string, places: string) => `${name} fell ${places}, the most in the league.`, (name: string, places: string) => `A rough week for ${name}: down ${places}.`],
+    },
   },
 
   team: {
     /** The labels of the ruled facts row under the team name. */
     header: {
-      manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience",
+      manager: "Manager", gameweek: "Gameweek", chip: "Chip", experience: "Experience", league: "League",
       neighbours: {
         label: "Neighbouring managers",
         prev: (team: string, rank: number) => `Previous manager: ${team}, ranked ${rank}`,
@@ -289,6 +539,22 @@ export const en = {
     noPicksBody: "FPL has no picks for this team in that gameweek.",
     noLiveTitle: "Live points unavailable",
     noLiveBody: (gw: string) => `FPL didn't return player points for ${gw}. The team is shown without scores.`,
+    /** Alternative wordings, drawn per day and gameweek phase (varietyKey) so a returning visitor reads fresh lines. */
+    vary: {
+      /** The latest gameweek's points while FPL is still checking them. */
+      provisional: ["awaiting FPL's final check", "provisional until FPL signs it off", "not final yet: FPL is still checking"],
+      /** The latest gameweek's points once FPL has signed them off (data_checked). */
+      final: ["final: checked by FPL", "signed off by FPL", "final, FPL data checked"],
+      /** League position (the team's own league): rank, size, places moved since last gameweek, gap to the top (or the lead). */
+      leagueSpot: [
+        (rank: number, size: number, moved: number, gap: number) =>
+          `${rank === 1 ? `Top of ${size}, ${gap} clear` : `${ord(rank)} of ${size}, ${gap} off the top`}${moved > 0 ? ` · up ${moved}` : moved < 0 ? ` · down ${-moved}` : ""}`,
+        (rank: number, size: number, moved: number, gap: number) =>
+          `${rank === 1 ? `Leading ${size} teams by ${gap} ${pts(gap)}` : `${ord(rank)} of ${size}, ${gap} ${pts(gap)} behind the leader`}${moved ? `, ${moved > 0 ? "climbed" : "slipped"} ${Math.abs(moved)} this week` : ""}`,
+        (rank: number, size: number, moved: number, gap: number) =>
+          `${ord(rank)}/${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} ahead` : `, ${gap} to make up`}`,
+      ],
+    },
   },
 
   sheet: {
@@ -343,6 +609,72 @@ export const en = {
     starter: "Starter",
     benchBadge: "Bench",
     injuryReport: "Injury report",
+    /** Alternatives to the plain lines above (which stay first), and lines that exist only in varied form. Same facts, new words. */
+    vary: {
+      /** The section heading for each gameweek phase. */
+      heading: {
+        upcoming: [(gw: string) => `${gw}: before the whistle`, (gw: string) => `${gw}, the build-up`, (gw: string) => `${gw} insights, pre-deadline`],
+        live: [(gw: string) => `${gw} as it happens`, (gw: string) => `${gw}, live from the squad`, (gw: string) => `${gw}: in play`],
+        provisional: [(gw: string) => `${gw}, awaiting FPL's final check`, (gw: string) => `${gw}: played out, not yet signed off`, (gw: string) => `${gw} insights (provisional)`],
+        final: [(gw: string) => `${gw} in review`, (gw: string) => `${gw}, signed off`, (gw: string) => `${gw}: the final word`],
+      } as Record<string, ((gw: string) => string)[]>,
+      waiting: [
+        (name: string) => `${name} still to play: the armband's verdict is pending.`,
+        (name: string) => `Nothing from ${name} yet; the armband points hang on one match.`,
+      ],
+      unused: [
+        (name: string) => `${name} never got on, so the vice-captain rule applies.`,
+        (name: string) => `Zero minutes for ${name}: no armband verdict this week.`,
+      ],
+      spotOn: [
+        (provisional: boolean, name: string, points: number) => `${name} ${provisional ? "is" : "was"} the right call: ${points} with the armband, and nobody in the XI ${provisional ? "is doing" : "did"} better.`,
+        (provisional: boolean, name: string, points: number) => `No regrets${provisional ? " yet" : ""}: ${name}'s ${points} ${provisional ? "tops" : "topped"} the XI.`,
+      ],
+      regret: [
+        { before: (name: string, base: number, provisional: boolean) => `With the armband on ${name} (${base}), you'd ${provisional ? "be" : "have been"} up `, after: (provisional: boolean) => `${provisional ? " so far" : ""}.` },
+        { before: (name: string, base: number, provisional: boolean) => `Hindsight${provisional ? ", for now" : ""}: ${name} scored ${base}, an armband worth `, after: (_provisional: boolean) => " more." },
+      ],
+      chipBboost: [
+        (points: number) => (points >= 10 ? `The bench delivered: ${points} extra ${pts(points)} counted.` : `Bench Boost banked ${points} ${pts(points)}; a quiet week for the bench.`),
+        (points: number) => `All 15 counted, the bench adding ${points} ${pts(points)}.`,
+      ],
+      chipTc: [
+        (points: number) => `The captain's third copy was worth ${points} ${pts(points)}.`,
+        (points: number) => (points >= 8 ? `Triple Captain paid off: ${points} on top of the usual double.` : `Triple Captain added just ${points}; the chip is spent.`),
+      ],
+      benchPine: [
+        (points: number, top: string) => `${points} on the bench, ${top} the loudest of them.`,
+        (points: number, top: string) => `${top} led a ${points}-point bench that didn't count.`,
+      ],
+      benchNone: ["Zero on the bench: no selection regrets there.", "The bench blanked, so nothing was wasted."],
+      allPlayed: [
+        (n: number) => `Everyone who counts has played: ${n} of ${n}.`,
+        (n: number) => `All ${n} have taken the field; what's left is minutes and bonus.`,
+      ],
+      somePlayed: [
+        (played: number, total: number, effective: number) => `${played} of ${total} done; ${total - played} still to play, ${effective} with the armband weighted.`,
+        (played: number, total: number, effective: number) => `Still to come: ${effective} ${effective === 1 ? "share" : "shares"} of points (armband counted). Already in: ${played} of ${total}.`,
+      ],
+      unusedIntro: ["Fit, their match finished, zero minutes:", "Left out by their clubs (fit, match over, no minutes):"],
+      /** Who has the +2 DefCon bonus (names joined, how many). */
+      defconReached: [
+        (names: string, _n: number) => `+2 banked by ${names}.`,
+        (names: string, n: number) => `${names} ${n === 1 ? "has" : "have"} the DefCon bonus.`,
+        (names: string, n: number) => `${n} DefCon ${n === 1 ? "bonus" : "bonuses"} in the bag: ${names}.`,
+      ],
+      /** The nearest miss (name, actions short, the gameweek still live). */
+      defconClose: [
+        (name: string, gap: number, live: boolean) => `${name} is ${gap} short of +2${live ? " so far" : ""}.`,
+        (name: string, gap: number, live: boolean) => `${gap} more ${gap === 1 ? "action" : "actions"} ${live ? "would get" : "would have got"} ${name} the +2.`,
+        (name: string, gap: number, live: boolean) => `Closest to the bonus: ${name}, ${gap} short${live ? " for now" : ""}.`,
+      ],
+      /** Opens the injury card: flagged starters, flagged in the whole squad. */
+      flagsLead: [
+        (starters: number, total: number) => (starters ? `${starters} of your XI ${starters === 1 ? "carries" : "carry"} a flag (${total} in the squad).` : `${total} flagged, all on the bench.`),
+        (starters: number, total: number) => `${total} flagged${starters ? `, ${starters} in the XI` : ", none in the XI"}. Worth a look before the next deadline.`,
+        (starters: number, total: number) => (starters ? `Flags on ${starters} ${starters === 1 ? "starter" : "starters"}, ${total} across the squad.` : `Only the bench is flagged (${total}).`),
+      ],
+    },
   },
 
   season: {
@@ -405,6 +737,53 @@ export const en = {
     verdict: { Kind: "Kind", Mixed: "Mixed", Tough: "Tough" } as Record<string, string>,
     outlookNote: (from: number, to: number, avg: string) => `GW${from}–${to}, difficulty ${avg}`,
     outlookRuns: (easy: string, easyAvg: string, hard: string, hardAvg: string) => `Softest run: ${easy} (${easyAvg}). Toughest test: ${hard} (${hardAvg}).`,
+    /** Alternatives to the plain lines above (which stay first), and lines that exist only in varied form. */
+    vary: {
+      /** The section heading, with the last settled gameweek. */
+      heading: [(through: string) => `Season to ${through}`, (through: string) => `The season, through ${through}`, (through: string) => `The long view, up to ${through}`],
+      /** The last few weeks against the season rate: better or not, the recent average, how many weeks, by how much. */
+      trend: [
+        (up: boolean, recent: string, n: number, delta: string) => `Last ${n}: ${recent} a week, ${delta} ${up ? "above" : "below"} the season rate.`,
+        (up: boolean, recent: string, n: number, delta: string) => (up ? `Warming up: ${recent} a week over the last ${n}, ${delta} better than the season average.` : `Cooling off: ${recent} a week over the last ${n}, ${delta} under the season average.`),
+        (up: boolean, recent: string, n: number, delta: string) => `Recent form ${up ? "beats" : "trails"} the season: ${recent} over the last ${n} weeks (${up ? "+" : "−"}${delta}).`,
+      ],
+      averagingAfter: [
+        (gw: string, best: string, bestPts: number, worst: string, worstPts: number) => ` a week through ${gw}. Best: ${best} (${bestPts}). Worst: ${worst} (${worstPts}).`,
+        (gw: string, best: string, bestPts: number, worst: string, worstPts: number) => ` a week through ${gw}, somewhere between ${bestPts} in ${best} and ${worstPts} in ${worst}.`,
+      ],
+      /** The latest gameweek's overall-rank move: climbed or not, places, which gameweek. */
+      rankMove: [
+        (up: boolean, amount: string, gw: string) => `${up ? "Up" : "Down"} ${amount} places in ${gw}.`,
+        (up: boolean, amount: string, gw: string) => (up ? `${gw} climbed ${amount} places.` : `${gw} cost ${amount} places.`),
+        (up: boolean, amount: string, gw: string) => `${gw} moved you ${amount} places ${up ? "up" : "down"}.`,
+      ],
+      freeExplain: [
+        (max: number) => `Counted from your transfer history (at most ${max} can bank), and FPL's own figure wins any disagreement.`,
+        (max: number) => `Our count from the history, with up to ${max} rolling over. FPL's transfers page has the official number.`,
+      ],
+      /** What the free-transfer count means for the next deadline: available, the cap, which gameweek. */
+      freeState: [
+        (n: number, max: number, gw: string) => (n >= max ? `At the cap of ${max}: a quiet ${gw} would waste the weekly free transfer.` : n === 1 ? `One free for ${gw}; a second move costs 4 points.` : `${n} free for ${gw}; roll them and it's ${Math.min(n + 1, max)} next week.`),
+        (n: number, max: number, gw: string) => (n >= max ? `${max} is the most FPL lets you hold, so ${gw} is the week to use one.` : n === 1 ? `Just the one for ${gw}; anything beyond it is −4.` : `${n} in hand for ${gw}: room for ${n} moves without a hit.`),
+        (n: number, max: number, gw: string) => (n >= max ? `Full bank (${max}) going into ${gw}.` : n === 1 ? `${gw}: one free transfer, or roll it to hold 2 next week.` : `${n} banked for ${gw}, out of a possible ${max}.`),
+      ],
+      benchMost: [(gw: string, pts: string) => `Worst week on the bench: ${gw}, ${pts}.`, (gw: string, pts: string) => `${gw} left the most behind: ${pts}.`],
+      /** Chips playable now: how many, their names, the gameweek the first one expires after. */
+      chipsLeft: [
+        (n: number, list: string, closes: string) => `${n} ${n === 1 ? "chip" : "chips"} still to play: ${list}. The window shuts after ${closes}.`,
+        (_n: number, list: string, closes: string) => `Left in the locker: ${list}. Use by ${closes}.`,
+        (n: number, list: string, closes: string) => `${list} ${n === 1 ? "is" : "are"} still unplayed, and the window closes after ${closes}.`,
+      ],
+      chipsNone: ["Nothing left to play in the current window.", "Every chip in this window is played or gone.", "The chip locker is empty for now."],
+      hereSince: [(s: string) => `On the books since ${s}.`, (s: string) => `First season on record: ${s}.`],
+      valueUpDown: [(up: boolean, amount: string) => `${up ? "Gained" : "Lost"} ${amount} since day one.`, (up: boolean, amount: string) => `${amount} ${up ? "richer" : "poorer"} than at the start.`],
+      differentials: [(list: string) => `Starters under 10% owned: ${list}.`, (list: string) => `Where you part from the crowd (under 10% owned): ${list}.`],
+      noDifferentials: ["Every starter is owned by at least 10% of managers.", "No starter below 10% ownership: this XI moves with the crowd."],
+      outlookRuns: [
+        (easy: string, easyAvg: string, hard: string, hardAvg: string) => `Best run: ${easy} (${easyAvg}). Hardest: ${hard} (${hardAvg}).`,
+        (easy: string, easyAvg: string, hard: string, hardAvg: string) => `${easy} have it easiest (${easyAvg}), ${hard} hardest (${hardAvg}).`,
+      ],
+    },
   },
 
   club: {
@@ -420,7 +799,11 @@ export const en = {
     recentEmpty: "No results yet this season.",
     gw: (gw: number | null, label: string) => (gw ? label : "TBC"),
     news: "Team news",
-    newsEmpty: "A clean bill of health: FPL has no injuries, suspensions or doubts flagged for this squad.",
+    newsEmpty: [
+      (club: string) => `A clean bill of health: FPL has no injuries, suspensions or doubts flagged for ${club}.`,
+      (club: string) => `Nobody in the treatment room: every ${club} player is available, as far as FPL knows.`,
+      (club: string) => `No flags at ${club}: the whole squad is fit and available.`,
+    ],
     severity: { out: "Out", doubt: "Doubt", note: "News" } as Record<string, string>,
     newsNoDetail: "Flagged by FPL, no details given.",
     chance: (n: number) => `${n}% to play`,
@@ -450,6 +833,55 @@ export const en = {
     creditAfter: ", shown as the BBC publishes it.",
     nothing: "Nothing to show yet",
     nothingBody: "FPL has no fixtures or news for this club yet.",
+    formLine: {
+      hot: [
+        (club: string, w: number, d: number, _l: number, n: number) => `${club} are flying: ${w} ${w === 1 ? "win" : "wins"} from the last ${n}, ${w * 3 + d} points of ${n * 3}.`,
+        (club: string, w: number, d: number, l: number, n: number) => `In form: ${w}W ${d}D ${l}L in the last ${n}. ${club} assets are earning.`,
+        (club: string, w: number, d: number, _l: number, n: number) => `${w * 3 + d} points from ${n} for ${club}. Clean sheets and attacking returns tend to follow results like these.`,
+      ],
+      cold: [
+        (club: string, w: number, d: number, l: number, n: number) => `${club} are struggling: ${l} ${l === 1 ? "defeat" : "defeats"} in the last ${n}, ${w * 3 + d} points of ${n * 3}.`,
+        (club: string, w: number, d: number, l: number, n: number) => `Out of form: ${w}W ${d}D ${l}L in the last ${n}. Think twice before backing ${club} players.`,
+        (club: string, w: number, d: number, _l: number, n: number) => `Only ${w * 3 + d} ${w * 3 + d === 1 ? "point" : "points"} from ${n} for ${club}. Their defenders are a gamble right now.`,
+      ],
+      mixed: [
+        (club: string, w: number, d: number, l: number, n: number) => `Mixed form for ${club}: ${w}W ${d}D ${l}L in the last ${n}.`,
+        (club: string, w: number, d: number, _l: number, n: number) => `${club} have taken ${w * 3 + d} points from ${n}: neither hot nor cold.`,
+        (club: string, w: number, d: number, l: number, n: number) => `Up and down lately: ${w} won, ${d} drawn, ${l} lost from ${club}'s last ${n}.`,
+      ],
+    },
+    runLine: {
+      kind: [
+        (_club: string, avg: string, n: number) => `The next ${n} look kind: average difficulty ${avg}.`,
+        (club: string, avg: string, n: number) => `A soft patch ahead: ${avg} over the next ${n}. Good time to own ${club}.`,
+        (club: string, avg: string, n: number) => `Fixtures in ${club}'s favour: the next ${n} average ${avg}.`,
+      ],
+      tough: [
+        (_club: string, avg: string, n: number) => `A hard stretch ahead: the next ${n} average ${avg}.`,
+        (club: string, avg: string, n: number) => `${club} face a tough run (${avg} over the next ${n}). Benching or selling may pay.`,
+        (club: string, avg: string, n: number) => `Difficulty ${avg} across the next ${n}: one of the harder runs for ${club}.`,
+      ],
+      mixed: [
+        (_club: string, avg: string, n: number) => `The next ${n} are middling: average difficulty ${avg}.`,
+        (club: string, avg: string, n: number) => `Nothing extreme ahead for ${club}: ${avg} across the next ${n}.`,
+        (_club: string, avg: string, n: number) => `A mixed bag next: the coming ${n} average ${avg}.`,
+      ],
+    },
+    starLine: [
+      (name: string, points: number, owned: string | null) => `Top FPL scorer: ${name}, ${points} ${points === 1 ? "point" : "points"}${owned ? `, owned by ${owned} of managers` : ""}.`,
+      (name: string, points: number, owned: string | null) => `${name} leads the way with ${points} ${points === 1 ? "point" : "points"} this season${owned ? ` (${owned} ownership)` : ""}.`,
+      (name: string, points: number, owned: string | null) => `The one to own: ${name}, ${points} ${points === 1 ? "point" : "points"} so far${owned ? `, in ${owned} of squads` : ""}.`,
+    ],
+    outLine: [
+      (names: string, _n: number, doubts: number) => `Out: ${names}${doubts ? `, plus ${doubts} ${doubts === 1 ? "doubt" : "doubts"}` : ""}.`,
+      (names: string, n: number, doubts: number) => `${n} ruled out (${names})${doubts ? ` and ${doubts} more flagged` : ""}. Check before you transfer in.`,
+      (names: string, _n: number, doubts: number) => `Missing for now: ${names}${doubts ? `; ${doubts} ${doubts === 1 ? "other is" : "others are"} a doubt` : ""}.`,
+    ],
+    doubtLine: [
+      (doubts: number) => `Nobody ruled out, but ${doubts} ${doubts === 1 ? "player is" : "players are"} a doubt.`,
+      (doubts: number) => `${doubts} fitness ${doubts === 1 ? "doubt" : "doubts"} to watch; no one is out.`,
+      (doubts: number) => `No absentees, ${doubts} ${doubts === 1 ? "flag" : "flags"} in yellow. Worth checking before the deadline.`,
+    ],
   },
 
   bonus: {
@@ -480,8 +912,68 @@ export const en = {
     versus: (home: string, away: string) => `${home} versus ${away}`,
     scoreSr: (home: string, hs: number, away: string, as: number) => `${home} ${hs}, ${away} ${as}`,
     kickoff: "Kick-off",
-    upcomingNote: "Bonus points appear once the match kicks off.",
+    upcomingNote: [
+      (home: string, away: string) => `Bonus points appear once ${home} v ${away} kicks off.`,
+      (home: string, away: string) => `No BPS until kick-off. Then ${home} and ${away} players race for 3, 2 and 1.`,
+      (home: string, away: string) => `${home} v ${away} hasn't started: the bonus race opens at kick-off.`,
+    ],
     noData: "No bonus data yet.",
+    /** The opening line for the gameweek, by phase: before kick-off, in play, all played but unchecked, and final. */
+    lede: {
+      upcoming: [
+        (gw: string, total: number) => `${gw}: ${total} ${total === 1 ? "match" : "matches"} to come. Bonus is projected from live BPS once a match kicks off.`,
+        (gw: string, total: number) => `Nothing kicked off in ${gw} yet. When it does, every one of the ${total} ${total === 1 ? "match" : "matches"} shows its bonus race here.`,
+        (gw: string, total: number) => `${gw} is still ahead: ${total} bonus races, 3, 2 and 1 a time, starting at kick-off.`,
+      ],
+      live: [
+        (gw: string, player: string, club: string, bps: number, _bestClub: string, _bonus: number) => `${gw} in play. Top BPS so far: ${player} (${club}) on ${bps}. Projected and provisional bonus can still change.`,
+        (gw: string, player: string, _club: string, bps: number, bestClub: string, bonus: number) => `${player} leads ${gw} with ${bps} BPS. ${bestClub} players hold ${bonus} bonus ${bonus === 1 ? "point" : "points"} between them, for now.`,
+        (gw: string, player: string, _club: string, bps: number, _bestClub: string, _bonus: number) => `Live bonus for ${gw}: nothing is confirmed until a match finishes. ${player} is the man to beat on ${bps} BPS.`,
+      ],
+      provisional: [
+        (gw: string, player: string, club: string, bps: number, _bestClub: string, _bonus: number) => `Every ${gw} match is played; FPL hasn't confirmed the data yet, so bonus is provisional. ${player} (${club}) topped the BPS with ${bps}.`,
+        (gw: string, _player: string, _club: string, _bps: number, bestClub: string, bonus: number) => `${gw} is done, bonus provisional until FPL signs it off. ${bestClub} took the most: ${bonus} ${bonus === 1 ? "point" : "points"}.`,
+        (gw: string, player: string, _club: string, bps: number, _bestClub: string, _bonus: number) => `Final whistles all blown in ${gw}. The bonus is provisional for now; ${player}'s ${bps} BPS was the best of the week.`,
+      ],
+      final: [
+        (gw: string, player: string, club: string, bps: number, _bestClub: string, _bonus: number) => `Final verdict on ${gw}: bonus confirmed and in the scores. ${player} (${club}) topped the BPS with ${bps}.`,
+        (gw: string, _player: string, _club: string, _bps: number, bestClub: string, bonus: number) => `${gw} is checked and final. ${bestClub} players collected the most bonus: ${bonus} ${bonus === 1 ? "point" : "points"}.`,
+        (gw: string, player: string, _club: string, bps: number, _bestClub: string, _bonus: number) => `Confirmed: ${gw}'s bonus is settled. Best BPS of the week: ${player}, ${bps}.`,
+      ],
+    },
+    /** One line per match on how its bonus race stands. */
+    race: {
+      projected: [
+        (player: string, bps: number, lead: number, runnerUp: string) => `${player} leads the bonus race on ${bps} BPS, ${lead} clear of ${runnerUp}.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `Projected 3 for ${player} (${bps} BPS). ${runnerUp} is ${lead} behind.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `${player} on top with ${bps} BPS; ${runnerUp} needs ${lead} more to draw level.`,
+      ],
+      provisional: [
+        (player: string, bps: number, lead: number, runnerUp: string) => `Provisional: ${player} takes the 3 with ${bps} BPS, ${lead} ahead of ${runnerUp}.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `${player} finished top on ${bps} BPS (${runnerUp} ${lead} back). FPL still has to confirm.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `Full time: ${player}'s ${bps} BPS beat ${runnerUp} by ${lead}. Bonus provisional.`,
+      ],
+      confirmed: [
+        (player: string, bps: number, lead: number, runnerUp: string) => `Confirmed: ${player} took the 3 with ${bps} BPS, ${lead} ahead of ${runnerUp}.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `${player} won this one on ${bps} BPS, ${lead} more than ${runnerUp}.`,
+        (player: string, bps: number, lead: number, runnerUp: string) => `Settled: ${player} top on ${bps}, ${runnerUp} ${lead} short.`,
+      ],
+      level: [
+        (player: string, other: string, bps: number) => `${player} and ${other} are level on ${bps} BPS: tied players share the top bonus.`,
+        (player: string, other: string, bps: number) => `Dead heat: ${player} and ${other}, ${bps} BPS each. Both get 3 if it stays that way.`,
+        (player: string, other: string, bps: number) => `Nothing between ${player} and ${other} at the top (${bps} BPS).`,
+      ],
+      bubbleOpen: [
+        (inside: string, outside: string, gap: number) => `On the bonus line: ${outside} is ${gap} BPS behind ${inside}.`,
+        (inside: string, outside: string, gap: number) => `${inside} holds the last bonus place, only ${gap} BPS up on ${outside}.`,
+        (inside: string, outside: string, gap: number) => `Tight at the bottom: ${gap} BPS separate ${inside} (in) and ${outside} (out).`,
+      ],
+      bubbleShut: [
+        (_inside: string, outside: string, gap: number) => `${outside} missed the bonus by ${gap} BPS.`,
+        (inside: string, outside: string, gap: number) => `${inside} squeezed into the bonus, ${gap} BPS ahead of ${outside}.`,
+        (inside: string, outside: string, gap: number) => `So close for ${outside}: ${gap} BPS short of ${inside}'s bonus.`,
+      ],
+    },
   },
 
   notFound: {
@@ -494,16 +986,34 @@ export const en = {
 
   times: {
     mastheadLeft: "Official gazette of the Lobster League",
-    mastheadRight: "Every week, in print",
+    mastheadRight: ["Every week, in print", "Printed after every gameweek", "All the news that fits the league"],
     emptyTitle: "Nothing has gone to print yet",
-    emptyBody: "Each week's edition appears here once it is published.",
-    latest: (gw: number | null) => `Latest edition${gw ? ` · Gameweek ${gw}` : ""}`,
+    emptyBody: [
+      "Each week's edition appears here once it is published.",
+      "The first edition lands here once a gameweek has been written up.",
+      "The presses are warming up. Editions appear here as they are printed.",
+    ],
+    latest: [
+      (gw: number | null) => `Latest edition${gw ? ` · Gameweek ${gw}` : ""}`,
+      (gw: number | null) => `Fresh off the press${gw ? ` · Gameweek ${gw}` : ""}`,
+      (gw: number | null) => `On the stands now${gw ? ` · Gameweek ${gw}` : ""}`,
+    ],
+    awaiting: [
+      (gw: number) => `Gameweek ${gw} is done; its edition is at the printers.`,
+      (gw: number) => `Stop the presses: Gameweek ${gw} is over and being written up.`,
+      (gw: number) => `The Gameweek ${gw} edition is on its way.`,
+    ],
+    inPlay: [
+      (gw: number) => `Gameweek ${gw} is being played. The next edition goes to print once it is final.`,
+      (gw: number) => `Reporters are at the grounds for Gameweek ${gw}.`,
+      (gw: number) => `Gameweek ${gw} is live; the ink dries once FPL confirms the points.`,
+    ],
     read: "Read the issue",
     filterBy: "Filter by type",
     all: "All",
     noIssuesTitle: "No issues in this section yet",
     showAll: "Show everything",
-    noIssuesBody: "Try another type, or see the whole library.",
+    noIssuesBody: ["Try another type, or see the whole library.", "Nothing filed under this one. The full library has the rest.", "Pick another section, or show everything."],
     archive: "The archive",
     back: "← The Times",
     kindSingular: { times: "Newspaper", recap: "Recap", preview: "Preview", plan: "Plan", dossier: "Dossier", report: "Report" },
@@ -524,38 +1034,130 @@ export const en = {
   tools: {
     positionShort: { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" } as Record<number, string>,
     heading: "Tools",
+    /** The week at a glance above the tools: where the season stands and what the crowd is doing. Three wordings each. */
+    brief: {
+      title: "The week in FPL",
+      seasonEnd: "the end of the season",
+      upcoming: [
+        (next: string) => `The season starts with the ${next} deadline. Every squad is still perfect.`,
+        (next: string) => `Pre-season: nothing has been scored yet, and the ${next} deadline is the first one that counts.`,
+        (next: string) => `${next} is next: the first deadline of the season, and the last chance to change everything for free.`,
+      ],
+      live: [
+        (gw: string, next: string) => `${gw} is live: points are moving and bonus is still provisional. Next stop: ${next}.`,
+        (gw: string, next: string) => `${gw} is under way, so nothing you change now scores this week. Up next: ${next}.`,
+        (gw: string, next: string) => `Matches of ${gw} are on and the table moves by the minute. After that: ${next}.`,
+      ],
+      provisional: [
+        (gw: string, next: string) => `${gw}'s matches are over; FPL is still confirming the bonus. Then: ${next}.`,
+        (gw: string, next: string) => `The final whistles have gone in ${gw}, but the points aren't final until FPL checks them. Up next: ${next}.`,
+        (gw: string, next: string) => `${gw} is played, not yet signed off: bonus can still shift. After that: ${next}.`,
+      ],
+      final: [
+        (gw: string, next: string) => `${gw} is final: FPL has confirmed every point. All eyes on ${next}.`,
+        (gw: string, next: string) => `${gw} is in the books and the bonus is locked. Time to plan ${next}.`,
+        (gw: string, next: string) => `Points for ${gw} are confirmed. Your next move is for ${next}.`,
+      ],
+      over: [
+        (gw: string) => `${gw} is final and the season is over. Every point is in.`,
+        (gw: string) => `That's the season: ${gw} is confirmed and no deadlines are left.`,
+        (gw: string) => `No more deadlines. ${gw} closed the season and FPL has signed it off.`,
+      ],
+      average: [
+        (gw: string, pts: string) => `The average manager scored ${pts} in ${gw}.`,
+        (gw: string, pts: string) => `${gw}'s average: ${pts}.`,
+        (gw: string, pts: string) => `Par for ${gw} was ${pts}.`,
+      ],
+      bought: [
+        (name: string, club: string, n: string) => `Most bought: ${name} (${club}), ${n} transfers in.`,
+        (name: string, club: string, n: string) => `The crowd is buying ${name} of ${club}: ${n} in this week.`,
+        (name: string, club: string, n: string) => `${n} managers have brought in ${name} (${club}), more than anyone else.`,
+      ],
+      sold: [
+        (name: string, club: string, n: string) => `Most sold: ${name} (${club}), ${n} out.`,
+        (name: string, club: string, n: string) => `${name} (${club}) is the one being dumped: ${n} transfers out.`,
+        (name: string, club: string, n: string) => `${n} managers have sold ${name} of ${club}.`,
+      ],
+      rising: [
+        (count: number, name: string) => (count === 1 ? `${name} looks set to rise in price.` : `${count} players look set to rise in price, ${name} first.`),
+        (count: number, name: string) => (count === 1 ? `One likely riser: ${name}.` : `${count} likely risers; the most pressure is on ${name}.`),
+        (count: number, name: string) => (count === 1 ? `Watch ${name}'s price: a rise looks close.` : `Watch the prices: ${count} likely risers, led by ${name}.`),
+      ],
+      falling: [
+        (count: number, name: string) => (count === 1 ? `${name} looks set to drop in price.` : `${count} players look set to drop in price, ${name} first.`),
+        (count: number, name: string) => (count === 1 ? `One likely faller: ${name}.` : `${count} likely fallers; ${name} is under the most pressure.`),
+        (count: number, name: string) => (count === 1 ? `${name} is heading for a price drop.` : `${count} prices look set to fall, led by ${name}.`),
+      ],
+      calm: [
+        "No player is under enough transfer pressure to change price yet.",
+        "Prices look settled for now: nobody is close to a change.",
+        "Quiet on the price front: no likely risers or fallers.",
+      ],
+    },
     /** The altered view's extra tool: sneaky upside for climbing the world leaderboard. */
     upside: {
       title: "Upside lab",
-      note: "For climbing the world leaderboard: the little-owned players FPL expects to score, the armband gambles, and who the crowd is buying before the price moves. Most of the world looks elsewhere. That is the point.",
+      note: [
+        (name: string, owned: string, xp: string) => `For climbing the world leaderboard: ${name} is owned by ${owned} of managers, yet FPL expects ${xp}. Little-owned picks, armband gambles, and who the crowd buys before the price moves.`,
+        (name: string, owned: string, xp: string) => `Most of the world looks elsewhere. That is the point. Top of the list: ${name}, ${owned} owned, ${xp} expected.`,
+        (name: string, owned: string, xp: string) => `Upside the crowd hasn't priced in: ${name}, at ${owned} ownership and ${xp} expected, leads the differentials.`,
+      ],
       differentials: "Little-owned, big expected points",
       captain: "Armband gambles",
       risers: "Buy before the price rises",
       cols: { player: "Player", owned: "Owned", xp: "xP", form: "Form", price: "Price", buying: "Buying" },
-      none: "Nothing stands out yet.",
-      tip: "Tip: one differential and one bold armband move you further than five safe swaps.",
+      none: ["Nothing stands out yet.", "Nobody fits yet.", "Nothing to chase here this week."],
+      tip: [
+        (name: string) => `Tip: one bold armband moves you further than five safe swaps. This week's boldest: ${name}.`,
+        (name: string) => `If you're chasing, ${name} is the armband the world isn't using.`,
+        (name: string) => `Safe captains keep your rank; ${name} could change it.`,
+      ],
     },
     /** The altered view's heavier analyses (a port of the FPL skill's engines). */
     lab: {
       captainTitle: "Captain simulator",
-      captainNote: (gw: string, trials: string) => `For ${gw}: ${trials} simulated gameweeks per player from FPL's own numbers (minutes, expected goals and assists, fixture difficulty, clean sheets, DefCon, cards, bonus). Three questions, three answers: the best average, the best chance of a big haul, the best chance of a mega-haul. An armband doubles these; a Triple Captain triples them.`,
+      captainNote: [
+        (gw: string, trials: string, name: string, mean: string, ceiling: string, p15: string) => `For ${gw}: ${trials} simulated gameweeks per player from FPL's own numbers. ${name} has the best average (${mean}); ${ceiling} the best shot at 15+ (${p15}). An armband doubles these; a Triple Captain triples them.`,
+        (gw: string, trials: string, name: string, mean: string, ceiling: string, p15: string) => `${trials} runs of ${gw} per player (minutes, xG and xA, fixture difficulty, clean sheets, DefCon, cards, bonus). Safest armband: ${name} at ${mean}. Biggest ceiling: ${ceiling}, 15+ in ${p15} of runs.`,
+        (gw: string, trials: string, name: string, mean: string, ceiling: string, p15: string) => `${name} averages ${mean} across ${trials} simulated versions of ${gw}, the highest; ${ceiling} reaches 15+ ${p15} of the time. Three questions, three answers: the average, a haul, a mega-haul.`,
+      ],
       byMean: "Highest expected points",
       byHaul: "Best chance of 10+",
       byCeiling: "Best chance of 15+ (Triple Captain punts)",
       cols: { player: "Player", owned: "Owned", sim: "Sim xP", double: "As captain", p10: "10+", p15: "15+", fixture: "Fixture", pair: "Pair", average: "Avg FDR", picks: "Play whoever has the easier game", yellows: "Yellows", toBan: "To a ban", per90: "Per 90", share: "Of the bonus" },
       rotationTitle: "Rotation pairs",
-      rotationNote: (span: number) => `Two clubs whose defenders you can share: take the easier fixture each week. The next ${span} gameweeks, kindest first.`,
+      rotationNote: [
+        (span: number, pair: string, avg: string) => `Two clubs whose defenders you can share: take the easier fixture each week. Over the next ${span} gameweeks, ${pair} is kindest (average FDR ${avg}).`,
+        (span: number, pair: string, avg: string) => `${pair}: the kindest pairing for the next ${span} gameweeks, averaging ${avg} if you start whoever has the easier game.`,
+        (span: number, pair: string, avg: string) => `Buy two cheap defenders, play the easier fixture. Best pair for the next ${span} gameweeks: ${pair}, FDR ${avg}.`,
+      ],
       penaltiesTitle: "Penalty takers",
-      penaltiesNote: "First choice on penalties and fit to play. The spot kick is the cheapest upside in the game.",
+      penaltiesNote: [
+        (name: string, club: string, xp: string) => `First choice on penalties and fit to play. ${name} (${club}) leads on expected points (${xp}).`,
+        (name: string, club: string, xp: string) => `The spot kick is the cheapest upside in the game; ${name} of ${club} tops the takers at ${xp}.`,
+        (name: string, club: string, xp: string) => `On penalties and likely to play: ${name} (${club}, ${xp}) heads the list this week.`,
+      ],
       suspensionsTitle: "Suspension watch",
-      suspensionsNote: "One or two yellow cards from a ban (5, 10, 15). Approximate: the exact cut-off dates are FPL's own, so check the news before you act.",
+      suspensionsNote: [
+        (name: string, yellows: number, toBan: number) => `${name} is on ${yellows} yellows, ${toBan === 1 ? "one card" : `${toBan} cards`} from a ban. Approximate: the thresholds (5, 10, 15) count only before FPL's cut-off dates, so check the news.`,
+        (name: string, yellows: number, toBan: number) => `Closest to a ban: ${name}, ${yellows} yellows and ${toBan === 1 ? "one more" : `${toBan} more`} to go. The cut-off dates are FPL's own; check before you act.`,
+        (name: string, yellows: number, toBan: number) => `One booking can cost a week: ${name} has ${yellows} and is ${toBan === 1 ? "one card" : `${toBan} cards`} away. Approximate; FPL's cut-off dates decide.`,
+      ],
       defconTitle: "DefCon bankers",
-      defconNote: "Defenders and midfielders who most often reach the threshold for the +2 defensive-contribution bonus.",
-      none: "Nothing to show yet.",
+      defconNote: [
+        (name: string, share: string) => `Defenders and midfielders who most often reach the +2 defensive-contribution threshold. ${name} averages ${share} of it per 90.`,
+        (name: string, share: string) => `${name} leads the DefCon bankers at ${share} of the threshold per 90: the steadiest +2 in the game.`,
+        (name: string, share: string) => `The +2 for defensive contributions, banked weekly: ${name} gets to ${share} of the bar per 90.`,
+      ],
+      none: ["Nothing to show yet.", "Nothing here yet.", "Nobody qualifies yet."],
     },
     xi: {
       title: (gw: string) => `Team of the Week · ${gw}`,
-      note: "The best legal eleven by FPL's own expected points for the next gameweek. Players who are injured or unlikely to play are left out.",
+      note: [
+        (captain: string, formation: string, total: string) => `${captain} wears the armband in this ${formation}, the best legal eleven by FPL's expected points for the next gameweek (${total}, captain doubled). Injured and doubtful players are left out.`,
+        (captain: string, formation: string, total: string) => `FPL's own expected points pick a ${formation} worth ${total} with the captain doubled, and ${captain} as captain. Only players likely to play are considered.`,
+        (captain: string, formation: string, total: string) => `If FPL's expected points are right, this ${formation} scores ${total} next gameweek with ${captain} as captain. Anyone injured or unlikely to play is left out.`,
+      ],
       formation: "Formation",
       total: "Expected points, captain doubled",
       captain: "Captain",
@@ -566,7 +1168,11 @@ export const en = {
     },
     prices: {
       title: "Price changes",
-      note: "An estimate, not FPL's own rule: how many managers have bought or sold a player since the last deadline, as a share of the managers who own him.",
+      note: [
+        (rising: number, falling: number) => `By our estimate (not FPL's own rule), ${rising} likely to rise and ${falling} likely to fall: net transfers since the last deadline as a share of each player's owners.`,
+        (rising: number, falling: number) => `An estimate, not FPL's own rule: net transfers since the deadline against ownership. Right now that points to ${rising} rises and ${falling} falls.`,
+        (rising: number, falling: number) => `How many managers bought or sold a player since the last deadline, as a share of those who own him. By that estimate: ${rising} rises and ${falling} falls ahead.`,
+      ],
       search: "Player",
       searchPlaceholder: "Enter player",
       position: "Position",
@@ -582,21 +1188,29 @@ export const en = {
       cols: { player: "Player", status: "Status", price: "Price", net: "Net transfers", owned: "Owned" },
       statuses: { rose: "Rose this week", likelyRise: "Likely to rise", closeRise: "Close to rising", steady: "Unlikely to change", closeFall: "Close to falling", likelyFall: "Likely to fall", fell: "Fell this week" } as Record<string, string>,
       showing: (shown: number, total: number) => (shown === total ? `${total} players` : `Showing ${shown} of ${total} players`),
-      none: "No players match.",
+      none: ["No players match.", "Nobody fits those filters.", "No player matches that search."],
       share: (pct: string) => `${pct} of owners`,
     },
     eo: {
       title: "Effective ownership",
-      note: (managers: number, gw: string) => `Across ${managers} ${managers === 1 ? "manager" : "managers"} in this league, ${gw}. A captain counts twice and a triple captain three times. Ownership across all of FPL is alongside.`,
+      note: [
+        (managers: number, gw: string, top: string, eo: string) => `Across ${managers} ${managers === 1 ? "manager" : "managers"} in this league, ${gw}: ${top} leads at ${eo}. A captain counts twice and a triple captain three times; ownership across all of FPL is alongside.`,
+        (managers: number, gw: string, top: string, eo: string) => `${top} is the league's most effectively owned player in ${gw} (${eo} across ${managers} ${managers === 1 ? "manager" : "managers"}). Captains count twice, triple captains three times.`,
+        (managers: number, gw: string, top: string, eo: string) => `${gw}, ${managers} ${managers === 1 ? "manager" : "managers"}: who you are really up against. ${top} tops it at ${eo}. Armbands count double (treble for a Triple Captain), with FPL-wide ownership next to it.`,
+      ],
       groups: "Group",
       tiers: { top4: "Top 4", top10: "Top 10", all: "Everyone" } as Record<string, string>,
       by: { eo: "EO", captain: "Captains" },
       cols: { player: "Player", eo: "EO", started: "Starting", captained: "Captain", owned: "FPL owned" },
-      none: "No picks to work from yet.",
+      none: ["No picks to work from yet.", "No team sheets to read yet.", "Nothing picked yet, so nothing to count."],
     },
     teams: {
       title: "Open a team sheet",
-      note: "Every manager's full team view.",
+      note: [
+        (count: number, leader: string, pts: string) => `All ${count} managers' full team views. ${leader} leads on ${pts}.`,
+        (count: number, leader: string, pts: string) => `${leader} is top with ${pts}. Open any of the ${count} squads to see how.`,
+        (count: number, leader: string, pts: string) => `Every squad in the league, ${count} in all, from the leader (${leader}, ${pts}) down.`,
+      ],
       open: (team: string) => `Open ${team}'s team sheet`,
       points: (n: string) => `${n} pts`,
     },
@@ -604,11 +1218,20 @@ export const en = {
 
   interview: {
     heading: "Press conference",
-    lede: (manager: string, team: string, gw: string) => `${manager} of ${team} faces the press after ${gw}.`,
+    lede: (manager: string, team: string, gw: string, mood?: InterviewMood, next?: string) =>
+      mood === "live"
+        ? `${manager} of ${team} faces the press during ${gw}.`
+        : mood === "provisional"
+          ? `${manager} of ${team} faces the press after ${gw}, while FPL settles the bonus.`
+          : mood === "ahead" && next
+            ? `${manager} of ${team} faces the press after ${gw}, with the ${next} deadline ahead.`
+            : `${manager} of ${team} faces the press after ${gw}.`,
     /** Shown while the gameweek is being played: the conference is redrawn each day. */
     liveNote: "*Changes every day during the gameweek.",
-    /** Shown once the gameweek is over: the conference no longer changes. */
-    finalNote: (gw: string) => `Final for ${gw}: this press conference is fixed now that the gameweek is over.`,
+    /** Shown while FPL's bonus is provisional: the conference is redrawn each day, and again once FPL confirms the scores. */
+    provisionalNote: (gw: string) => `*Bonus for ${gw} is still provisional: new questions every day, and again once FPL confirms the scores.`,
+    /** Shown once FPL has confirmed the gameweek: the scores are settled, the questions still change daily. */
+    finalNote: (gw: string) => `FPL has confirmed the scores for ${gw}. New questions every day until the next deadline.`,
     /** Ways a journalist introduces a question; each names the manager or the team. */
     openers: [
       (c, q) => `${c.first}, a question for you: ${q}`,
@@ -625,7 +1248,30 @@ export const en = {
       (c, q) => `Moving on, ${c.manager}: ${q}`,
       (c, q) => `One the ${c.team} fans have been asking all week: ${q}`,
       (c, q) => `Before you go, ${c.first}: ${q}`,
-    ] as ((c: InterviewContext, q: string) => string)[],
+    ] as InterviewOpener[],
+    /** Introductions that place the question in the moment, per mood (PHASE_OPENERS each); each names the manager or the team once. */
+    moodOpeners: {
+      live: [
+        (c, q) => `With matches still going, ${c.first}: ${q}`,
+        (c, q) => `Mid-gameweek, a quick one for ${c.manager}: ${q}`,
+        (c, q) => `While the scores are still moving, ${c.team} fans ask: ${q}`,
+      ],
+      provisional: [
+        (c, q) => `Before FPL confirms the bonus, ${c.first}: ${q}`,
+        (c, q) => `With the scores still provisional, ${c.manager}: ${q}`,
+        (c, q) => `While the bonus is being counted, ${c.team} supporters ask: ${q}`,
+      ],
+      final: [
+        (c, q) => `Now that FPL has confirmed the scores, ${c.first}: ${q}`,
+        (c, q) => `With the gameweek signed off, ${c.manager}: ${q}`,
+        (c, q) => `Looking back on a finished week, ${c.team} fans ask: ${q}`,
+      ],
+      ahead: [
+        (c, q) => `Before the ${c.nextGw} deadline, ${c.first}: ${q}`,
+        (c, q) => `Looking ahead to ${c.nextGw}, ${c.manager}: ${q}`,
+        (c, q) => `With the deadline coming up, ${c.team} supporters ask: ${q}`,
+      ],
+    } as Record<InterviewMood, InterviewOpener[]>,
     pressAlt: (team: string) => `${team}'s mascot at a press conference with journalists.`,
     transcript: "Transcript",
     askers: { genius: "The Professor", dumb: "The Rookie", satirical: "The Columnist" } as Record<AskKind, string>,
@@ -1519,6 +2165,103 @@ export const en = {
           egotist: () => "He works for me. Have you seen his captain picks? Mine.",
         },
       },
+      // ----- the moment -----
+      captainWaiting: {
+        q: {
+          genius: (c) => `${c.captain} has the armband and hasn't played yet. How much of your week is riding on one fixture?`,
+          dumb: (c) => `Your captain ${c.captain} hasn't played yet. Are you nervous, or is that just the coffee?`,
+          satirical: (c) => `${c.captain} is still to kick a ball with the armband on. Have you started pacing yet?`,
+        },
+        a: {
+          genius: (c) => `The armband doubles the variance as well as the points. ${c.captain}'s range is wide, and I'm comfortable with it.`,
+          snarky: (c) => `${c.captain} likes to make an entrance. Check back after full time.`,
+          egotist: (c) => `${c.captain} is saving the best for last, as instructed.`,
+        },
+      },
+      stillToPlay: {
+        q: {
+          genius: (c) => `You still have ${c.remaining} players to come. Is your ${c.points} a floor or a ceiling?`,
+          dumb: (c) => `${c.remaining} of your players haven't played yet. Do they know the gameweek has started?`,
+          satirical: (c) => `${c.points} ${pts(c.points)} so far, ${c.remaining} still to play. Is this a comeback or a slow-motion collapse?`,
+        },
+        a: {
+          genius: (c) => `A floor. ${c.remaining} players still to come means the expected total is above what you see now.`,
+          snarky: () => "Judge me on Monday. Today is the trailer.",
+          egotist: (c) => `I kept ${c.remaining} back on purpose. Nobody shows their best cards first.`,
+        },
+      },
+      bonusPending: {
+        q: {
+          genius: (c) => `Your XI is on ${c.bonusPts} provisional bonus ${pts(c.bonusPts)}. How confident are you that FPL keeps them there?`,
+          dumb: (c) => `${c.bonusPts} bonus ${pts(c.bonusPts)} sounds nice, but they said "provisional". Is the bonus real yet?`,
+          satirical: (c) => `${c.bonusPts} bonus ${pts(c.bonusPts)}, pending approval. Have you hired a lawyer for the BPS review?`,
+        },
+        a: {
+          genius: () => "Provisional bonus rarely moves once the data is checked. I've already counted it, quietly.",
+          snarky: () => "I'll believe it when FPL does.",
+          egotist: (c) => `${c.bonusPts} ${pts(c.bonusPts)}? I'd have given myself more.`,
+        },
+      },
+      finalVerdict: {
+        q: {
+          genius: (c) => `FPL has signed off ${c.gw} at ${c.points} ${pts(c.points)} against an average of ${c.avg}. What's your verdict, now the numbers can't move?`,
+          dumb: (c) => `So ${c.points} is final now? No take-backs?`,
+          satirical: (c) => `${c.points} ${pts(c.points)}, officially. Will you be framing it or shredding it?`,
+        },
+        a: {
+          genius: (c) => `${c.points} against ${c.avg} is one data point. The process gets judged over ten gameweeks, not one.`,
+          snarky: () => "Signed, sealed and delivered. Unlike some of my transfers.",
+          egotist: (c) => `${c.points} ${pts(c.points)}, confirmed. History will be kind to me.`,
+        },
+      },
+      nextCaptain: {
+        q: {
+          genius: (c) => `The model gives ${c.nextCaptain} ${c.nextCaptainXp} expected points and a ${c.nextCaptainP10}% chance of 10+ for ${c.nextGw}. Is the armband settled?`,
+          dumb: (c) => `Who's captain for ${c.nextGw}? The computer says ${c.nextCaptain}. Do you listen to computers?`,
+          satirical: (c) => `${c.nextCaptain} tops your squad for ${c.nextGw}. Will you trust the numbers or your gut?`,
+        },
+        a: {
+          genius: (c) => `${c.nextCaptain} has the best expected return, and a ${c.nextCaptainP10}% shot at a haul. That's the starting point, not the decision.`,
+          snarky: () => "I'll announce the captain at the deadline, like everyone else who panics.",
+          egotist: (c) => `${c.nextCaptain} would be honoured. Most players are, when I pick them.`,
+        },
+      },
+      nextFixture: {
+        q: {
+          genius: (c) => `${c.nextPlayer} faces ${c.nextOpp} in ${c.nextGw}, a difficulty-${c.nextFdr} fixture. Bench, keep or sell?`,
+          dumb: (c) => `${c.nextPlayer} plays ${c.nextOpp} next. Is that the hard one?`,
+          satirical: (c) => `${c.nextPlayer} against ${c.nextOpp}. Have you told him, or are you letting him find out on the day?`,
+        },
+        a: {
+          genius: (c) => `Difficulty ${c.nextFdr} lowers the floor, not the ceiling. ${c.nextPlayer} stays unless the minutes look shaky.`,
+          snarky: (c) => `${c.nextOpp} should be worried about ${c.nextPlayer}, not the other way round.`,
+          egotist: (c) => `Hard fixtures are for ordinary managers. ${c.nextPlayer} has me.`,
+        },
+      },
+      nextTransfers: {
+        q: {
+          genius: (c) => `You have ${c.freeTransfers} free ${c.freeTransfers === 1 ? "transfer" : "transfers"} and ${c.bank} in the bank before ${c.nextGw}. Use them or roll?`,
+          dumb: (c) => `You've got ${c.freeTransfers} free ${c.freeTransfers === 1 ? "transfer" : "transfers"}. Do they expire, like yoghurt?`,
+          satirical: (c) => `${c.freeTransfers} free ${c.freeTransfers === 1 ? "transfer" : "transfers"} before ${c.nextGw}. Is that a plan, or just a number?`,
+        },
+        a: {
+          genius: () => "Only if the move beats rolling by more than a point of expected value. Otherwise patience is the transfer.",
+          snarky: () => "I'll make them at the last minute, after the press conference, out of spite.",
+          egotist: () => "I don't need transfers. The rest of the league needs mine.",
+        },
+      },
+      nextFlag: {
+        q: {
+          genius: (c) => `${c.nextFlag} is flagged ${c.nextFlagLabel} before ${c.nextGw}. Do you act now or wait for the press conference?`,
+          dumb: (c) => `${c.nextFlag} is ${c.nextFlagLabel}. It sounds bad. Is that bad?`,
+          satirical: (c) => `${c.nextFlag}: ${c.nextFlagLabel}. Will you be sending flowers or a transfer request?`,
+        },
+        a: {
+          genius: (c) => `Waiting is free until the deadline. If ${c.nextFlag} isn't training by then, he goes.`,
+          snarky: (c) => `${c.nextFlag} and I are giving each other some space.`,
+          egotist: (c) => `${c.nextFlag} will recover. Nobody wants to let me down twice.`,
+        },
+      },
     } as Record<TopicId, InterviewTopic>,
     /** Lines that answer any question, one pool per generic voice (eight each). */
     voices: {
@@ -1653,10 +2396,73 @@ export const en = {
         () => "Fate, thou art cruel! And also, apparently, correct.",
       ],
     } as Record<GenericAnswer, InterviewVoice>,
+    /**
+     * Generic voices answering the question actually asked: `g` is the topic's gist (see trip.gist, e.g. "a −4 hit"),
+     * so the reply names it. VOICE_TOPICAL_LINES each.
+     */
+    voicesOn: {
+      dim: [
+        (_c, g) => `Wait, ${g}? Is that good? Nobody tells me anything.`,
+        (_c, g) => `I heard about ${g}. I thought it was a film.`,
+        (_c, g) => `${cap(g)}... yes. I nodded when it happened.`,
+        (_c, g) => `Can you explain ${g} again, but with crayons?`,
+        (_c, g) => `My cousin says ${g} is my fault. My cousin also eats glue.`,
+        (_c, g) => `I wrote ${g} on my hand so I'd remember. Then I washed it.`,
+        (_c, g) => `Is ${g} the reason everyone is looking at me?`,
+        (_c, g) => `${cap(g)}? I was in the kitchen for that bit.`,
+      ],
+      chill: [
+        (_c, g) => `${cap(g)}? Yeah, saw that. Not bothered.`,
+        (_c, g) => `Look, ${g} happens. I'm still having lunch.`,
+        (_c, g) => `I'll think about ${g} later. Much later.`,
+        (_c, g) => `${cap(g)} is fine. Everything is fine.`,
+        (_c, g) => `People keep mentioning ${g}. I keep shrugging.`,
+        (_c, g) => `Honestly, ${g} is a Monday problem.`,
+        (_c, g) => `${cap(g)}. Sure. Next.`,
+        (_c, g) => `I've made my peace with ${g}. Took about four seconds.`,
+      ],
+      pr: [
+        (_c, g) => `We are aware of ${g} and are reviewing it internally.`,
+        (_c, g) => `${cap(g)} is part of a wider process, and we remain committed to that process.`,
+        (_c, g) => `We won't comment on ${g} beyond saying the board is united.`,
+        (c, g) => `There are positives to take from ${g}, and ${c.team} will build on them.`,
+        (_c, g) => `Let me be clear: ${g} was always part of the plan, broadly speaking.`,
+        (_c, g) => `We'll issue a statement on ${g} in due course.`,
+        (_c, g) => `${cap(g)} has been noted, discussed and filed.`,
+        (_c, g) => `Nobody here is losing sleep over ${g}. Officially.`,
+      ],
+      conspiracy: [
+        (_c, g) => `${cap(g)}. Ask yourself who wanted that to happen.`,
+        (_c, g) => `You think ${g} was an accident? Check the timestamps.`,
+        (_c, g) => `Funny how ${g} lands the very week I'm doing well.`,
+        (_c, g) => `I have a corkboard just for ${g}. The string is red.`,
+        (_c, g) => `${cap(g)} is what they want you to talk about. Look elsewhere.`,
+        (_c, g) => `Nobody asks who scheduled ${g}. Nobody.`,
+        (_c, g) => `${cap(g)}? Follow the money. Then follow the BPS.`,
+        (_c, g) => `They said ${g} was random. They always say that.`,
+      ],
+      dramatic: [
+        (_c, g) => `${cap(g)}! Must you twist the knife?`,
+        (_c, g) => `Oh, ${g}, my cruel companion.`,
+        (_c, g) => `Let history remember ${g}, and weep with me.`,
+        (_c, g) => `${cap(g)}. A tragedy in three acts, and I am all of them.`,
+        (_c, g) => `Speak not to me of ${g}! *clutches spreadsheet*`,
+        (_c, g) => `I dreamt of glory and woke to ${g}.`,
+        (_c, g) => `${cap(g)}: the curtain rises on my sorrow.`,
+        (_c, g) => `They will write songs about ${g}. Sad ones.`,
+      ],
+    } as Record<GenericAnswer, InterviewTopicalVoice>,
     /** The altered press conference: sneaky upside tips for climbing the world leaderboard. */
     trip: {
       heading: "The Acid Test",
-      lede: (manager: string, team: string, gw: string) => `${manager} of ${team} dissolves into the press room after ${gw}. The walls breathe.`,
+      lede: (manager: string, team: string, gw: string, mood?: InterviewMood, next?: string) =>
+        mood === "live"
+          ? `${manager} of ${team} dissolves into the press room mid-${gw}. The walls breathe.`
+          : mood === "provisional"
+            ? `${manager} of ${team} dissolves into the press room after ${gw}. The bonus shimmers, not yet solid.`
+            : mood === "ahead" && next
+              ? `${manager} of ${team} dissolves into the press room after ${gw}. The ${next} deadline glows on the horizon.`
+              : `${manager} of ${team} dissolves into the press room after ${gw}. The walls breathe.`,
       pressAlt: (team: string) => `${team}'s mascot, glowing, in a psychedelic sunshine scene.`,
       askers: ["The Third Eye", "The Kaleidoscope", "The Stardust Reporter", "The Echo in the Wall", "The Melting Clock", "The Velvet Owl", "The Upside-Down Umbrella", "The Whispering Teapot"],
       flourishes: ["The walls hum in agreement.", "A rainbow nods slowly.", "Somewhere, a kaleidoscope sneezes.", "The carpet breathes out.", "Time ripples, politely.", "A small sun winks from the ceiling.", "The scoreboard melts a little, happily.", "Even the microphone is smiling."],
@@ -1681,7 +2487,14 @@ export const en = {
         (c, q) => `The microphone melts toward ${c.manager}: ${q}`,
         (c, q) => `Floating up from the carpet, ${c.first}: ${q}`,
         (c, q) => `In a swirl of paisley, ${c.team}: ${q}`,
-      ] as ((c: InterviewContext, q: string) => string)[],
+      ] as InterviewOpener[],
+      /** Introductions of the moment, per mood (TRIP_MOOD_OPENERS each), suiting any voice; each names the manager or the team once. */
+      moodOpeners: {
+        live: [(c, q) => `While the matches still ripple, ${c.first}: ${q}`, (c, q) => `The live scores swirl around ${c.team}: ${q}`],
+        provisional: [(c, q) => `The bonus is still liquid, ${c.manager}: ${q}`, (c, q) => `Before the numbers set like jelly, ${c.first}: ${q}`],
+        final: [(c, q) => `The scores have crystallised, ${c.first}: ${q}`, (c, q) => `Carved into the walls now, ${c.team}: ${q}`],
+        ahead: [(c, q) => `The ${c.nextGw} deadline hums closer, ${c.first}: ${q}`, (c, q) => `Tomorrow's fixtures shimmer, ${c.manager}: ${q}`],
+      } as Record<InterviewMood, InterviewOpener[]>,
       gist: {
         captainBlank: (c) => `${c.captain}'s ${c.captainPts} as captain`,
         captainRegret: (c) => `the armband on ${c.captain} instead of ${c.best}`,
@@ -1759,6 +2572,14 @@ export const en = {
         vibes: () => `a strategy of vibes`,
         groupChat: () => `a group chat with a budget`,
         mascot: () => `a lime-green manager`,
+        captainWaiting: (c) => `${c.captain} still to play with the armband`,
+        stillToPlay: (c) => `${c.remaining} players still to play`,
+        bonusPending: (c) => `${c.bonusPts} provisional bonus ${pts(c.bonusPts)}`,
+        finalVerdict: (c) => `a confirmed ${c.points} in ${c.gw}`,
+        nextCaptain: (c) => `${c.nextCaptain} as the next captain`,
+        nextFixture: (c) => `${c.nextPlayer} against ${c.nextOpp}`,
+        nextTransfers: (c) => `${c.freeTransfers} free ${c.freeTransfers === 1 ? "transfer" : "transfers"} before ${c.nextGw}`,
+        nextFlag: (c) => `${c.nextFlag}, ${c.nextFlagLabel}, before the deadline`,
       } as Record<TopicId, (c: InterviewContext) => string>,
       voices: {
         onion: [
@@ -2118,21 +2939,43 @@ export const en = {
   },
 
   loading: {
-    tools: "Loading tools",
+    tools: ["Loading tools", "Crunching FPL's numbers", "Checking prices and picks"],
     team: "Loading team",
     club: "Loading club",
     fixtures: "Loading fixtures",
     bonus: "Loading bonus points",
-    history: "Loading history",
+    history: ["Loading history", "Fetching past tables", "Opening the archive"],
     historySlow: "Waking up the history server. It sleeps when idle, so the first visit can take up to a minute.",
-    times: "Loading The Times",
-    issue: "Opening the issue",
+    times: ["Loading The Times", "Fetching the latest edition", "Unfolding The Times"],
+    issue: ["Opening the issue", "Turning to page one", "Fetching the pages"],
   },
 
   /** The altered view (the blotter): the same numbers, said through a different door. */
   blotter: {
     awardsHeading: "The Visions",
-    awardsLede: "Same numbers. Different doors.",
+    awardsLedes: [
+      "Same numbers. Different doors.",
+      "The figures are real. The colours are optional.",
+      "Every vision below is counted, not dreamt.",
+    ],
+    /** Which week the visions are for, and how solid it is. `live` is the gameweek in play. */
+    phase: {
+      live: [
+        (gw: number, live: number) => `Seen in GW${gw}. GW${live} is still breathing.`,
+        (gw: number, live: number) => `These visions came from GW${gw}; GW${live} is still taking shape.`,
+        (gw: number, live: number) => `GW${gw} has settled into memory. GW${live} is still happening around you.`,
+      ],
+      provisional: [
+        (gw: number, _live: number) => `GW${gw} is still settling. FPL hasn't blessed the numbers yet.`,
+        (gw: number, _live: number) => `The ink of GW${gw} is still wet until FPL's final check.`,
+        (gw: number, _live: number) => `GW${gw}, provisional: the shapes may shift a little before FPL signs off.`,
+      ],
+      final: [
+        (gw: number, _live: number) => `GW${gw} is carved in stone. FPL has signed it off.`,
+        (gw: number, _live: number) => `GW${gw} has stopped moving. Final, checked, true.`,
+        (gw: number, _live: number) => `FPL has sealed GW${gw}. The visions hold.`,
+      ],
+    } as Record<"live" | "provisional" | "final", ((gw: number, live: number) => string)[]>,
     titles: {
       weekWinner: "The Peak",
       woodenSpoon: "The Comedown",
@@ -2144,14 +2987,46 @@ export const en = {
       deepPockets: "Cosmic Wallet",
     },
     lines: {
-      weekWinner: (name: string, pts: string, when: string) => `${name} touched the ceiling ${when}: ${pts} after hits, higher than anyone in the league.`,
-      woodenSpoon: (name: string, pts: string, when: string) => `${name} landed softly on ${pts} ${when}. Breathe. The wave comes back.`,
-      hotStreak: (name: string, weeks: string) => `${name} has floated above the league average ${weeks} running.`,
-      climber: (name: string, places: string) => `${name} rose ${places} without touching the ground.`,
-      rollercoaster: (name: string, n: string) => `${name}'s weeks swell and break about ${n} points either side of their average. Ride it.`,
-      benchDisaster: (name: string, pts: string) => `${pts} have melted into ${name}'s couch this season.`,
-      hitMachine: (name: string, pts: string) => `${name} has paid ${pts} in hits to cross the river this season.`,
-      deepPockets: (name: string, money: string) => `${name}'s squad and stardust come to ${money}, the most in the league.`,
+      weekWinner: [
+        (c: AwardCopy) => `${c.name} touched the ceiling ${c.when}: ${c.figure} after hits, higher than anyone in the league.`,
+        (c: AwardCopy) => `${cap(c.when)}, ${c.name} saw further than everyone: ${c.figure} after hits. Orbit now: ${ord(c.place)}.`,
+        (c: AwardCopy) => `${c.figure} after hits ${c.when}. ${c.name} was the brightest light in the league.`,
+      ],
+      woodenSpoon: [
+        (c: AwardCopy) => `${c.name} landed softly on ${c.figure} ${c.when}. Breathe. The wave comes back.`,
+        (c: AwardCopy) => `${c.figure} ${c.when}, the lowest in the league. ${c.name} is lying on the floor, looking at the ceiling.`,
+        (c: AwardCopy) => `${c.name} came down to ${c.figure} ${c.when}. Drink some water. A new deadline is coming.`,
+      ],
+      hotStreak: [
+        (c: AwardCopy) => `${c.name} has floated above the league average ${c.figure} running.`,
+        (c: AwardCopy) => `${c.figure} glowing above the league average. ${c.name} is not coming down.`,
+        (c: AwardCopy) => `${c.name}, orbiting ${ord(c.place)}, has hummed above average ${c.figure} straight.`,
+      ],
+      climber: [
+        (c: AwardCopy) => `${c.name} rose ${c.figure} without touching the ground.`,
+        (c: AwardCopy) => `${c.name} drifted up ${c.figure} and is now hovering ${ord(c.place)}.`,
+        (c: AwardCopy) => `Gravity let go of ${c.name}: up ${c.figure}, now ${ord(c.place)}.`,
+      ],
+      rollercoaster: [
+        (c: AwardCopy) => `${c.name}'s weeks swell and break about ${c.figure} points either side of their average. Ride it.`,
+        (c: AwardCopy) => `High tide, low tide: ${c.name} swings about ${c.figure} points around their average.`,
+        (c: AwardCopy) => `${c.name} breathes in and out by about ${c.figure} points a week. The sea is never flat.`,
+      ],
+      benchDisaster: [
+        (c: AwardCopy) => `${c.figure} have melted into ${c.name}'s couch this season.`,
+        (c: AwardCopy) => `${c.name}'s bench has been dreaming loudly: ${c.figure} that never counted.`,
+        (c: AwardCopy) => `The couch swallowed ${c.figure} from ${c.name} this season. It is very comfortable.`,
+      ],
+      hitMachine: [
+        (c: AwardCopy) => `${c.name} has paid ${c.figure} in hits to cross the river this season.`,
+        (c: AwardCopy) => `The ferryman knows ${c.name} by name: ${c.figure} in hits this season.`,
+        (c: AwardCopy) => `${c.figure} tossed to the ferryman by ${c.name}. More crossings than anyone.`,
+      ],
+      deepPockets: [
+        (c: AwardCopy) => `${c.name}'s squad and stardust come to ${c.figure}, the most in the league.`,
+        (c: AwardCopy) => `${c.name} is carrying ${c.figure} of squad and stardust. The heaviest vessel in the league.`,
+        (c: AwardCopy) => `${c.figure}, squad plus bank: ${c.name}'s pockets are a small galaxy.`,
+      ],
     },
     toggle: "Expand mind",
     showStats: (team: string) => `Expand the mind of ${team}`,
@@ -2171,19 +3046,53 @@ export const en = {
     overall: "Place in the universe",
     chipsPlayed: "Doors opened",
     noChips: "All doors still shut",
-    glowing: (n: number) => n === 1 ? "Glowing: above average this week" : `Glowing: ${n} weeks above average`,
-    drifting: (n: number) => n === 1 ? "Drifting: below average this week" : `Drifting: ${n} weeks below average`,
     daresHeading: "Daring moves",
     dares: {
-      chase: (pts: string) => `The sun is ${pts} away. Pick the captain nobody else dares to.`,
-      leading: "You are the sun. Hold the differential that got you here.",
-      sealed: (chips: string, half: "first" | "second") => `Still sealed in the ${half} half: ${chips}. A door only works if you open it.`,
-      glowing: (weeks: string) => `${weeks} glowing. Ride the wave; don't wake it with a hit.`,
-      drifting: (weeks: string) => `${weeks} drifting. Break the pattern: one bold transfer.`,
-      couch: (pts: string) => `${pts} have dozed on the bench. Start the dreamer.`,
-      stash: (money: string) => `${money} of stardust is doing nothing. Spend it on an upgrade.`,
-      noHits: "Not a single hit all season. Maybe one −4 is the door.",
-      manyHits: (pts: string) => `${pts} paid to the ferryman. Sit still for a week.`,
+      chase: [
+        (pts: string) => `The sun is ${pts} away. Pick the captain nobody else dares to.`,
+        (pts: string) => `${pts} to the sun. A differential captain is the shortest path.`,
+        (pts: string) => `${pts} between you and the light. Stop copying the template.`,
+      ],
+      leading: [
+        "You are the sun. Hold the differential that got you here.",
+        "You are the sun. Don't let the template eclipse you.",
+        "Top of the cosmos. Protect it: cover the captain your chaser owns.",
+      ],
+      sealed: [
+        (chips: string, half: "first" | "second") => `Still sealed in the ${half} half: ${chips}. A door only works if you open it.`,
+        (chips: string, half: "first" | "second") => `${chips}: unopened, and the ${half} half won't last forever. Find a double gameweek.`,
+        (chips: string, half: "first" | "second") => `Doors still shut this ${half} half: ${chips}. Unused chips expire when the half ends.`,
+      ],
+      glowing: [
+        (weeks: string) => `${weeks} glowing. Ride the wave; don't wake it with a hit.`,
+        (weeks: string) => `${weeks} glowing. Roll the free transfer and keep the vibe.`,
+        (weeks: string) => `${weeks} glowing. The team is working; fix only what's injured.`,
+      ],
+      drifting: [
+        (weeks: string) => `${weeks} drifting. Break the pattern: one bold transfer.`,
+        (weeks: string) => `${weeks} drifting. Bench the name, follow the fixtures.`,
+        (weeks: string) => `${weeks} drifting. Change the captain before you change the squad.`,
+      ],
+      couch: [
+        (pts: string) => `${pts} have dozed on the bench. Start the dreamer.`,
+        (pts: string) => `${pts} slept on the couch. Check your fourth defender against your bench.`,
+        (pts: string) => `${pts} on the bench so far. Maybe that's a Bench Boost waiting to happen.`,
+      ],
+      stash: [
+        (money: string) => `${money} of stardust is doing nothing. Spend it on an upgrade.`,
+        (money: string) => `${money} floating in the bank. Turn it into a better midfielder.`,
+        (money: string) => `${money} unspent. Money in the bank scores zero points.`,
+      ],
+      noHits: [
+        "Not a single hit all season. Maybe one −4 is the door.",
+        "Zero hits all season. A −4 for a double gameweek can pay for itself.",
+        "Never paid the ferryman. One crossing might be worth it.",
+      ],
+      manyHits: [
+        (pts: string) => `${pts} paid to the ferryman. Sit still for a week.`,
+        (pts: string) => `${pts} in hits. Bank a free transfer and breathe.`,
+        (pts: string) => `${pts} gone to hits. The next transfer should be free.`,
+      ],
     },
   },
 

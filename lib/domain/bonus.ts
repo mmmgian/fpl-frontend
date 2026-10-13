@@ -111,3 +111,32 @@ const events = (f: Fixture, id: string): MatchEvent[] =>
 export function matchEvents(f: Fixture): MatchEvents {
   return { goals: events(f, "goals_scored"), assists: events(f, "assists"), ownGoals: events(f, "own_goals"), redCards: events(f, "red_cards") };
 }
+
+export interface BonusRace {
+  /** Top of the match's BPS, and the gap to second (0 = level at the top). */
+  leader: BpsEntry;
+  runnerUp: BpsEntry | null;
+  lead: number | null;
+  /** The last player inside the bonus, the first outside it, and the BPS between them. Null when nobody is outside. */
+  bubble: { inside: BpsEntry; outside: BpsEntry; gap: number } | null;
+}
+
+/** How a match's bonus race stands, from its BPS feed and its bonus rows. Null before anyone has BPS. */
+export function bonusRace(f: Fixture, bonus: BonusRow[] = matchBonus(f).rows): BonusRace | null {
+  const ranked = bpsRanking(f);
+  if (ranked.length === 0) return null;
+  const awarded = new Set(bonus.filter((r) => r.bonus > 0).map((r) => r.element));
+  const inside = ranked.filter((e) => awarded.has(e.element)).at(-1);
+  const outside = ranked.find((e) => !awarded.has(e.element));
+  const [leader, runnerUp = null] = ranked;
+  return {
+    leader,
+    runnerUp,
+    lead: runnerUp ? leader.bps - runnerUp.bps : null,
+    // FPL's confirmed bonus can disagree with the BPS feed (late corrections); a "gap" below zero would be nonsense.
+    bubble: inside && outside && inside.bps >= outside.bps ? { inside, outside, gap: inside.bps - outside.bps } : null,
+  };
+}
+
+/** A bonus line this close (in BPS) is worth a sentence: one save, one key pass, and it flips. */
+export const BUBBLE_GAP = 3;

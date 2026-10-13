@@ -49,7 +49,7 @@ describe("library", () => {
   });
 
   it("an empty library is its own state", async () => {
-    expect(await createTimesService(fakeTimes([])).library(undefined)).toEqual({ kind: "empty" });
+    expect(await createTimesService(fakeTimes([])).library(undefined)).toEqual({ kind: "empty", press: { gw: null, phase: null, awaiting: null, variety: expect.any(Number) } }); // no FPL, so nothing to say about the presses
   });
 });
 

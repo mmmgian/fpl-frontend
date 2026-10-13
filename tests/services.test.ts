@@ -302,6 +302,6 @@ describe("history service", () => {
     const snap = { gw: 5, taken_at: "t", league_id: 1, data: {} };
     const svc = createHistoryService(fakeHistory({ get: async (_l, gw) => (gw === 5 ? (snap as never) : null) }));
     expect(await svc.snapshot(1, 9)).toBeNull();
-    expect(await svc.snapshot(1, 5)).toEqual({ gw: 5, leagueName: "League", takenAt: "t", rows: [], rebuilt: null });
+    expect(await svc.snapshot(1, 5)).toEqual({ gw: 5, leagueName: "League", takenAt: "t", rows: [], rebuilt: null, facts: null, variety: expect.any(Number) });
   });
 });

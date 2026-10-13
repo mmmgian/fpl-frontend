@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge, BarChart, Card, CaptainBadge, ChartKey, English, LineChart, getFormat, getLocale, getT } from "@/components/ui";
-import { compactNumber, dash, outlookVerdict } from "@/lib/domain";
-import type { SeasonCharts, SeasonForm } from "@/lib/domain";
+import { chipsInHand, compactNumber, dash, defconHeadline, lastRankMove, matchdayOrder, outlookVerdict, pickVariant, recentForm } from "@/lib/domain";
+import type { GwStatus, MatchdayCard, SeasonCharts, SeasonForm } from "@/lib/domain";
 import type { GameweekInsights, SeasonInsights, SquadInsights } from "@/lib/services/models";
 import styles from "./insights.module.css";
 
@@ -9,146 +9,199 @@ function Fact({ children }: { children: ReactNode }) {
   return <p className={styles.fact}>{children}</p>;
 }
 
-/** Facts about this gameweek. Cards appear only when there is something true to say. */
-export function MatchdayInsights({ data, gameweek }: { data: GameweekInsights; gameweek: string }) {
+/** Chooses one wording from a list: the first (plain) one without a variety key, else a seeded pick per manager and line. */
+export type Choose = <T>(items: readonly T[], line: number) => T;
+
+/**
+ * `variety` comes from `varietyKey` (new each UTC day and each gameweek phase); `slot` is the manager, so neighbours in the
+ * league don't read the same sentence on the same day. Each call site passes its own line number for the same reason.
+ */
+export const chooser = (variety: number | undefined, slot = 0): Choose => (items, line) => (variety == null ? items[0] : pickVariant(items, variety, slot * 64 + line));
+
+/** Wording knobs shared by the insight views; all optional, so a bare render shows the plain lines. */
+interface Variety {
+  /** See `varietyKey`. */
+  variety?: number;
+  /** The manager's entry id. */
+  slot?: number;
+}
+
+/** Facts about this gameweek, most telling first. Cards appear only when there is something true to say. */
+export function MatchdayInsights({ data, gameweek, status = "final", variety, slot = 0 }: { data: GameweekInsights; gameweek: string; status?: GwStatus } & Variety) {
   const t = getT();
   const m = t.matchday;
+  const v = m.vary;
   const c = t.common;
+  const pick = chooser(variety, slot);
+  const live = status === "live";
   const { captain, bench, chip, autoSubs, rotation, remaining, defcon, flags } = data;
+  const heading = pick([m.heading, ...(v.heading[status] ?? [])], 0)(gameweek);
+  const defconStory = defconHeadline(defcon);
+  const flaggedStarters = flags.filter((f) => f.wasStarter).length;
+
+  const cards: Record<MatchdayCard, () => ReactNode> = {
+    captain: () =>
+      captain ? (
+        <Card key="captain" title={m.captaincy} headingLevel={3}>
+          <p className={styles.big}>
+            {captain.captain.name} <CaptainBadge multiplier={captain.captain.multiplier} />
+            <span className={styles.bigNote}>
+              {c.pts(captain.captain.points)} ({captain.captain.base} × {captain.captain.multiplier})
+            </span>
+          </p>
+          {captain.state === "waiting" ? (
+            <Fact>{pick([m.waiting, ...v.waiting.map((f) => f(captain.captain.name))], 1)}</Fact>
+          ) : captain.state === "unused" ? (
+            <Fact>{pick([m.unused, ...v.unused.map((f) => f(captain.captain.name))], 2)}</Fact>
+          ) : captain.regret === 0 ? (
+            <Fact>{pick([m.spotOn(captain.provisional), ...v.spotOn.map((f) => f(captain.provisional, captain.captain.name, captain.captain.points))], 3)}</Fact>
+          ) : (
+            (() => {
+              const r = pick([{ before: m.regretBefore, after: m.regretAfter }, ...v.regret], 4);
+              return (
+                <Fact>
+                  {r.before(captain.best.name, captain.best.base, captain.provisional)}
+                  <strong>{c.pts(captain.regret ?? 0)}</strong>
+                  {r.after(captain.provisional)}
+                </Fact>
+              );
+            })()
+          )}
+          {captain.vice ? <Fact>{m.vice(captain.vice.name, captain.vice.base == null ? undefined : c.pts(captain.vice.base))}</Fact> : null}
+        </Card>
+      ) : null,
+
+    chip: () =>
+      chip ? (
+        <Card key="chip" title={(t.chips as Record<string, string>)[chip.chip] ?? chip.chip} headingLevel={3}>
+          <p className={styles.big}>
+            +{chip.points}
+            <span className={styles.bigNote}>{m.chipFrom(chip.points)}</span>
+          </p>
+          <Fact>
+            {chip.chip === "bboost"
+              ? pick([m.chipBboost, ...v.chipBboost.map((f) => f(chip.points))], 5)
+              : pick([m.chipTc, ...v.chipTc.map((f) => f(chip.points))], 6)}
+          </Fact>
+        </Card>
+      ) : null,
+
+    bench: () =>
+      bench ? (
+        <Card key="bench" title={m.benchTitle} headingLevel={3}>
+          <p className={styles.big}>
+            {c.pts(bench.points)}
+            <span className={styles.bigNote}>{bench.counted ? m.benchCounted : m.benchLeft}</span>
+          </p>
+          <Fact>{bench.players.map((p) => `${p.name} ${p.points}`).join(" · ")}</Fact>
+          {!bench.counted && bench.points >= 10 ? <Fact>{pick([m.benchPine, ...v.benchPine.map((f) => f(bench.points, bench.players[0].name))], 7)}</Fact> : null}
+          {!bench.counted && bench.points === 0 ? <Fact>{pick([m.benchNone, ...v.benchNone], 8)}</Fact> : null}
+        </Card>
+      ) : null,
+
+    remaining: () =>
+      remaining ? (
+        <Card key="remaining" title={m.matchdayTitle} headingLevel={3}>
+          <p className={styles.big}>
+            {remaining.count}
+            <span className={styles.bigNote}>{m.stillToPlay}</span>
+          </p>
+          <Fact>
+            {remaining.count === 0
+              ? pick([m.allPlayed, ...v.allPlayed], 9)(remaining.played)
+              : pick([m.somePlayed, ...v.somePlayed], 10)(remaining.played, remaining.played + remaining.count, remaining.effective)}
+          </Fact>
+        </Card>
+      ) : null,
+
+    autoSubs: () =>
+      autoSubs.length ? (
+        <Card key="autoSubs" title={m.autoSubs} headingLevel={3}>
+          <ul className={styles.list}>
+            {autoSubs.map((s) => (
+              <li key={`${s.in.name}-${s.out.name}`}>
+                <strong>{s.in.name}</strong>
+                {m.onFor(s.out.name)} <span className={styles.muted}>({s.in.points} {t.common.vs} {s.out.points})</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null,
+
+    flags: () =>
+      flags.length ? (
+        <Card key="flags" title={m.injuryReport} headingLevel={3}>
+          <Fact>{pick(v.flagsLead, 11)(flaggedStarters, flags.length)}</Fact>
+          <ul className={styles.list}>
+            {flags.map((f) => (
+              <li key={f.name}>
+                <strong>{f.name}</strong> <span className={styles.muted}>({f.club})</span>{" "}
+                <Badge tone={f.label === "Doubtful" ? "warning" : "live"}>
+                  {t.team.flags[f.label] ?? f.label}
+                  {f.chance != null ? ` ${t.common.percent(String(f.chance))}` : ""}
+                </Badge>
+                {f.news ? (
+                  <span className={styles.news}>
+                    <English>{dash(f.news)}</English>
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null,
+
+    defcon: () =>
+      defcon.length ? (
+        <Card key="defcon" title={m.defcon} headingLevel={3} className={styles.full}>
+          {defconStory ? (
+            <Fact>
+              {defconStory.kind === "reached"
+                ? pick(v.defconReached, 12)(defconStory.names.join(", "), defconStory.names.length)
+                : pick(v.defconClose, 13)(defconStory.name, defconStory.gap, live)}
+            </Fact>
+          ) : null}
+          <Fact>{m.defconRule}</Fact>
+          <ul className={`${styles.bars} ${styles.barsWide}`}>
+            {defcon.slice(0, 5).map((d) => (
+              <li key={d.name}>
+                <span className={styles.barLabel}>
+                  <span>{d.name}</span>
+                  <span className={d.reached ? styles.reached : styles.muted}>
+                    {d.matches > 1 ? m.defconMatches(d.value, d.matches) : `${d.value}/${d.threshold}`}
+                    {d.reached ? m.defconBonus : ""}
+                  </span>
+                </span>
+                <span className={styles.track} aria-hidden="true">
+                  <span className={`${styles.fill} ${d.reached ? styles.fillDone : ""}`} style={{ width: `${Math.min(100, Math.round((d.value / (d.threshold * d.matches)) * 100))}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null,
+
+    rotation: () =>
+      rotation.length ? (
+        <Card key="rotation" title={m.unusedSubs} headingLevel={3}>
+          <Fact>{pick([m.unusedIntro, ...v.unusedIntro], 14)}</Fact>
+          <ul className={styles.list}>
+            {rotation.map((r) => (
+              <li key={r.name}>
+                <strong>{r.name}</strong> <span className={styles.muted}>({r.club})</span> {r.wasStarter ? <Badge tone="warning">{m.starter}</Badge> : <Badge>{m.benchBadge}</Badge>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null,
+  };
 
   return (
     <section aria-labelledby="matchday-heading" className="stack">
       <h2 id="matchday-heading" className={styles.sectionTitle}>
-        {m.heading(gameweek)}
+        {heading}
       </h2>
-      <div className={styles.grid}>
-        {captain ? (
-          <Card title={m.captaincy} headingLevel={3}>
-            <p className={styles.big}>
-              {captain.captain.name} <CaptainBadge multiplier={captain.captain.multiplier} />
-              <span className={styles.bigNote}>
-                {c.pts(captain.captain.points)} ({captain.captain.base} × {captain.captain.multiplier})
-              </span>
-            </p>
-            {captain.state === "waiting" ? (
-              <Fact>{m.waiting}</Fact>
-            ) : captain.state === "unused" ? (
-              <Fact>{m.unused}</Fact>
-            ) : captain.regret === 0 ? (
-              <Fact>{m.spotOn(captain.provisional)}</Fact>
-            ) : (
-              <Fact>
-                {m.regretBefore(captain.best.name, captain.best.base, captain.provisional)}
-                <strong>{c.pts(captain.regret ?? 0)}</strong>
-                {m.regretAfter(captain.provisional)}
-              </Fact>
-            )}
-            {captain.vice ? <Fact>{m.vice(captain.vice.name, captain.vice.base == null ? undefined : c.pts(captain.vice.base))}</Fact> : null}
-          </Card>
-        ) : null}
-
-        {chip ? (
-          <Card title={(t.chips as Record<string, string>)[chip.chip] ?? chip.chip} headingLevel={3}>
-            <p className={styles.big}>
-              +{chip.points}
-              <span className={styles.bigNote}>{m.chipFrom(chip.points)}</span>
-            </p>
-            <Fact>{chip.chip === "bboost" ? m.chipBboost : m.chipTc}</Fact>
-          </Card>
-        ) : null}
-
-        {bench ? (
-          <Card title={m.benchTitle} headingLevel={3}>
-            <p className={styles.big}>
-              {c.pts(bench.points)}
-              <span className={styles.bigNote}>{bench.counted ? m.benchCounted : m.benchLeft}</span>
-            </p>
-            <Fact>{bench.players.map((p) => `${p.name} ${p.points}`).join(" · ")}</Fact>
-            {!bench.counted && bench.points >= 10 ? <Fact>{m.benchPine}</Fact> : null}
-            {!bench.counted && bench.points === 0 ? <Fact>{m.benchNone}</Fact> : null}
-          </Card>
-        ) : null}
-
-        {remaining ? (
-          <Card title={m.matchdayTitle} headingLevel={3}>
-            <p className={styles.big}>
-              {remaining.count}
-              <span className={styles.bigNote}>{m.stillToPlay}</span>
-            </p>
-            <Fact>{remaining.count === 0 ? m.allPlayed(remaining.played) : m.somePlayed(remaining.played, remaining.played + remaining.count, remaining.effective)}</Fact>
-          </Card>
-        ) : null}
-
-        {autoSubs.length ? (
-          <Card title={m.autoSubs} headingLevel={3}>
-            <ul className={styles.list}>
-              {autoSubs.map((s) => (
-                <li key={`${s.in.name}-${s.out.name}`}>
-                  <strong>{s.in.name}</strong>
-                  {m.onFor(s.out.name)} <span className={styles.muted}>({s.in.points} {t.common.vs} {s.out.points})</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        {flags.length ? (
-          <Card title={m.injuryReport} headingLevel={3}>
-            <ul className={styles.list}>
-              {flags.map((f) => (
-                <li key={f.name}>
-                  <strong>{f.name}</strong> <span className={styles.muted}>({f.club})</span>{" "}
-                  <Badge tone={f.label === "Doubtful" ? "warning" : "live"}>
-                    {t.team.flags[f.label] ?? f.label}
-                    {f.chance != null ? ` ${t.common.percent(String(f.chance))}` : ""}
-                  </Badge>
-                  {f.news ? (
-                    <span className={styles.news}>
-                      <English>{dash(f.news)}</English>
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        {defcon.length ? (
-          <Card title={m.defcon} headingLevel={3} className={styles.full}>
-            <Fact>{m.defconRule}</Fact>
-            <ul className={`${styles.bars} ${styles.barsWide}`}>
-              {defcon.slice(0, 5).map((d) => (
-                <li key={d.name}>
-                  <span className={styles.barLabel}>
-                    <span>{d.name}</span>
-                    <span className={d.reached ? styles.reached : styles.muted}>
-                      {d.matches > 1 ? m.defconMatches(d.value, d.matches) : `${d.value}/${d.threshold}`}
-                      {d.reached ? m.defconBonus : ""}
-                    </span>
-                  </span>
-                  <span className={styles.track} aria-hidden="true">
-                    <span className={`${styles.fill} ${d.reached ? styles.fillDone : ""}`} style={{ width: `${Math.min(100, Math.round((d.value / (d.threshold * d.matches)) * 100))}%` }} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        {rotation.length ? (
-          <Card title={m.unusedSubs} headingLevel={3}>
-            <Fact>{m.unusedIntro}</Fact>
-            <ul className={styles.list}>
-              {rotation.map((r) => (
-                <li key={r.name}>
-                  <strong>{r.name}</strong> <span className={styles.muted}>({r.club})</span> {r.wasStarter ? <Badge tone="warning">{m.starter}</Badge> : <Badge>{m.benchBadge}</Badge>}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-      </div>
+      <div className={styles.grid}>{matchdayOrder(data, variety ?? null, slot).map((card) => cards[card]())}</div>
     </section>
   );
 }
@@ -178,12 +231,14 @@ function PointsChart({ charts }: { charts: SeasonCharts }) {
   );
 }
 
-function FormCard({ form, charts }: { form: SeasonForm; charts: SeasonCharts | null }) {
+function FormCard({ form, charts, pick }: { form: SeasonForm; charts: SeasonCharts | null; pick: Choose }) {
   const t = getT();
   const s = t.season;
+  const v = s.vary;
   const f = getFormat();
   const gw = t.common.gw;
   const hits = charts?.points.filter((p) => p.hit > 0) ?? [];
+  const trend = recentForm(form);
   return (
     <Card title={s.form} headingLevel={3} className={styles.wide}>
       {charts ? <PointsChart charts={charts} /> : null}
@@ -198,8 +253,11 @@ function FormCard({ form, charts }: { form: SeasonForm; charts: SeasonCharts | n
       <Fact>
         {s.averagingBefore}
         <strong>{f.oneDecimal(form.average)}</strong>
-        {s.averagingAfter(gw(form.gameweeks[form.gameweeks.length - 1].gw), gw(form.best.gw), form.best.net, gw(form.worst.gw), form.worst.net)}
+        {pick([s.averagingAfter, ...v.averagingAfter], 20)(gw(form.gameweeks[form.gameweeks.length - 1].gw), gw(form.best.gw), form.best.net, gw(form.worst.gw), form.worst.net)}
       </Fact>
+      {trend && Math.abs(trend.delta) >= 1 ? (
+        <Fact>{pick(v.trend, 21)(trend.delta > 0, f.oneDecimal(trend.recent), trend.weeks, f.oneDecimal(Math.abs(trend.delta)))}</Fact>
+      ) : null}
       {form.firstRank != null && form.latestRank != null && !(charts && charts.ranks.length >= 2) ? ( // the Overall rank card says this when it can
         <Fact>
           {s.formRankStart(f.rank(form.firstRank))}
@@ -212,12 +270,13 @@ function FormCard({ form, charts }: { form: SeasonForm; charts: SeasonCharts | n
 }
 
 /** Where the season has taken this team: rank, bench, value and transfers, each as a chart with its numbers. */
-function RankCard({ charts }: { charts: SeasonCharts }) {
+function RankCard({ charts, pick }: { charts: SeasonCharts; pick: Choose }) {
   const t = getT();
   const s = t.season;
   const f = getFormat();
   const { ranks } = charts;
   if (ranks.length < 2) return null;
+  const move = lastRankMove(ranks);
   const best = ranks.reduce((b, r) => (r.rank < b.rank ? r : b));
   const first = ranks[0];
   const last = ranks[ranks.length - 1];
@@ -232,6 +291,7 @@ function RankCard({ charts }: { charts: SeasonCharts }) {
         label={s.rankChartLabel(ranks.map((r) => s.rankChartPart(t.common.gw(r.gw), f.rank(r.rank))).join(", "))}
         legend={<span>{s.rankLegend}</span>}
       />
+      {move ? <Fact>{pick(s.vary.rankMove, 22)(move.climbed > 0, f.number(Math.abs(move.climbed)), t.common.gw(move.gw))}</Fact> : null}
       <Fact>
         {s.rankStart(f.rank(first.rank), t.common.gw(first.gw))}
         <strong>{f.rank(last.rank)}</strong>
@@ -241,7 +301,7 @@ function RankCard({ charts }: { charts: SeasonCharts }) {
   );
 }
 
-function BenchCard({ charts }: { charts: SeasonCharts }) {
+function BenchCard({ charts, pick }: { charts: SeasonCharts; pick: Choose }) {
   const t = getT();
   const s = t.season;
   const total = charts.bench.reduce((sum, b) => sum + b.points, 0);
@@ -258,7 +318,7 @@ function BenchCard({ charts }: { charts: SeasonCharts }) {
         label={s.benchChart(charts.bench.map((b) => `${t.common.gw(b.gw)} ${b.points}`).join(", "))}
         height={80}
       />
-      <Fact>{s.benchMost(t.common.gw(worst.gw), t.common.pts(worst.points))}</Fact>
+      <Fact>{pick([s.benchMost, ...s.vary.benchMost], 23)(t.common.gw(worst.gw), t.common.pts(worst.points))}</Fact>
       {charts.benchBoostWeeks.length ? <Fact>{s.benchBoostNote(charts.benchBoostWeeks.map((w) => t.common.gw(w)).join(", "))}</Fact> : null}
     </Card>
   );
@@ -279,25 +339,30 @@ function TransfersChart({ charts }: { charts: SeasonCharts }) {
 }
 
 /** The manager's season, and how the current squad looks ahead. */
-export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonInsights | null; squad: SquadInsights; nextGw: number }) {
+export function SeasonInsightsView({ season, squad, nextGw, variety, slot = 0 }: { season: SeasonInsights | null; squad: SquadInsights; nextGw: number } & Variety) {
   const t = getT();
   const s = t.season;
+  const v = s.vary;
+  const pick = chooser(variety, slot);
   const f = getFormat();
   const gw = t.common.gw;
   const { ownership, outlook } = squad;
   if (!season && !ownership && !outlook) return null;
   const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
+  const through = season?.form?.gameweeks[season.form.gameweeks.length - 1]?.gw;
+  const heading = through == null ? s.heading : pick([() => s.heading, ...v.heading], 24)(gw(through));
+  const inHand = season ? chipsInHand(season.chips) : null;
 
   return (
     <section aria-labelledby="season-heading" className="stack">
       <h2 id="season-heading" className={styles.sectionTitle}>
-        {s.heading}
+        {heading}
       </h2>
       <div className={styles.grid}>
         {season ? (
           <>
-            {season.form ? <FormCard form={season.form} charts={season.charts} /> : null}
-            {season.charts ? <RankCard charts={season.charts} /> : null}
+            {season.form ? <FormCard form={season.form} charts={season.charts} pick={pick} /> : null}
+            {season.charts ? <RankCard charts={season.charts} pick={pick} /> : null}
 
             {nextGw <= season.seasonEnd ? (
               <Card title={s.transfers} headingLevel={3}>
@@ -305,8 +370,9 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
                   {season.freeTransfers.available}
                   <span className={styles.bigNote}>{s.freeFor(season.freeTransfers.available, gw(nextGw))}</span>
                 </p>
+                {season.freeTransfers.verified ? <Fact>{pick(v.freeState, 25)(season.freeTransfers.available, season.freeTransfers.max, gw(nextGw))}</Fact> : null}
                 <Fact>
-                  {s.freeExplain(season.freeTransfers.max)}
+                  {pick([s.freeExplain, ...v.freeExplain], 26)(season.freeTransfers.max)}
                   {season.form ? s.madeThisSeason(season.form.transfers, season.form.hitPoints, t.common.pts(season.form.hitPoints)) : ""}
                 </Fact>
                 {season.charts ? <TransfersChart charts={season.charts} /> : null}
@@ -318,10 +384,17 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
               </Card>
             ) : null}
 
-            {season.charts ? <BenchCard charts={season.charts} /> : null}
+            {season.charts ? <BenchCard charts={season.charts} pick={pick} /> : null}
 
             {season.chips.length ? (
               <Card title={s.chips} headingLevel={3}>
+                {inHand && nextGw <= season.seasonEnd ? (
+                  <Fact>
+                    {inHand.names.length && inHand.closesAt != null
+                      ? pick(v.chipsLeft, 27)(inHand.names.length, inHand.names.map(chipName).join(", "), gw(inHand.closesAt))
+                      : pick(v.chipsNone, 28)}
+                  </Fact>
+                ) : null}
                 <ul className={styles.chips}>
                   {[...new Set(season.chips.map((c) => c.name))].map((name) => {
                     const slots = season.chips.filter((c) => c.name === name);
@@ -344,7 +417,7 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
 
             <Card title={s.experience} headingLevel={3}>
               <p className={styles.big}>{season.tenure.seasons === 0 ? s.firstSeason : s.seasonsBefore(season.tenure.seasons)}</p>
-              {season.tenure.firstSeason ? <Fact>{s.hereSince(season.tenure.firstSeason)}</Fact> : null}
+              {season.tenure.firstSeason ? <Fact>{pick([s.hereSince, ...v.hereSince], 29)(season.tenure.firstSeason)}</Fact> : null}
               {season.tenure.best ? (
                 <Fact>
                   {s.bestFinishLabel}
@@ -360,7 +433,7 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
                 <Fact>
                   {season.form.value.now === season.form.value.start
                     ? s.valueExact
-                    : s.valueUpDown(season.form.value.now > season.form.value.start, f.money(Math.abs(season.form.value.now - season.form.value.start)))}{" "}
+                    : pick([s.valueUpDown, ...v.valueUpDown], 30)(season.form.value.now > season.form.value.start, f.money(Math.abs(season.form.value.now - season.form.value.start)))}{" "}
                   {s.valueIncludesBank}
                 </Fact>
                 {season.charts && season.charts.values.length > 1 ? (
@@ -383,9 +456,9 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
               {t.common.percent(f.oneDecimal(ownership.average))}<span className={styles.bigNote}>{s.avgOwnership}</span>
             </p>
             {ownership.differentials.length ? (
-              <Fact>{s.differentials(ownership.differentials.map((d) => `${d.name} (${t.common.percent(f.decimal(d.ownership))})`).join(", "))}</Fact>
+              <Fact>{pick([s.differentials, ...v.differentials], 31)(ownership.differentials.map((d) => `${d.name} (${t.common.percent(f.decimal(d.ownership))})`).join(", "))}</Fact>
             ) : (
-              <Fact>{s.noDifferentials}</Fact>
+              <Fact>{pick([s.noDifferentials, ...v.noDifferentials], 32)}</Fact>
             )}
           </Card>
         ) : null}
@@ -396,7 +469,7 @@ export function SeasonInsightsView({ season, squad, nextGw }: { season: SeasonIn
               {s.verdict[outlookVerdict(outlook.average)]}
               <span className={styles.bigNote}>{s.outlookNote(outlook.fromGw, outlook.toGw, f.oneDecimal(outlook.average))}</span>
             </p>
-            <Fact>{s.outlookRuns(outlook.easiest.club, f.oneDecimal(outlook.easiest.average), outlook.hardest.club, f.oneDecimal(outlook.hardest.average))}</Fact>
+            <Fact>{pick([s.outlookRuns, ...v.outlookRuns], 33)(outlook.easiest.club, f.oneDecimal(outlook.easiest.average), outlook.hardest.club, f.oneDecimal(outlook.hardest.average))}</Fact>
           </Card>
         ) : null}
       </div>

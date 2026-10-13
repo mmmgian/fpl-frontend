@@ -1,5 +1,5 @@
 import type { Entry } from "../domain";
-import { buildTeamSheet, entryOfSlug, entrySlugs, currentEvent, gameweekPoints, selectGameweek } from "../domain";
+import { buildTeamSheet, entryOfSlug, entrySlugs, currentEvent, gameweekPoints, selectGameweek, varietyKey } from "../domain";
 import type { LeagueSpot, TeamGameweek, TeamIdentity, TeamModel } from "./models";
 import type { AvatarPort, FplPort, MascotPort, ServiceOptions } from "./ports";
 import { buildInsights } from "./teamInsights";
@@ -113,6 +113,7 @@ export function createTeamService(
         min: entry.started_event,
         max: selection.latest.id,
         isLive: selection.status === "live" && selection.gw === selection.latest.id,
+        variety: varietyKey(selection.gw, selection.status, now()),
       };
       if (!picks) return { kind: "no-picks", team, gameweek };
 

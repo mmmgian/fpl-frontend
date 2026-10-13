@@ -1,4 +1,4 @@
-import { currentEvent, gwStatus, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, summarizeStandings } from "../domain";
+import { currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
 import type { LeagueModel } from "./models";
@@ -69,6 +69,8 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
         squadsRequest,
       ]);
       const event = currentEvent(events);
+      const at = now();
+      const status = event ? gwStatus(event, at) : null;
       const summary = summarizeStandings(rows);
       const stats = leagueStats(rows, histories, settledThrough(events));
 
@@ -76,12 +78,17 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
         kind: "ok",
         leagueId,
         name: standings.league.name,
-        gameweek: event ? { name: event.name, status: gwStatus(event, now()) } : null,
+        gameweek: event && status ? { name: event.name, status } : null,
         rows,
         truncated: Boolean(standings.standings.has_next),
         newEntries: standings.new_entries?.results.length ?? 0,
         summary: summary && { leader: summary.leader, best: event ? summary.best : null, managers: summary.managers },
         stats: stats && (squads.size ? { ...stats, squad: Object.fromEntries(squads) } : stats),
+        currentGw: event?.id ?? null,
+        statsPhase: stats ? statsPhase(stats.gw, event && status ? { id: event.id, status } : null) : null,
+        headlines: leagueHeadlines(rows, stats),
+        // Wording only: redrawn daily, and the moment FPL moves the gameweek on (live -> provisional -> final).
+        variety: varietyKey(event?.id ?? 0, status ?? "upcoming", at),
       };
     },
   };

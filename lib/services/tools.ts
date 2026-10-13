@@ -1,5 +1,5 @@
 import type { Pick as FplPick, PositionId, StandingRow } from "../domain";
-import { bestXI, buildLab, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, nextDeadline, opponentsIn, priceRows } from "../domain";
+import { bestXI, buildLab, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, gwPhase, nextDeadline, opponentsIn, priceRows, transferPulse } from "../domain";
 import type { Bootstrap, FplEvent } from "../domain/types";
 import { MAX_STATS_MANAGERS } from "../domain";
 import { withAvatars } from "./avatars";
@@ -72,7 +72,8 @@ export function createToolsService(
         team: bootstrap.teams.some((t) => t.id === team) ? team : null,
         movingOnly: one(query.moving) === "1",
       };
-      const matching = filterPrices(priceRows(bootstrap), filter);
+      const allPrices = priceRows(bootstrap);
+      const matching = filterPrices(allPrices, filter);
 
       // Effective ownership across the league: the current gameweek's picks, for the top of the table or everyone.
       const event = currentEvent(bootstrap.events);
@@ -114,7 +115,10 @@ export function createToolsService(
         eo,
         teams,
         upside: upsidePicks(bootstrap, 8),
+        // Seeded by the gameweek, not the day: the simulated figures stay put all week and only the words around them change.
         lab: next && schedule ? buildLab(bootstrap, schedule, opponentsIn(schedule, bootstrap.teams, next.id), next.id, Math.max(1, next.id - 1)) : null,
+        phase: gwPhase(bootstrap.events, at),
+        pulse: transferPulse(bootstrap, allPrices),
       };
     },
   };

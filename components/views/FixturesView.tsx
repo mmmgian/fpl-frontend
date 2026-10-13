@@ -1,6 +1,7 @@
 import { ClubLink, Crest, FdrChip, GameweekPager, PageHeader, StateMessage, getFormat, getIntlLocale, getT } from "@/components/ui";
 import type { FixturesModel } from "@/lib/services/models";
 import { FixturesTabs } from "./FixturesTabs";
+import { fixturesLede } from "./fixturesLede";
 import styles from "./fixtures.module.css";
 
 const href = (gw: number, window: number) => `/fixtures?gw=${gw}&n=${window}`;
@@ -46,6 +47,8 @@ export function FixturesView({ model }: { model: FixturesModel }) {
           </>
         }
       />
+
+      <p className={styles.lede}>{fixturesLede(model.highlights, model.next, model.variety).join(" ")}</p>
 
       <div className={styles.region} role="region" aria-label={f.gridRegion} tabIndex={0}>
         <table className={styles.table}>

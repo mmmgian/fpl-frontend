@@ -1,6 +1,6 @@
-import { slugify, clubIdentity, clubMatches, clubNews, clubPlayers, formGuide, predictedXI, type ClubMatch } from "../domain";
+import { slugify, clubIdentity, clubMatches, clubNews, clubOutlook, clubPlayers, currentEvent, formGuide, gwStatus, predictedXI, varietyKey, type ClubMatch } from "../domain";
 import type { ClubMatchView, ClubModel, Outside } from "./models";
-import type { EuropePort, FplPort, NewsPort } from "./ports";
+import type { EuropePort, FplPort, NewsPort, ServiceOptions } from "./ports";
 
 /** Runs one outside lookup so that its failure is a state of the page, not an error of the page. */
 async function outside<T>(source: unknown, run: () => Promise<T | null>): Promise<Outside<T>> {
@@ -17,6 +17,7 @@ async function outside<T>(source: unknown, run: () => Promise<T | null>): Promis
 export function createClubService(
   fpl: Pick<FplPort, "bootstrap" | "allFixtures">,
   sources: { europe: EuropePort | null; news: NewsPort | null } = { europe: null, news: null },
+  { now = () => new Date() }: Pick<ServiceOptions, "now"> = {},
 ) {
   return {
     /** What an address means: a club number ("1") or a club's name as written in the address ("man-city"). Null if neither. */
@@ -53,17 +54,23 @@ export function createClubService(
       };
       const { next, recent } = clubMatches(schedule, clubId);
       const players = clubPlayers(bootstrap.elements, clubId);
+      const form = formGuide(recent);
+      const news = clubNews(players);
+      const at = now();
+      const current = currentEvent(bootstrap.events);
 
       return {
         kind: "ok",
         club,
-        form: formGuide(recent),
+        form,
         next: next.map(view),
         recent: recent.map(view),
-        news: clubNews(players),
+        news,
         lineup: predictedXI(players),
         europe: await europe,
         headlines: await headlines,
+        outlook: clubOutlook(form, next, players, news),
+        variety: current ? varietyKey(current.id, gwStatus(current, at), at) : varietyKey(0, "upcoming", at),
       };
     },
   };

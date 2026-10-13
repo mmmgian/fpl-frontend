@@ -59,7 +59,7 @@ describe("TimesLibraryView", () => {
   it("shows the masthead, the latest edition, filters and the archive", async () => {
     const { container } = render(<TimesLibraryView model={await library()} />);
     expect(screen.getByRole("heading", { level: 1, name: "The Lobster Times" })).toBeInTheDocument();
-    const hero = screen.getByRole("region", { name: /latest edition/i });
+    const hero = screen.getByRole("region", { name: /gameweek 5/i }); // the eyebrow's wording varies; the edition it names does not
     expect(within(hero).getByRole("link", { name: "Read the issue" })).toHaveAttribute("href", "/times/times-gw5");
     expect(within(hero).getByText(/gameweek 5/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "The archive" })).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("TimesLibraryView", () => {
   });
 
   it("explains an empty library", () => {
-    render(<TimesLibraryView model={{ kind: "empty" }} />);
+    render(<TimesLibraryView model={{ kind: "empty", press: { gw: null, phase: null, awaiting: null, variety: 0 } }} />);
     expect(screen.getByRole("heading", { level: 1, name: "The Lobster Times" })).toBeInTheDocument();
     expect(screen.getByText("Nothing has gone to print yet")).toBeInTheDocument();
   });

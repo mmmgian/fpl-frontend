@@ -26,6 +26,7 @@ export { SiteHeader } from "./SiteHeader";
 export { Skeleton, TableSkeleton, LoadingState } from "./Skeleton";
 export { Sparkline } from "./Sparkline";
 export { SlowHint } from "./SlowHint";
+export { SnapshotNudge } from "./SnapshotNudge";
 export { SkipLink } from "./SkipLink";
 export { StateMessage } from "./StateMessage";
 export { StatList } from "./StatList";

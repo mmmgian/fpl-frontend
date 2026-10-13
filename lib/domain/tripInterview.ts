@@ -31,6 +31,8 @@ export const TRIP_VOICE_LINES = 32;
 export const TRIP_GENERAL_LINES = 24;
 /** Ways the altered conference's questions are introduced. */
 export const TRIP_OPENERS = 19;
+/** Introductions of the altered conference's moment, per mood (live, provisional, final, ahead), suiting any voice; indexes TRIP_OPENERS + k. */
+export const TRIP_MOOD_OPENERS = 2;
 /**
  * Some of those introductions belong to one voice ("Tonight on The Life Scientific" only leads into the life
  * scientist's answer); `null` ones suit any. Indexes are the same in every language.

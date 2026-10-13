@@ -3,10 +3,12 @@
  * different voices, in the order of a conversation.
  *
  * What is asked is chosen from what actually happened to this team: a blunder (a captain who blanked, points left on
- * the bench, a hit that bought nothing, an injured starter, a flopped chip), where it stands in the league, and one
- * thing from each other part of its week, never the same fact twice. Only when there is too little to talk about does
- * a timeless question fill the gap. Pure and deterministic: the same seed and facts always give the same conference,
- * and a different manager or gameweek gives another.
+ * the bench, a hit that bought nothing, an injured starter, a flopped chip), where it stands in the league, something
+ * about the moment (a captain still to play, bonus FPL has not confirmed, the signed-off verdict, or the next
+ * deadline's armband, fixtures, transfers and flags), and one thing from each other part of its week, never the same
+ * fact twice. Only when there is too little to talk about does a timeless question fill the gap. Pure and
+ * deterministic: the same seed and facts always give the same conference, and a different manager, gameweek, day or
+ * FPL phase gives another.
  */
 import type { Candidate, Group, InterviewContext } from "./interviewFacts";
 
@@ -25,8 +27,18 @@ export const GENERIC_ANSWERS: readonly GenericAnswer[] = ["dim", "chill", "pr", 
 export const ANSWER_KINDS: readonly AnswerKind[] = [...SPECIFIC_ANSWERS, ...GENERIC_ANSWERS];
 /** How many lines each generic voice has, in every language. */
 export const VOICE_LINES = 24;
+/**
+ * How many lines each generic voice also has about whatever was asked (quoting the topic's gist), in every language.
+ * About half of the generic answers use one, so the voices that have no line written per topic still talk about it.
+ */
+export const VOICE_TOPICAL_LINES = 8;
 /** How many ways a question can be introduced (each names the manager or the team). */
 export const OPENERS = 14;
+/**
+ * Introductions that place the conference in its moment (mid-gameweek, bonus still provisional, signed off, the next
+ * deadline ahead), per mood and in every language. They follow the ordinary ones: `OPENERS + k`.
+ */
+export const PHASE_OPENERS = 3;
 /** Questions (and answers) in one conference. */
 export const EXCHANGES = 7;
 /**
@@ -52,6 +64,12 @@ export const GROUP_TOPICS = {
   season: ["seasonBench", "seasonHits", "rankRise", "rankFall", "planetTop", "planetLow", "valueUp", "valueDown", "beatLow", "beatHigh", "noTransfers", "bigRevamp", "ftBanked"],
   /** The team's place in the league. */
   position: ["leader", "chasing", "midtable", "dropzone", "lastPlace", "looksUp", "looksBack", "climber", "faller"],
+  /**
+   * The moment: while live, a captain still to play or a crowd still to come; while FPL's bonus is provisional, that
+   * bonus; once signed off, the verdict; and before the next deadline, its armband, a hard fixture, the free transfers
+   * and a flag to act on.
+   */
+  phase: ["captainWaiting", "stillToPlay", "bonusPending", "finalVerdict", "nextCaptain", "nextFixture", "nextTransfers", "nextFlag"],
 } as const satisfies Record<Group, readonly string[]>;
 
 /** Timeless questions, used only when there is too little to ask about. Each has a question in one style. */
@@ -79,8 +97,13 @@ export const SAME_FACT: readonly (readonly string[])[] = [
   ["beatLow", "beatHigh"],
   ["benchHaul", "seasonBench"],
   ["hitTaken", "seasonHits"],
-  ["captainBlank", "captainRegret", "captainUnused", "captainDoubt", "captainHaul", "viceBetter"],
-  ["injuredStarter", "injuredBench", "squadInjuries", "ghostStarter"],
+  ["captainBlank", "captainRegret", "captainUnused", "captainDoubt", "captainHaul", "viceBetter", "captainWaiting"],
+  ["injuredStarter", "injuredBench", "squadInjuries", "ghostStarter", "nextFlag"],
+  ["captainDoubt", "nextFlag"],
+  ["captainWaiting", "stillToPlay"],
+  ["ftBanked", "nextTransfers"],
+  ["toughRun", "nextFixture"],
+  ["badWeek", "finalVerdict"],
   ["xgWaste", "luckyGoals", "unluckyXg"],
   ["hatTrick", "brace"],
   ["redCard", "yellowFest"],
@@ -90,9 +113,9 @@ export const SAME_FACT: readonly (readonly string[])[] = [
 const sameFact = (a: string, b: string) => a === b || SAME_FACT.some((set) => set.includes(a) && set.includes(b));
 
 const GROUP_OF: ReadonlyMap<string, Group> = new Map(Object.entries(GROUP_TOPICS).flatMap(([group, topics]) => topics.map((t) => [t, group as Group] as const)));
-/** A conference starts with a headline (what went wrong, or where the team stands) and ends on the long view or a light one. */
+/** A conference starts with a headline (what went wrong, or where the team stands) and ends on the long view, what comes next, or a light one. */
 const OPEN_WITH: readonly (Group | undefined)[] = ["position", "blunder", "injury"];
-const CLOSE_WITH: readonly (Group | undefined)[] = ["season", "market", undefined];
+const CLOSE_WITH: readonly (Group | undefined)[] = ["season", "market", "phase", undefined];
 
 /**
  * Puts questions in the order of a conversation: a headline first, the long view or a light one last, and in between
@@ -131,7 +154,15 @@ export interface Exchange {
   answer: AnswerKind;
   /** Which of a generic voice's lines (0 .. VOICE_LINES - 1); unused for the first three voices. Differs between managers of a league. */
   line: number;
-  /** Which way the journalist introduces the question (0 .. OPENERS - 1); each is a different phrase, so no two questions open alike. */
+  /**
+   * For a generic voice: which of its lines about what was asked (0 .. VOICE_TOPICAL_LINES - 1) it says instead of
+   * `line`, or -1 for the all-purpose one. Always -1 for the first three voices.
+   */
+  topical: number;
+  /**
+   * Which way the journalist introduces the question: 0 .. OPENERS - 1 for the ordinary ones, OPENERS + k for the k-th
+   * introduction of the conference's mood (only when asked for). Each is a different phrase, so no two questions open alike.
+   */
   opener: number;
 }
 
@@ -157,10 +188,12 @@ function shuffled<T>(items: readonly T[], next: () => number): T[] {
 }
 
 /**
- * The seed for one manager in one gameweek. While the gameweek is being played, `day` (days since 1970) changes it daily,
- * so the conference is fresh each day; once the gameweek is over pass 0 and it never changes again.
+ * The seed for one manager in one gameweek. `salt` is the shared variety key (`varietyKey(gw, status, now)` from
+ * ./gameweek): it changes every UTC day, whatever the phase, and the moment FPL moves the gameweek on (live ->
+ * provisional -> final), so the conference is redrawn daily and again when FPL signs the scores off. Without a salt
+ * (0) the seed is the manager's and the gameweek's alone.
  */
-export const interviewSeed = (entryId: number, gw: number, day = 0): number => Math.imul(entryId, 31) + gw * 7919 + Math.imul(day, 104729);
+export const interviewSeed = (entryId: number, gw: number, salt = 0): number => (Math.imul(entryId, 31) + Math.imul(gw, 7919) + Math.imul(salt, 104729)) | 0;
 
 /** "gian" -> "Gian", "danny lopez" -> "Danny Lopez"; names already in capitals or mixed case ("McKay") are left as they are. */
 export const neatName = (name: string): string =>
@@ -172,11 +205,12 @@ export const neatName = (name: string): string =>
 
 /**
  * Take one at random, the bigger the weight the likelier (squared, so a big blunder beats a small one most of the time).
- * A topic that "belongs" to this manager's place in the table (its number plus the place is a multiple of four) counts
- * for more, so in one league different managers lean to different topics instead of all being asked the same thing.
+ * A topic that "belongs" to this manager's place in the table today (its number plus the place plus the day's `turn`
+ * is a multiple of four) counts for more, so in one league different managers lean to different topics instead of
+ * all being asked the same thing, and from one day to the next the same manager leans to different ones.
  */
-function draw(items: Candidate[], next: () => number, slot: number): Candidate {
-  const weights = items.map((c) => c.weight * c.weight * ((ALL_TOPICS.indexOf(c.topic) + slot) % 4 === 0 ? 3 : 1));
+function draw(items: Candidate[], next: () => number, slot: number, turn: number): Candidate {
+  const weights = items.map((c) => c.weight * c.weight * ((ALL_TOPICS.indexOf(c.topic) + slot + turn) % 4 === 0 ? 3 : 1));
   let r = next() * weights.reduce((s, w) => s + w, 0);
   for (let i = 0; i < items.length; i++) {
     r -= weights[i];
@@ -199,25 +233,42 @@ const FILLERS: { topic: TopicId; ask: AskKind }[] = ASK_KINDS.flatMap((ask) => F
  *
  * `league` keeps managers of one league from getting the same generic line: all of them share `seed` (the same for the
  * whole league on a given day) to pick each voice's starting line, and each adds its own `slot` (its place in the
- * table), so two managers hear the same line from the same voice only if their slots are a whole cycle apart.
+ * table), so two managers hear the same line from the same voice only if their slots are a whole cycle apart. The
+ * shared seed also turns, day by day, which topics a manager leans to and which clever, snarky or egotist voice a
+ * topic prefers, so a fact that stays true all week is not answered by the same voice in the same words every day.
+ *
+ * Generic voices talk about what was asked six times in ten (a line quoting the topic's gist, `topical`), otherwise
+ * to the mood. With `moodOpeners`, that many introductions of the conference's moment join the ordinary ones.
  */
-export function pickInterview(seed: number, candidates: readonly Candidate[], league: { slot: number; seed: number } = { slot: seed, seed: 0 }, count = EXCHANGES): Exchange[] {
+export function pickInterview(
+  seed: number,
+  candidates: readonly Candidate[],
+  league: { slot: number; seed: number } = { slot: seed, seed: 0 },
+  count = EXCHANGES,
+  moodOpeners = 0,
+): Exchange[] {
   const next = rng(seed);
+  const slot = Math.abs(Math.trunc(league.slot));
+  const shared = league.seed >>> 0;
+  const turnTopic = (shared >>> 3) % 4;
+  const turnVoice = (shared >>> 7) % SPECIFIC_ANSWERS.length;
   let pool = [...candidates];
   const chosen: FullTopic[] = [];
-  // One thing that went wrong, one about the league; then one from each other area not yet asked about, so the
-  // questions are about different parts of the team's week (and only then repeat an area).
+  // One thing that went wrong, one about the league, one about the moment (what is still to play, the provisional
+  // bonus, the verdict or the next deadline); then one from each other area not yet asked about, so the questions are
+  // about different parts of the team's week (and only then repeat an area).
   const used = new Set<Group>();
   const takeFrom = (groups: readonly Group[]) => {
     const from = pool.filter((c) => groups.includes(c.group));
     if (from.length === 0) return;
-    const pick = draw(from, next, Math.abs(Math.trunc(league.slot)));
+    const pick = draw(from, next, slot, turnTopic);
     used.add(pick.group);
     chosen.push(pick.topic);
     pool = pool.filter((c) => !sameFact(c.topic, pick.topic));
   };
   takeFrom(["blunder", "injury"]);
   takeFrom(["position"]);
+  if (chosen.length < count) takeFrom(["phase"]);
   while (chosen.length < count && pool.length) {
     const fresh = pool.filter((c) => !used.has(c.group));
     takeFrom(fresh.length ? [...new Set(fresh.map((c) => c.group))] : [...new Set(pool.map((c) => c.group))]);
@@ -238,17 +289,20 @@ export function pickInterview(seed: number, candidates: readonly Candidate[], le
   const specific = shuffled(SPECIFIC_ANSWERS, next).slice(0, Math.min(count, 2 + Math.floor(next() * 2)));
   const crowd = shuffled([...specific, ...shuffled(GENERIC_ANSWERS, next).slice(0, count - specific.length)], next);
   // Where a topic is asked of several managers, they should not all hear the same voice answer it: the voice a topic
-  // prefers depends on the manager's place in the table, and it gets that voice if it is one of the voices dealt for the day.
+  // prefers depends on the manager's place in the table and on the day, and it gets that voice if it is one of the
+  // voices dealt for the day.
   const voices: AnswerKind[] = [];
   const left = [...crowd];
   for (const r of order) {
-    const preferred = SPECIFIC_ANSWERS[(ALL_TOPICS.indexOf(r.topic) + Math.abs(Math.trunc(league.slot))) % SPECIFIC_ANSWERS.length];
+    const preferred = SPECIFIC_ANSWERS[(ALL_TOPICS.indexOf(r.topic) + slot + turnVoice) % SPECIFIC_ANSWERS.length];
     const at = left.indexOf(preferred);
     voices.push(at >= 0 ? left.splice(at, 1)[0] : (undefined as unknown as AnswerKind));
   }
   for (let k = 0; k < voices.length; k++) if (voices[k] === undefined) voices[k] = left.shift()!;
-  const start = (voice: AnswerKind) => Math.floor(rng(league.seed + Math.imul(ANSWER_KINDS.indexOf(voice) + 1, 2654435761))() * VOICE_LINES);
-  const free = shuffled(Array.from({ length: OPENERS }, (_, i) => i), next);
+  const start = (voice: AnswerKind, lines: number, salt = 0) => Math.floor(rng(league.seed + Math.imul(ANSWER_KINDS.indexOf(voice) + 1 + salt, 2654435761))() * lines);
+  const isGeneric = (v: AnswerKind) => (GENERIC_ANSWERS as readonly string[]).includes(v);
+  const topical = voices.map((v) => (isGeneric(v) && next() < 0.6 ? (start(v, VOICE_TOPICAL_LINES, 11) + slot) % VOICE_TOPICAL_LINES : -1));
+  const free = shuffled(Array.from({ length: OPENERS + Math.max(0, moodOpeners) }, (_, i) => i), next);
   const last = order.length - 1;
   const opener = (i: number) => {
     // The winding-up introduction is the last question's about half the time, and nobody else's.
@@ -256,7 +310,7 @@ export function pickInterview(seed: number, candidates: readonly Candidate[], le
     const at = closing >= 0 ? closing : free.findIndex((k) => !(i === 0 && OPENERS_AFTER_ANOTHER.includes(k)) && k !== OPENER_LAST);
     return free.splice(at >= 0 ? at : 0, 1)[0];
   };
-  return order.map((r, i) => ({ ask: r.ask, topic: r.topic, answer: voices[i], line: (start(voices[i]) + Math.abs(Math.trunc(league.slot))) % VOICE_LINES, opener: opener(i) }));
+  return order.map((r, i) => ({ ask: r.ask, topic: r.topic, answer: voices[i], line: (start(voices[i], VOICE_LINES) + slot) % VOICE_LINES, topical: topical[i], opener: opener(i) }));
 }
 
 /** Catalog shape: one question per style the topic is written in, and an answer in each of the three topic-specific voices. */
@@ -267,3 +321,7 @@ export interface InterviewTopic {
 
 /** A generic voice: lines that answer any question, written in that voice. */
 export type InterviewVoice = ((c: InterviewContext) => string)[];
+/** A generic voice's lines about whatever was asked: `g` is the topic's gist ("a −4 hit", "Salah's brace"). */
+export type InterviewTopicalVoice = ((c: InterviewContext, g: string) => string)[];
+/** How a journalist introduces a question; `q` is the question itself. */
+export type InterviewOpener = (c: InterviewContext, q: string) => string;

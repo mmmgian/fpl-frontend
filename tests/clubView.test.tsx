@@ -27,6 +27,8 @@ const base = (over: Partial<Ok> = {}): Ok => ({
   lineup: null,
   europe: { status: "off" },
   headlines: { status: "off" },
+  outlook: { form: null, run: null, star: null, out: [], doubts: 0 },
+  variety: 0,
   ...over,
 });
 
@@ -91,8 +93,12 @@ describe("ClubView", () => {
       expect(within(card).getByText("0% to play")).toBeInTheDocument();
     });
     it("celebrates an empty injury list", () => {
-      render(<ClubView model={base()} />);
-      expect(screen.getByText(/clean bill of health/i)).toBeInTheDocument();
+      // The wording is drawn per club and day; whichever it is, it names the club and says nobody is flagged.
+      for (const variety of [0, 1, 2, 104729, 7919]) {
+        const { unmount } = render(<ClubView model={base({ variety })} />);
+        expect(screen.getByText(/clean bill of health|treatment room|no flags/i)).toHaveTextContent("Arsenal");
+        unmount();
+      }
     });
     it("does not go blank when FPL flags a player but gives no words", () => {
       render(<ClubView model={base({ news: [item("Odegaard", "out", { news: "" })] })} />);

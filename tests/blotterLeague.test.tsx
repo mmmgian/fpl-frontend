@@ -72,9 +72,10 @@ describe("the blotter's words", () => {
         expect(m.blotter.titles[key].length, `${lang} ${key}`).toBeGreaterThan(3);
         expect(m.blotter.titles[key], `${lang} ${key}`).not.toBe(m.awards.titles[key]);
       }
-      expect(m.blotter.lines.weekWinner("Alpha", "62 X", "Y")).toContain("62 X");
-      expect(m.blotter.lines.deepPockets("Alpha", "£100.4m")).toContain("£100.4m");
-      expect(m.blotter.dares.sealed("WC", "second")).toContain("WC");
+      const copy = { name: "Alpha", figure: "62 X", when: "in GW5", place: 2 };
+      for (const line of m.blotter.lines.weekWinner) expect(line(copy), lang).toContain("62 X");
+      for (const line of m.blotter.lines.deepPockets) expect(line({ ...copy, figure: "£100.4m" }), lang).toContain("£100.4m");
+      for (const line of m.blotter.dares.sealed) expect(line("WC", "second"), lang).toContain("WC");
     }
   });
 });

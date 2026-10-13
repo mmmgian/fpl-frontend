@@ -4,9 +4,10 @@ import { InterviewPanel } from "@/components/views/InterviewPanel";
 import { interviewInputOf } from "@/components/views/interviewInput";
 import { setRequestLocale } from "@/components/ui/i18n";
 import {
-  ALL_TOPICS, ANSWER_KINDS, ASK_KINDS, EXCHANGES, FILLER_TOPICS, FULL_TOPICS, GENERIC_ANSWERS, GROUP_TOPICS, OPENERS, OPENERS_AFTER_ANOTHER, OPENER_LAST, SAME_FACT, SPECIFIC_ANSWERS, VOICE_LINES,
-  candidatesOf, interviewContext, interviewSeed, neatName, pickInterview, type Candidate, type InterviewInput, type InterviewPlayer, type TopicId,
+  ALL_TOPICS, ANSWER_KINDS, ASK_KINDS, EXCHANGES, FILLER_TOPICS, FULL_TOPICS, GENERIC_ANSWERS, GROUP_TOPICS, INTERVIEW_MOODS, OPENERS, OPENERS_AFTER_ANOTHER, OPENER_LAST, PHASE_OPENERS, SAME_FACT, SPECIFIC_ANSWERS, VOICE_LINES, VOICE_TOPICAL_LINES,
+  candidatesOf, interviewContext, interviewMood, interviewSeed, neatName, pickInterview, type Candidate, type InterviewInput, type InterviewPlayer, type TopicId,
 } from "@/lib/domain/interview";
+import { varietyKey } from "@/lib/domain";
 import { MESSAGES } from "@/lib/domain/i18n";
 import { LOCALES } from "@/lib/domain/i18n/locales";
 import { createMascotGateway } from "@/lib/mascots";
@@ -176,6 +177,15 @@ describe("what the squad, season and league give a conference to ask about", () 
     ["noTransfers", base({ transfers: 0 })],
     ["bigRevamp", base({ transfers: 4 })],
     ["ftBanked", base({ transfers: 0, freeTransfers: 4 })],
+    // the moment
+    ["captainWaiting", base({ phase: "live", captain: { name: "C", base: 0, state: "waiting", bestName: "B", bestBase: 0, regret: 0 } })],
+    ["stillToPlay", base({ phase: "live", remaining: { count: 4, effective: 3 } })],
+    ["bonusPending", { ...withPlayers({ bonus: 2 }), phase: "provisional" }],
+    ["finalVerdict", base({ phase: "final" })],
+    ["nextCaptain", base({ phase: "final", ahead: { gw: "Gameweek 7", captain: { name: "N", xp: 6.1, p10: 0.3 }, fixture: null } })],
+    ["nextFixture", base({ phase: "final", ahead: { gw: "Gameweek 7", captain: null, fixture: { name: "F", opponent: "ARS (A)", difficulty: 5 } } })],
+    ["nextTransfers", base({ phase: "final", freeTransfers: 1, ahead: { gw: "Gameweek 7", captain: null, fixture: null } })],
+    ["nextFlag", { ...withPlayers({ flag: flagged }), phase: "final", ahead: { gw: "Gameweek 7", captain: null, fixture: null } }],
   ];
 
   it.each(cases)("asks about %s when it happened", (topic, input) => {
@@ -186,6 +196,28 @@ describe("what the squad, season and league give a conference to ask about", () 
     const covered = new Set(cases.map(([t]) => t));
     const elsewhere = new Set<string>(["captainBlank", "captainRegret", "captainUnused", "benchHaul", "hitTaken", "autoSubbed", "chipFlop", "badWeek", "injuredStarter", "idleBank", "seasonBench", "seasonHits", ...GROUP_TOPICS.position]);
     for (const t of FULL_TOPICS) expect(covered.has(t) || elsewhere.has(t), t).toBe(true);
+  });
+
+  it("asks about the moment only in its moment: live, provisional bonus, the verdict, the next deadline", () => {
+    const ahead = { gw: "Gameweek 7", captain: { name: "N", xp: 6.1, p10: 0.3 }, fixture: { name: "F", opponent: "ARS (A)", difficulty: 5 } };
+    const all = (phase: InterviewInput["phase"]) => {
+      const i = { ...withPlayers({ bonus: 2, flag: flagged }), phase, ahead, freeTransfers: 2, remaining: { count: 5, effective: 4 }, captain: { name: "C", base: 0, state: "waiting" as const, bestName: "B", bestBase: 0, regret: 0 } };
+      return topics(i).filter((t) => (GROUP_TOPICS.phase as readonly string[]).includes(t));
+    };
+    expect(all("live")).toEqual(["captainWaiting", "stillToPlay"]);
+    expect(all("provisional")).toEqual(["bonusPending", "nextCaptain", "nextFixture", "nextFlag", "nextTransfers"]);
+    expect(all("final")).toEqual(["finalVerdict", "nextCaptain", "nextFixture", "nextFlag", "nextTransfers"]);
+    expect(all(undefined)).toEqual(["nextCaptain", "nextFixture", "nextFlag", "nextTransfers"]);
+    // No next deadline (the season's last gameweek): nothing about it.
+    expect(topics(base({ phase: "final", freeTransfers: 2, ahead: null })).filter((t) => t.startsWith("next"))).toEqual([]);
+  });
+
+  it("knows the conference's mood: live, provisional, then the next deadline once FPL signs off (or the verdict at the season's end)", () => {
+    expect(interviewMood("live", true)).toBe("live");
+    expect(interviewMood("provisional", true)).toBe("provisional");
+    expect(interviewMood("final", true)).toBe("ahead");
+    expect(interviewMood("final", false)).toBe("final");
+    expect(interviewMood("upcoming", false)).toBe("ahead");
   });
 
   it("does not ask about it when it did not happen", () => {
@@ -220,6 +252,7 @@ describe("what the squad, season and league give a conference to ask about", () 
       gk: "Keepy", gkSaves: 7, expensive: "Midb", expensivePrice: "£13.0m", template: "Midb", diff: "Mida", cold: "Midb", hotBench: "Benchy", benchFlagged: "Benchy",
       trioClub: "Chelsea", trioCount: 3, formation: "3-3-3", csCount: 3, defconCount: 2, defconNear: "Defb", ghost: "Fwda", captainFlag: "doubtful", flaggedCount: 3,
       valueDelta: "£2.2m", rankPct: 88, hardClub: "Hardton", runAvg: "3.6",
+      remaining: 4, bonusPts: 6, nextGw: "Gameweek 7", nextCaptain: "Nexto", nextCaptainXp: "6.4", nextCaptainP10: 31, nextPlayer: "Fwdb", nextOpp: "ARS (A)", nextFdr: 5,
     });
   });
 
@@ -285,6 +318,61 @@ describe("pickInterview", () => {
     }
   });
 
+  // A team in each moment: the same week, asked about live, with the bonus provisional, and once FPL signs it off.
+  const moment = (phase: "live" | "provisional" | "final") => candidatesOf(base({
+    phase, hit: 4, bank: 25, freeTransfers: 2, remaining: phase === "live" ? { count: 5, effective: 4 } : null,
+    captain: { name: "Haaland", base: phase === "live" ? 0 : 2, state: phase === "live" ? "waiting" : "played", bestName: "Salah", bestBase: 12, regret: 20 },
+    players: [pl({ name: "Bon", bonus: 3 }), pl({ name: "Hurt", flag: { kind: "out", label: "injured", chance: 0 } }), ...Array.from({ length: 9 }, (_, k) => pl({ name: `F${k}` }))],
+    ahead: phase === "live" ? null : { gw: "Gameweek 7", captain: { name: "Nexto", xp: 6.4, p10: 0.31 }, fixture: { name: "Fwdb", opponent: "ARS (A)", difficulty: 5 } },
+    league: league({ moved: 3 }),
+  }));
+
+  it("always asks one question about the moment when there is one", () => {
+    const phase = new Set<string>(GROUP_TOPICS.phase);
+    for (const p of ["live", "provisional", "final"] as const) for (let seed = 0; seed < 200; seed++) {
+      expect(pickInterview(seed, moment(p)).filter((x) => phase.has(x.topic)).length, `${p} ${seed}`).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("introduces some questions in the moment, when the moment's introductions are offered, keeping every rule", () => {
+    let moodOnes = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      const xs = pickInterview(seed, rich(), undefined, undefined, PHASE_OPENERS);
+      expect(new Set(xs.map((x) => x.opener)).size, `openers ${seed}`).toBe(EXCHANGES);
+      expect(xs.every((x) => x.opener >= 0 && x.opener < OPENERS + PHASE_OPENERS)).toBe(true);
+      // the follow-up introductions are never first, the winding-up one only last
+      expect(OPENERS_AFTER_ANOTHER.includes(xs[0].opener), `first ${seed}`).toBe(false);
+      xs.slice(0, -1).forEach((x) => expect(x.opener, `last-only ${seed}`).not.toBe(OPENER_LAST));
+      moodOnes += xs.filter((x) => x.opener >= OPENERS).length;
+    }
+    expect(moodOnes / 300, "mood introductions per conference").toBeGreaterThan(0.5);
+    expect(moodOnes / 300).toBeLessThanOrEqual(PHASE_OPENERS);
+  });
+
+  it("has generic voices answer the question asked most of the time, with lines a league does not share", () => {
+    let topical = 0;
+    let generic = 0;
+    for (let seed = 0; seed < 300; seed++) for (const x of pickInterview(seed, rich(), { slot: seed % 21, seed: 77 })) {
+      if (!(GENERIC_ANSWERS as readonly string[]).includes(x.answer)) { expect(x.topical).toBe(-1); continue; }
+      generic++;
+      if (x.topical >= 0) { topical++; expect(x.topical).toBeLessThan(VOICE_TOPICAL_LINES); }
+    }
+    expect(topical / generic).toBeGreaterThan(0.5);
+    expect(topical / generic).toBeLessThan(0.7);
+  });
+
+  it("is the same for the same inputs and redrawn when the day or the phase changes", () => {
+    const deal = (phase: "live" | "provisional" | "final", day: number) => {
+      const key = varietyKey(6, phase, new Date(day * 86_400_000 + 3_600_000));
+      return JSON.stringify(pickInterview(interviewSeed(1234, 6, key), moment(phase), { slot: 8, seed: interviewSeed(0, 6, key) }));
+    };
+    for (const p of ["live", "provisional", "final"] as const) {
+      expect(deal(p, 20000)).toBe(deal(p, 20000));
+      expect(new Set([20000, 20001, 20002, 20003, 20004, 20005, 20006].map((d) => deal(p, d))).size, p).toBe(7);
+    }
+    expect(new Set(["live", "provisional", "final"].map((p) => deal(p as "live", 20000))).size).toBe(3);
+  });
+
   const wide = (): Candidate[] => Object.entries(GROUP_TOPICS).flatMap(([group, topics]) => topics.map((topic) => ({ topic, group: group as Candidate["group"], weight: 50 })));
   const groupOf = (t: string) => Object.entries(GROUP_TOPICS).find(([, ts]) => (ts as readonly string[]).includes(t))?.[0];
 
@@ -293,7 +381,7 @@ describe("pickInterview", () => {
     for (let seed = 0; seed < 400; seed++) {
       const xs = pickInterview(seed, wide());
       expect(["position", "blunder", "injury"], `first ${seed}`).toContain(groupOf(xs[0].topic));
-      expect(["season", "market"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
+      expect(["season", "market", "phase"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
       expect(new Set(xs.map((x) => groupOf(x.topic))).size, `seven areas ${seed}`).toBe(EXCHANGES);
       for (let i = 1; i < xs.length; i++) if (xs[i].ask === xs[i - 1].ask) sameStyle++;
     }
@@ -306,7 +394,7 @@ describe("pickInterview", () => {
     for (let seed = 0; seed < 400; seed++) {
       const xs = pickInterview(seed, rich());
       expect(["position", "blunder", "injury"], `first ${seed}`).toContain(groupOf(xs[0].topic));
-      expect(["season", "market"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
+      expect(["season", "market", "phase"], `last ${seed}`).toContain(groupOf(xs[xs.length - 1].topic));
       for (let i = 1; i < xs.length; i++) { possible++; if (groupOf(xs[i].topic) === groupOf(xs[i - 1].topic)) repeats++; }
     }
     expect(repeats / possible).toBeLessThan(0.03);
@@ -433,7 +521,7 @@ function randomManager(i: number, settled: boolean): InterviewInput {
     const goals = pos >= 3 && r() < 0.15 ? 1 + Math.floor(r() * 2) : 0;
     return pl({
       name: `${pick(names)}${k}`, pos, club: pick(clubs), started, counted: started, captain: k === 5, vice: k === 6,
-      multiplier: k === 5 ? 2 : started ? 1 : 0, points, goals, assists: r() < 0.15 ? 2 : 0, xg: Math.round(r() * r() * 15) / 10,
+      multiplier: k === 5 ? 2 : started ? 1 : 0, points, goals, assists: r() < 0.05 ? 2 : 0, // a two-assist game is rare in real FPL (a few per gameweek across a 15-man squad at most) xg: Math.round(r() * r() * 15) / 10,
       yellow: r() < 0.1 ? 1 : 0, red: r() < 0.03 ? 1 : 0, cleanSheet: pos <= 2 && r() < 0.35, conceded: pos <= 2 ? Math.floor(r() * 3) : 0, saves: pos === 1 ? Math.floor(r() * 8) : 0,
       price: 40 + Math.floor(r() * 90), form: Math.round(r() * 90) / 10, ownership: Math.round(r() * 600) / 10,
       minutes: r() < 0.06 ? 0 : 90, flag: r() < 0.15 ? { kind: r() < 0.5 ? "out" : "doubt", label: pick(["injured", "doubtful", "suspended"]), chance: pick([0, 25, 50, 75]) } : null,
@@ -465,10 +553,14 @@ function conference(input: InterviewInput, entryId: number, locale: (typeof LOCA
   return xs.map((x) => {
     const topic = t.topics[x.topic];
     const q = t.openers[x.opener](c, (topic.q[x.ask] ?? Object.values(topic.q)[0]!)(c));
-    const a = (SPECIFIC_ANSWERS as readonly string[]).includes(x.answer) ? topic.a[x.answer as "genius" | "snarky" | "egotist"](c) : t.voices[x.answer as (typeof GENERIC_ANSWERS)[number]][x.line](c);
+    const generic = x.answer as (typeof GENERIC_ANSWERS)[number];
+    const a = (SPECIFIC_ANSWERS as readonly string[]).includes(x.answer)
+      ? topic.a[x.answer as "genius" | "snarky" | "egotist"](c)
+      : x.topical >= 0 ? t.voicesOn[generic][x.topical](c, t.trip.gist[x.topic](c)) : t.voices[generic][x.line](c);
     return { topic: x.topic, q, a, voice: x.answer };
   });
 }
+
 
 describe.each(["live", "settled"] as const)("a whole league of twenty-one different managers (%s gameweek)", (state) => {
   const managers = Array.from({ length: 21 }, (_, i) => randomManager(i, state === "settled"));
@@ -564,6 +656,8 @@ const richInput = (over: Partial<InterviewInput> = {}): InterviewInput =>
     season: { average: 66, benchPoints: 52, hitPoints: 12 }, bank: 25, bankText: "£2.5m",
     players: squad(), rotated: { name: "Rotato" }, planet: { rank: 1_200_000, of: 10_000_000 }, rankMove: { from: 400_000, to: 800_000 },
     value: { now: 1022, start: 1000 }, beat: { weeks: 1, of: 5 }, freeTransfers: 4, transfers: 3, outlook: { average: 3.6, hardest: "Hardton", easiest: "Easyton" },
+    phase: "final", remaining: { count: 4, effective: 3 },
+    ahead: { gw: "Gameweek 7", captain: { name: "Nexto", xp: 6.4, p10: 0.31 }, fixture: { name: "Fwdb", opponent: "ARS (A)", difficulty: 5 } },
     ...over,
   });
 const ctx = (over: Partial<ReturnType<typeof interviewContext>> = {}) => ({ ...interviewContext(richInput()), ...over });
@@ -612,6 +706,63 @@ describe.each(LOCALES)("the interview copy in %s", (locale) => {
     expect(new Set(outs).size).toBe(OPENERS);
     expect(outs.some((o) => o.includes("Zed Qux"))).toBe(true);
     expect(outs.some((o) => o.includes("Teamy FC"))).toBe(true);
+  });
+
+  it("introduces questions in the conference's moment: three ways per mood, each naming the manager or the team once, all different", () => {
+    expect(Object.keys(t.moodOpeners).sort()).toEqual([...INTERVIEW_MOODS].sort());
+    const outs: string[] = [];
+    for (const mood of INTERVIEW_MOODS) {
+      expect(t.moodOpeners[mood], mood).toHaveLength(PHASE_OPENERS);
+      for (const o of t.moodOpeners[mood]) {
+        const text = o(ctx(), "Q?");
+        outs.push(text);
+        expect(/Zed|Teamy FC/.test(text), text).toBe(true);
+        expect(text, text).not.toMatch(BAD);
+        expect(text, text).not.toMatch(/ {2}| ,| \.|,,/);
+        // no name twice, whatever the question says
+        for (const id of ALL_TOPICS) for (const q of Object.values(t.topics[id as TopicId].q)) {
+          const whole = o(ctx(), q!(ctx()));
+          expect((whole.match(/Zed/g) ?? []).length, whole).toBeLessThanOrEqual(1);
+          expect((whole.match(/Teamy FC/g) ?? []).length, whole).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+    expect(new Set([...outs, ...t.openers.map((o) => o(ctx(), "Q?"))]).size).toBe(outs.length + OPENERS);
+  });
+
+  it("lets every generic voice talk about the question asked, in lines that read well with any topic's gist", () => {
+    const problems: string[] = [];
+    for (const g of GENERIC_ANSWERS) {
+      expect(t.voicesOn[g], g).toHaveLength(VOICE_TOPICAL_LINES);
+      expect(new Set(t.voicesOn[g].map((f) => f(ctx(), "zebra stripes"))).size, g).toBe(VOICE_TOPICAL_LINES);
+      for (const id of ALL_TOPICS) {
+        const gist = t.trip.gist[id as TopicId](ctx());
+        t.voicesOn[g].forEach((f, i) => {
+          const line = f(ctx(), gist);
+          if (BAD.test(line) || / {2}| ,| \.|,,|\?\?/.test(line) || line.trim() !== line) problems.push(`${g}/${i}/${id}: ${line}`);
+          if (!line.includes(gist) && !line.includes(gist.charAt(0).toLocaleUpperCase() + gist.slice(1))) problems.push(`${g}/${i}/${id}: does not name the topic: ${line}`);
+        });
+      }
+      // A line that leads with the gist starts with a capital.
+      for (const f of t.voicesOn[g]) {
+        const line = f(ctx(), "zebra stripes");
+        if (line.toLowerCase().replace(/^[¿¡]/, "").startsWith("zebra")) expect(line, line).toMatch(/^[¿¡]?Zebra/);
+      }
+    }
+    expect(problems.slice(0, 5)).toEqual([]);
+  });
+
+  it("says what each phase means in the lede and the note", () => {
+    const ledes = (["live", "provisional", "final", "ahead"] as const).map((m) => t.lede("Zed Qux", "Teamy FC", "Gameweek 6", m, "Gameweek 7"));
+    expect(new Set(ledes).size).toBe(4);
+    for (const l of ledes) expect(l).toMatch(/Zed Qux.*Teamy FC.*6/);
+    expect(ledes[3]).toContain("7");
+    expect(t.lede("Zed Qux", "Teamy FC", "Gameweek 6", "ahead", "")).toBe(t.lede("Zed Qux", "Teamy FC", "Gameweek 6", "final"));
+    expect(t.provisionalNote("Gameweek 6")).toContain("6");
+    expect(t.provisionalNote("Gameweek 6").startsWith("*")).toBe(true);
+    expect(t.finalNote("Gameweek 6")).toMatch(/FPL/);
+    const trips = (["live", "provisional", "final", "ahead"] as const).map((m) => t.trip.lede("Zed Qux", "Teamy FC", "Gameweek 6", m, "Gameweek 7"));
+    expect(new Set(trips).size).toBe(4);
   });
 
   it("reads well: whole questions and replies have no leftover placeholders, double spaces or stray punctuation", () => {
@@ -667,7 +818,7 @@ describe.each(LOCALES)("the interview copy in %s", (locale) => {
     for (const [rank, text] of expected[locale]) expect(ordinal(rank), String(rank)).toContain(text);
   });
 
-  it("explains the daily change and the final state", () => {
+  it("explains the daily change in every phase", () => {
     expect(t.liveNote.startsWith("*")).toBe(true);
     expect(t.finalNote("Gameweek 6")).toContain("6");
     expect(JSON.stringify(t)).not.toMatch(/Invented|Inventada|Inventée|nobody was really asked/);
@@ -706,7 +857,7 @@ describe("InterviewPanel", () => {
 
   it("calls the manager and the team by name: in the lede and in the questions", async () => {
     const { container } = render(<InterviewPanel model={withLeague(withMascot(await okModel()))} />);
-    expect(screen.getByText(/Gian Jaen of Gaucho F\.C\. faces the press after Gameweek 6/)).toBeInTheDocument();
+    expect(screen.getByText(/Gian Jaen of Gaucho F\.C\. faces the press during Gameweek 6/)).toBeInTheDocument();
     const questions = Array.from(container.querySelectorAll("[data-ask] p[class*=bubble]")).map((p) => p.textContent!);
     expect(questions).toHaveLength(EXCHANGES);
     for (const q of questions) expect(/Gian|Gaucho F\.C\./.test(q), q).toBe(true);
@@ -728,14 +879,41 @@ describe("InterviewPanel", () => {
     expect(new Set([20000, 20001, 20002, 20003].map(day)).size).toBeGreaterThanOrEqual(3);
   });
 
-  it("is fixed once the gameweek is over, whatever the day, and says so", async () => {
+  it("keeps changing every day once the gameweek is over, the same all day, and says FPL has confirmed the scores", async () => {
     const final = withLeague(await okModel("5"));
     expect(final.gameweek.status).toBe("final");
-    const at = (d: number) => { const { container, unmount } = render(<InterviewPanel model={final} now={new Date(d * 86_400_000)} />); const t = text(container); unmount(); return t; };
-    expect(at(20000)).toBe(at(20400));
+    const at = (d: number, h = 0) => { const { container, unmount } = render(<InterviewPanel model={final} now={new Date(d * 86_400_000 + h * 3_600_000)} />); const t = text(container); unmount(); return t; };
+    expect(at(20000, 1)).toBe(at(20000, 22));
+    expect(new Set([20000, 20001, 20002, 20003].map((d) => at(d))).size).toBeGreaterThanOrEqual(3);
     render(<InterviewPanel model={final} />);
-    expect(screen.getByText(/Final for Gameweek 5: this press conference is fixed/)).toBeInTheDocument();
-    expect(screen.queryByText(/Changes every day/)).toBeNull();
+    expect(screen.getByText(/FPL has confirmed the scores for Gameweek 5/)).toBeInTheDocument();
+    expect(screen.queryByText(/Changes every day during/)).toBeNull();
+  });
+
+  it("is redrawn the moment FPL moves the gameweek on, even on the same day", async () => {
+    const m = withLeague(await okModel("5"));
+    const as = (status: "live" | "provisional" | "final") => {
+      const { container, unmount } = render(<InterviewPanel model={{ ...m, gameweek: { ...m.gameweek, status } }} now={new Date(20000 * 86_400_000)} />);
+      const out = { items: text(container), all: container.textContent ?? "" };
+      unmount();
+      return out;
+    };
+    const live = as("live");
+    const provisional = as("provisional");
+    const final = as("final");
+    expect(new Set([live.items, provisional.items, final.items]).size).toBe(3);
+    expect(provisional.all).toMatch(/Bonus for Gameweek 5 is still provisional/);
+    expect(provisional.all).toMatch(/while FPL settles the bonus/);
+    expect(live.all).toMatch(/faces the press during Gameweek 5/);
+  });
+
+  it("uses the shared variety key, so it turns together with the rest of the page", () => {
+    // The key the panel salts its seed with: different on each day and in each phase, the same within one.
+    const day = new Date(20000 * 86_400_000 + 3_600_000);
+    const later = new Date(20000 * 86_400_000 + 20 * 3_600_000);
+    expect(varietyKey(5, "final", day)).toBe(varietyKey(5, "final", later));
+    expect(varietyKey(5, "final", day)).not.toBe(varietyKey(5, "provisional", day));
+    expect(interviewSeed(7, 5, varietyKey(5, "final", day))).not.toBe(interviewSeed(7, 5, varietyKey(5, "provisional", day)));
   });
 
   it("gives managers in the same league different conferences", async () => {

@@ -8,14 +8,17 @@ type Ok = Extract<TeamModel, { kind: "ok" }>;
 /** FPL flags a starter as a doubt at any chance under 100; only a real worry is worth a question. */
 const WORRYING_DOUBT = 50;
 const OUT_LABELS = new Set(["Injured", "Suspended", "Unavailable"]);
+/** A fixture this hard (FPL difficulty 4 or 5) is worth a question before the deadline. */
+const HARD_FIXTURE = 4;
 
 /**
  * What the press conference may ask about, taken from what the manager page already shows: the same numbers, in the
  * reader's language. Nothing is invented here; anything FPL did not give is left out, and the questions about it with it.
+ * The next deadline is only spoken of while it is ahead: the latest gameweek is over and another one follows.
  */
 export function interviewInputOf(
   model: Ok,
-  t: Pick<Messages, "chips" | "team">,
+  t: Pick<Messages, "chips" | "team"> & Partial<Pick<Messages, "common" | "fixtures">>,
   money: (tenths: number) => string,
   gwName: string,
   lower: (s: string) => string,
@@ -79,6 +82,24 @@ export function interviewInputOf(
   const lastTwo = ranks.slice(-2);
   const rotated = g.rotation.find((r) => r.wasStarter);
 
+  // The next deadline: this gameweek's while it has not started, else the following one once the latest is over.
+  const seasonEnd = insights.season?.seasonEnd ?? 38;
+  const aheadGw = gameweek.status === "upcoming" ? gameweek.gw : gameweek.status !== "live" && gameweek.gw === gameweek.max && gameweek.gw < seasonEnd ? gameweek.gw + 1 : null;
+  let ahead: InterviewInput["ahead"] = null;
+  if (aheadGw !== null) {
+    const best = insights.squad.lab?.gw === aheadGw ? insights.squad.lab.captain.inSquad[0] : undefined;
+    const venue = (home: boolean) => (home ? (t.fixtures?.homeShort ?? "H") : (t.fixtures?.awayShort ?? "A"));
+    const hard = allPlayers(sheet)
+      .filter((p) => p.slot <= 11 && model.next[p.id]?.length === 1 && model.next[p.id][0].difficulty >= HARD_FIXTURE)
+      .sort((a, b) => Number(b.isCaptain) - Number(a.isCaptain) || (b.price ?? 0) - (a.price ?? 0) || a.id - b.id)[0];
+    const match = hard ? model.next[hard.id][0] : null;
+    ahead = {
+      gw: t.common?.gameweek(aheadGw) ?? `Gameweek ${aheadGw}`,
+      captain: best ? { name: best.name, xp: best.mean, p10: best.p10 } : null,
+      fixture: hard && match ? { name: hard.name, opponent: `${match.opponent} (${venue(match.home)})`, difficulty: match.difficulty } : null,
+    };
+  }
+
   return {
     team: team.teamName,
     first,
@@ -119,5 +140,8 @@ export function interviewInputOf(
     outlook: insights.squad.outlook ? { average: insights.squad.outlook.average, hardest: insights.squad.outlook.hardest.club, easiest: insights.squad.outlook.easiest.club } : null,
     upside: insights.squad.upside ?? null,
     lab: insights.squad.lab ?? null,
+    phase: gameweek.status,
+    remaining: g.remaining ? { count: g.remaining.count, effective: g.remaining.effective } : null,
+    ahead,
   };
 }

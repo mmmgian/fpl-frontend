@@ -1,6 +1,12 @@
 /* ---------- League awards ---------- */
 .awards { display: grid; gap: var(--space-3); min-width: 0; }
 .awardsTitle { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+/* Which week the awards are for and how settled it is: tucked under the heading. */
+.awardsPhase { margin: calc(var(--space-2) * -1) 0 0; font-size: 0.8125rem; color: var(--text-muted); }
+
+/* ---------- The week's storyline, under the page header ---------- */
+.story { margin: 0 auto; max-width: 62ch; font-size: 0.9375rem; line-height: 1.5; text-align: center; color: var(--text-muted); text-wrap: balance; }
+.storyPhase { font-weight: 600; color: var(--text); }
 
 /* A row you swipe through on a phone; a tidy grid once there is room. */
 .awardList {
@@ -73,6 +79,7 @@
 .chart { display: grid; gap: var(--space-2); justify-items: start; min-width: 0; overflow-x: auto; padding-top: var(--space-1); }
 .legend { margin: 0; max-width: 100%; font-size: 0.6875rem; color: var(--text-muted); overflow-wrap: anywhere; }
 .streak { margin: 0; font-size: 0.8125rem; font-weight: 600; }
+.angle { margin: 0; font-size: 0.8125rem; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-3) var(--space-4); margin: 0; }
 .fact { display: grid; gap: 1px; }
 .fact dt { font-size: 0.6875rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }

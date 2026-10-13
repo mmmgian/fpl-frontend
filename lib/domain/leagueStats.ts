@@ -4,6 +4,7 @@
  *
  * "Net" points are a gameweek's points after any transfer hit (FPL's `points` is before the hit).
  */
+import type { GwStatus } from "./gameweek";
 import type { SquadWeek } from "./squadStats";
 import type { EntryHistory, HistoryChip, HistoryGameweek, StandingRow } from "./types";
 
@@ -204,3 +205,126 @@ function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histor
 }
 
 const positive = <T extends { value: number } | null>(p: T): T | null => (p && p.value > 0 ? p : null);
+
+// ------------------------------------------------------------------------------------------------ talking points
+
+/**
+ * Where the extras' week stands against FPL's current gameweek: "provisional" or "final" when the extras are about the
+ * current gameweek (FPL's `data_checked` decides which), "live" when they are about the last finished week because a
+ * later one is being played.
+ */
+export type StatsPhase = "live" | "provisional" | "final";
+
+export function statsPhase(statsGw: number, current: { id: number; status: GwStatus } | null): StatsPhase {
+  if (current && current.id === statsGw) return current.status === "final" ? "final" : "provisional";
+  return current && current.id > statsGw && current.status === "live" ? "live" : "final";
+}
+
+/** Something worth a headline about the league. Every figure is read straight off the table or the managers' histories. */
+export type LeagueHeadline =
+  | { kind: "newLeader"; entry: number; from: number }
+  | { kind: "titleRace"; entry: number; other: number; gap: number }
+  | { kind: "level"; entry: number; other: number }
+  | { kind: "riser"; entry: number; places: number; rank: number }
+  | { kind: "faller"; entry: number; places: number; rank: number }
+  | { kind: "weekHigh"; entry: number; points: number; gw: number }
+  | { kind: "chips"; entry: number; chip: string; count: number; points: number; gw: number }
+  | { kind: "bottom"; entry: number; gap: number };
+
+/** A move needs this many places to be news; one place is ordinary churn. */
+const NEWS_MOVE = 2;
+
+/**
+ * The league's storylines, most newsworthy first: a new leader always leads, the rest are equally good candidates for
+ * the view to rotate through. `rows` is the table as FPL has it now (it moves during a live gameweek); `stats` covers
+ * the last finished week.
+ */
+export function leagueHeadlines(rows: StandingRow[], stats: LeagueStats | null): LeagueHeadline[] {
+  if (rows.length === 0) return [];
+  const out: LeagueHeadline[] = [];
+  const [leader, second] = rows;
+  if (leader.last_rank > 1 && rows.length > 1) out.push({ kind: "newLeader", entry: leader.entry, from: leader.last_rank });
+  if (second) out.push(leader.total === second.total ? { kind: "level", entry: leader.entry, other: second.entry } : { kind: "titleRace", entry: leader.entry, other: second.entry, gap: leader.total - second.total });
+
+  const moved = rows.filter((r) => r.last_rank > 0).map((r) => ({ r, by: r.last_rank - r.rank }));
+  const up = moved.reduce<(typeof moved)[number] | null>((a, b) => (b.by > (a?.by ?? 0) ? b : a), null);
+  const down = moved.reduce<(typeof moved)[number] | null>((a, b) => (b.by < (a?.by ?? 0) ? b : a), null);
+  if (up && up.by >= NEWS_MOVE && up.r.rank > 1) out.push({ kind: "riser", entry: up.r.entry, places: up.by, rank: up.r.rank });
+  if (down && -down.by >= NEWS_MOVE) out.push({ kind: "faller", entry: down.r.entry, places: -down.by, rank: down.r.rank });
+
+  if (stats?.comparable) {
+    const inTable = rows.map((r) => stats.byEntry[r.entry]).filter((s): s is ManagerStats => Boolean(s));
+    const top = inTable.find((s) => s.weekRank === 1 && s.weekPoints > 0);
+    if (top) out.push({ kind: "weekHigh", entry: top.entry, points: top.weekPoints, gw: stats.gw });
+    const chipped = inTable.flatMap((s) => s.chips.filter((c) => c.event === stats.gw).map((c) => ({ s, chip: c.name })));
+    const star = chipped.reduce<(typeof chipped)[number] | null>((a, b) => (!a || b.s.weekPoints > a.s.weekPoints ? b : a), null);
+    if (star) out.push({ kind: "chips", entry: star.s.entry, chip: star.chip, count: chipped.length, points: star.s.weekPoints, gw: stats.gw });
+  }
+
+  if (rows.length >= 4) {
+    const last = rows[rows.length - 1];
+    const above = rows[rows.length - 2];
+    out.push({ kind: "bottom", entry: last.entry, gap: Math.max(0, above.total - last.total) });
+  }
+  return out;
+}
+
+/** Points between first and second, or null with fewer than two managers. */
+export const leaderGap = (rows: StandingRow[]): number | null => (rows.length > 1 ? Math.max(0, rows[0].total - rows[1].total) : null);
+
+/** One thing worth saying about a single manager's season, from their own numbers. */
+export type Angle =
+  | { kind: "chase"; points: number }
+  | { kind: "overallUp"; places: number }
+  | { kind: "overallDown"; places: number }
+  | { kind: "peak"; points: number; gw: number }
+  | { kind: "low"; points: number; gw: number }
+  | { kind: "bench"; points: number }
+  | { kind: "clean"; transfers: number };
+
+/** Close enough to the team above that one good captain closes it. */
+export const CHASE_GAP = 12;
+export const BENCH_ANGLE = 15;
+
+/** The talking points that apply to a manager for gameweek `gw` (the latest finished one). The view features one. */
+export function anglesFor(s: ManagerStats, gw: number): Angle[] {
+  const out: Angle[] = [];
+  if (s.behindNext !== null && s.behindNext > 0 && s.behindNext <= CHASE_GAP) out.push({ kind: "chase", points: s.behindNext });
+  if (s.overallMoved) out.push(s.overallMoved > 0 ? { kind: "overallUp", places: s.overallMoved } : { kind: "overallDown", places: -s.overallMoved });
+  if (s.form.length >= 3 && s.best.gw === gw) out.push({ kind: "peak", points: s.best.points, gw });
+  else if (s.form.length >= 3 && s.worst.gw === gw) out.push({ kind: "low", points: s.worst.points, gw });
+  if (s.benchPoints >= BENCH_ANGLE) out.push({ kind: "bench", points: s.benchPoints });
+  if (s.hitPoints === 0 && s.transfers >= 3) out.push({ kind: "clean", transfers: s.transfers });
+  return out;
+}
+
+/** What a sentence about an award may say: the figure already formatted, plus plain numbers a language needs. */
+export interface AwardCopy {
+  name: string;
+  /** The award's figure, formatted ("62 points", "3 weeks", "£100.4m"). */
+  figure: string;
+  /** "in GW5" or "this week". */
+  when: string;
+  /** The winner's place in the table now. */
+  place: number;
+}
+
+/** What a headline may say. Fields a headline doesn't use are empty. */
+export interface StoryCopy {
+  name: string;
+  /** A second team (the chaser in a title race). */
+  other: string;
+  n: number;
+  /** `n` formatted with its unit ("12 points", "3 places"). */
+  figure: string;
+  gw: number;
+  place: number;
+  chip: string;
+}
+
+/** What a talking point may say. */
+export interface AngleCopy {
+  figure: string;
+  n: number;
+  gw: number;
+}

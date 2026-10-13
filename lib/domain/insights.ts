@@ -5,6 +5,7 @@
  */
 import type { BootstrapChip, HistoryChip, HistoryGameweek, HistorySeason, ScheduledFixture } from "./types";
 import { CHIP_LABEL, allPlayers, type SheetPlayer, type TeamSheet } from "./teamSheet";
+import { pickVariant } from "./gameweek";
 
 // ---------- Free transfers ----------
 
@@ -457,3 +458,84 @@ export function fixtureOutlook(sheet: TeamSheet, fixtures: ScheduledFixture[], f
 
 /** One word for an outlook average: 1-2.6 kind, up to 3.4 mixed, above that tough. */
 export const outlookVerdict = (average: number): "Kind" | "Mixed" | "Tough" => (average <= 2.6 ? "Kind" : average <= 3.4 ? "Mixed" : "Tough");
+
+// ---------- What leads, and the week's headlines ----------
+
+export type MatchdayCard = "captain" | "chip" | "bench" | "remaining" | "autoSubs" | "flags" | "rotation" | "defcon";
+
+export interface MatchdayFacts {
+  captain: CaptainInsight | null;
+  bench: BenchInsight | null;
+  chip: { chip: string; points: number } | null;
+  autoSubs: AutoSub[];
+  rotation: RotationRisk[];
+  remaining: PlayersRemaining | null;
+  defcon: DefconProgress[];
+  flags: SquadFlag[];
+}
+
+/** Seeded nudges never exceed this, so a routine card can't overtake a notable one; it only reshuffles near-equals. */
+const ORDER_NUDGE = [0, 2, 4, 6, 8] as const;
+
+/**
+ * The order of this gameweek's cards: the most telling fact first (players still to come while live, a chip, a captain
+ * haul or blank, a heavy bench, flagged starters), routine ones after. With a `variety` key (see `varietyKey`) cards of
+ * similar weight swap places from day to day so the page doesn't always open the same way; facts decide the big moves.
+ * DefCon spans the whole row, so it always closes the grid.
+ */
+export function matchdayOrder(d: MatchdayFacts, variety: number | null = null, slot = 0): MatchdayCard[] {
+  const weights: [MatchdayCard, number][] = [];
+  if (d.remaining) weights.push(["remaining", d.remaining.count > 0 ? 90 + Math.min(d.remaining.effective, 9) : 20]);
+  if (d.chip) weights.push(["chip", 80]);
+  if (d.captain) {
+    const c = d.captain;
+    weights.push(["captain", c.state === "unused" ? 70 : c.state === "waiting" ? 55 : c.captain.points >= 16 ? 85 : 45 + Math.min(c.regret ?? 0, 30)]);
+  }
+  if (d.bench) weights.push(["bench", d.bench.counted ? 35 : d.bench.points >= 10 ? 60 + Math.min(d.bench.points, 25) : 25]);
+  if (d.flags.length) {
+    const starters = d.flags.filter((f) => f.wasStarter).length;
+    weights.push(["flags", starters ? 55 + 5 * Math.min(starters, 4) : 30]);
+  }
+  if (d.autoSubs.length) weights.push(["autoSubs", 40 + 5 * Math.min(d.autoSubs.length, 4)]);
+  if (d.rotation.length) weights.push(["rotation", d.rotation.some((r) => r.wasStarter) ? 50 : 25]);
+  const nudge = (i: number) => (variety == null ? 0 : pickVariant(ORDER_NUDGE, variety, slot * 16 + i));
+  const order = weights
+    .map(([card, w], i) => ({ card, w: w + nudge(i), i }))
+    .sort((a, b) => b.w - a.w || a.i - b.i)
+    .map((x) => x.card);
+  return d.defcon.length ? [...order, "defcon"] : order;
+}
+
+/** The last `n` settled weeks against the season's rate; null until there are enough weeks for it to mean something. */
+export function recentForm(form: SeasonForm, n = 3): { weeks: number; recent: number; delta: number } | null {
+  if (form.gameweeks.length < n + 2) return null;
+  const recent = form.gameweeks.slice(-n).reduce((s, g) => s + g.net, 0) / n;
+  return { weeks: n, recent, delta: recent - form.average };
+}
+
+/** How far the overall rank moved in the latest settled gameweek (positive = climbed); null if unknown or unchanged. */
+export function lastRankMove(ranks: { gw: number; rank: number }[]): { gw: number; climbed: number } | null {
+  if (ranks.length < 2) return null;
+  const before = ranks[ranks.length - 2];
+  const after = ranks[ranks.length - 1];
+  return after.rank === before.rank ? null : { gw: after.gw, climbed: before.rank - after.rank };
+}
+
+/** Chips that can be played right now, and the first gameweek after which one of them expires. */
+export function chipsInHand(slots: ChipSlot[]): { names: string[]; closesAt: number | null } {
+  const open = slots.filter((s) => s.state === "available");
+  return { names: [...new Set(open.map((s) => s.name))], closesAt: open.length ? Math.min(...open.map((s) => s.stop)) : null };
+}
+
+/** Within this many actions of the DefCon threshold, a near miss is worth a line. */
+export const DEFCON_NEAR = 4;
+
+export type DefconHeadline = { kind: "reached"; names: string[] } | { kind: "close"; name: string; gap: number } | null;
+
+/** The DefCon story of the week: who has the +2, else who came (or is) closest. Doubles are left out: the total spans two matches. */
+export function defconHeadline(defcon: DefconProgress[]): DefconHeadline {
+  const reached = defcon.filter((d) => d.reached).map((d) => d.name);
+  if (reached.length) return { kind: "reached", names: reached };
+  const near = defcon.find((d) => d.matches === 1 && d.threshold - d.value <= DEFCON_NEAR);
+  return near ? { kind: "close", name: near.name, gap: near.threshold - near.value } : null;
+}

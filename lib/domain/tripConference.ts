@@ -33,9 +33,10 @@ const shuffled = <T>(xs: readonly T[], next: () => number): T[] =>
 
 /**
  * `league` keeps managers of one league from hearing the same line from the same voice: they share `seed` and add
- * their own `slot` (place in the table), as in the ordinary conference.
+ * their own `slot` (place in the table), as in the ordinary conference. With `moodOpeners`, that many introductions of
+ * the conference's moment (indexes TRIP_OPENERS + k, suiting any voice) join the ordinary ones.
  */
-export function pickTripConference(seed: number, candidates: readonly Candidate[], tips: readonly TripTip[], league: { slot: number; seed: number }): TripItem[] {
+export function pickTripConference(seed: number, candidates: readonly Candidate[], tips: readonly TripTip[], league: { slot: number; seed: number }, moodOpeners = 0): TripItem[] {
   const next = rng(seed);
   const slot = Math.abs(Math.trunc(league.slot));
   // Mostly two sneaky tips; sometimes one, sometimes three (if the team has that much to be advised on).
@@ -62,12 +63,13 @@ export function pickTripConference(seed: number, candidates: readonly Candidate[
 
   // Different journalists throughout. Each introduction is used once, and a voice's own go only with that voice.
   const askers = shuffled(Array.from({ length: TRIP_ASKERS }, (_, k) => k), next);
-  const free = new Set(Array.from({ length: TRIP_OPENERS }, (_, k) => k));
+  const free = new Set(Array.from({ length: TRIP_OPENERS + Math.max(0, moodOpeners) }, (_, k) => k));
+  const voiceOf = (k: number) => (k < TRIP_OPENERS ? TRIP_OPENER_VOICE[k] : null);
   return order.map((it, i) => {
     const voice = it.kind === "topic" ? it.voice : null;
-    const fits = shuffled([...free].filter((k) => TRIP_OPENER_VOICE[k] === null || TRIP_OPENER_VOICE[k] === voice), next);
+    const fits = shuffled([...free].filter((k) => voiceOf(k) === null || voiceOf(k) === voice), next);
     // Half the time a voice gets the introduction made for it.
-    const own = voice !== null && next() < 0.5 ? fits.find((k) => TRIP_OPENER_VOICE[k] === voice) : undefined;
+    const own = voice !== null && next() < 0.5 ? fits.find((k) => voiceOf(k) === voice) : undefined;
     const opener = own ?? fits[0];
     free.delete(opener);
     return { ...it, asker: askers[i], opener };

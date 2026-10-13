@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FixtureBonusCard } from "@/components/views/FixtureBonusCard";
 import { StandingsTable } from "@/components/views/StandingsTable";
 import { TeamSheetView } from "@/components/views/TeamSheetView";
-import { buildTeamSheet } from "@/lib/domain";
+import { buildTeamSheet, snapshotFacts } from "@/lib/domain";
 import { SnapshotView } from "@/components/views/SnapshotView";
 import { expectNoAxeViolations } from "./axe";
 import { bootstrap, fixture, live, picks, standing } from "./fixtures";
@@ -134,7 +134,7 @@ describe("SnapshotView", () => {
     standing({ entry: 2, entry_name: "Beta", rank: 2, last_rank: 0, total: 60, rank_approximate: true }),
     standing({ entry: 3, entry_name: "Gamma", rank: 3, last_rank: 0, total: 50 }),
   ];
-  const base = { gw: 1, leagueName: "Test League", takenAt: "2026-10-11T12:00:00Z", rows };
+  const base = { gw: 1, leagueName: "Test League", takenAt: "2026-10-11T12:00:00Z", rows, facts: snapshotFacts(rows), variety: 0 };
 
   it("an ordinary snapshot says Saved and carries no rebuild note or approximation marks", async () => {
     const { container } = render(<SnapshotView gw={1} snapshot={{ ...base, rows: rows.map((r) => ({ ...r, rank_approximate: undefined })), rebuilt: null }} />);

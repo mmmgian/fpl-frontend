@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, Card, ClubLink, Crest, English, FdrChip, LocalTime, PageHeader, StateMessage, getFormat, getT } from "@/components/ui";
-import { dash, scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
+import { Badge, Card, ClubLink, Crest, English, FdrChip, LocalTime, PageHeader, StateMessage, getFormat, getIntlLocale, getT } from "@/components/ui";
+import { dash, pickVariant, scoreLine, type ClubNewsItem, type PredictedPlayer, type PredictedXI, type Result } from "@/lib/domain";
 import type { ClubMatchView, ClubModel, Outside } from "@/lib/services/models";
 import styles from "./club.module.css";
 import insights from "./insights.module.css";
@@ -82,12 +82,12 @@ function Fixtures({ title, matches, empty }: { title: string; matches: ClubMatch
 
 const SEVERITY_TONE: Record<ClubNewsItem["severity"], "warning" | "live" | "neutral"> = { out: "live", doubt: "warning", note: "neutral" };
 
-function TeamNews({ news }: { news: ClubNewsItem[] }) {
+function TeamNews({ news, club, variety }: { news: ClubNewsItem[]; club: Ok["club"]; variety: number }) {
   const c = getT().club;
   return (
     <Card title={c.news} headingLevel={2} className={styles.wide}>
       {news.length === 0 ? (
-        <p className={insights.fact}>{c.newsEmpty}</p>
+        <p className={insights.fact}>{pickVariant(c.newsEmpty, variety, club.id)(club.name)}</p>
       ) : (
         <ul className={styles.list}>
           {news.map(({ player: p, severity }) => (
@@ -185,11 +185,33 @@ function Outside<T>({ title, data, children }: { title: string; data: Outside<T>
   );
 }
 
+/**
+ * The opening lines: form, the run ahead, the top FPL scorer and who is missing, each in a wording drawn for this club
+ * and this day (and redrawn when the gameweek moves on). Only the facts the model has make it in.
+ */
+function outlookLines(model: Ok): string[] {
+  const c = getT().club;
+  const fmt = getFormat();
+  const { club, outlook: o, variety } = model;
+  const slot = club.id * 8;
+  const lines: string[] = [];
+  if (o.form) lines.push(pickVariant(c.formLine[o.form.mood], variety, slot)(club.name, o.form.wins, o.form.draws, o.form.losses, o.form.played));
+  if (o.run) lines.push(pickVariant(c.runLine[o.run.mood], variety, slot + 1)(club.name, fmt.oneDecimal(o.run.average), o.run.matches));
+  if (o.star) {
+    const owned = o.star.ownership !== null ? getT().common.percent(fmt.oneDecimal(o.star.ownership)) : null;
+    lines.push(pickVariant(c.starLine, variety, slot + 2)(o.star.name, o.star.points, owned));
+  }
+  if (o.out.length) lines.push(pickVariant(c.outLine, variety, slot + 3)(new Intl.ListFormat(getIntlLocale(), { type: "conjunction" }).format(o.out), o.out.length, o.doubts));
+  else if (o.doubts) lines.push(pickVariant(c.doubtLine, variety, slot + 3)(o.doubts));
+  return lines;
+}
+
 export function ClubView({ model }: { model: Ok }) {
   const t = getT();
   const c = t.club;
   const { club, next } = model;
   const upcoming = next[0];
+  const lines = outlookLines(model);
   return (
     <>
       <PageHeader
@@ -216,10 +238,12 @@ export function ClubView({ model }: { model: Ok }) {
         }
       />
 
+      {lines.length ? <p className={styles.lede}>{lines.join(" ")}</p> : null}
+
       <div className={styles.cards}>
         <Fixtures title={c.upNext} matches={model.next} empty={c.upNextEmpty} />
         <Fixtures title={c.recent} matches={model.recent} empty={c.recentEmpty} />
-        <TeamNews news={model.news} />
+        <TeamNews news={model.news} club={club} variety={model.variety} />
         <Lineup xi={model.lineup} />
 
         <Outside title={c.europe} data={model.europe}>

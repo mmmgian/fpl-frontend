@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DeadlineTimer } from "@/components/ui/DeadlineTimer";
 import { I18nProvider } from "@/components/ui/I18nProvider";
 import { ToolsView } from "@/components/views/ToolsView";
+import { MESSAGES } from "@/lib/domain/i18n";
 import { createToolsService } from "@/lib/services/tools";
 import { expectNoAxeViolations } from "./axe";
 import { englishLeaks, visibleTexts } from "./i18nLeaks";
@@ -92,7 +93,7 @@ describe("the Tools page", () => {
     const { container } = render(<ToolsView model={{ ...m, xi: null, teams: [], eo: null }} />);
     expect(container.querySelector("#xi")).toBeNull();
     expect(container.querySelector("#teams")).toBeNull();
-    expect(container.querySelector("#eo")).toHaveTextContent("No picks to work from yet.");
+    expect(MESSAGES.en.tools.eo.none.some((line) => container.querySelector("#eo")?.textContent?.includes(line))).toBe(true);
     expect(screen.getByRole("navigation", { name: "Tools" }).querySelectorAll("a")).toHaveLength(2);
   });
 

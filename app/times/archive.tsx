@@ -9,6 +9,6 @@ import { initLocale } from "@/app/locale";
  */
 export async function TablesArchive() {
   await initLocale();
-  const snapshots = await services.history.list(leagueId()).catch(() => null);
-  return <HistoryListView snapshots={snapshots} />;
+  const shelf = await services.history.shelf(leagueId());
+  return <HistoryListView snapshots={shelf.snapshots} shelf={shelf} />;
 }

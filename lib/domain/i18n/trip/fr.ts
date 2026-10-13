@@ -2,7 +2,12 @@
  * Le français, à travers le buvard. Mêmes faits, mêmes chiffres, d'autres portes. Les textes pour lecteurs d'écran
  * restent assez clairs pour être suivis ; le voyage se passe dans les mots visibles.
  */
+import type { StoryCopy } from "../../leagueStats";
 import type { TripOverlay } from "./index";
+
+/** Pour les histoires de la ligue : 1er, 2e ... et une majuscule pour un chiffre en début de phrase. */
+const leagueNth = (n: number) => (n === 1 ? "1er" : `${n}e`);
+const leagueCap = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
 export const tripFr: TripOverlay = {
   common: {
@@ -61,7 +66,11 @@ export const tripFr: TripOverlay = {
     none: "Les orbites ne sont pas encore cartographiées",
     noneBody: "Le calendrier se matérialise dès que FPL a rêvé la saison.",
     feedEyebrow: "Chaque collision, toute la saison",
-    feedIntro: "Laissez-vous dériver à travers tout le calendrier. Les journées doubles et les journées sans match brillent, et chaque camp porte sa gravité, de 1 (un bain tiède) à 5 (un bad trip).",
+    feedIntro: [
+      "Laissez-vous dériver à travers tout le calendrier. Les journées doubles et les journées sans match brillent, et chaque camp porte sa gravité, de 1 (un bain tiède) à 5 (un bad trip).",
+      "Chaque collision, orbite après orbite. Le chiffre à côté de chaque tribu est sa gravité : 1, on flotte ; 5, on tombe dans le soleil.",
+      "Toute la saison qui se déroule comme un ruban. Doubles et journées vides scintillent ; la gravité va de 1 (plume) à 5 (trou noir).",
+    ],
     gridEyebrow: "Gravité",
     gridIntro: (from: number, to: number) => `Le trajet le plus doux d'abord, J${from}–J${to}`,
     gridCaption: (from: number, to: number) => `Gravité du calendrier de la journée ${from} à la ${to}, le trajet le plus doux d'abord`,
@@ -69,6 +78,37 @@ export const tripFr: TripOverlay = {
     noFixture: "En apesanteur",
     all: "Toutes les orbites",
     next: (n: number) => `${n} prochaines orbites`,
+    deadline: [
+      (gw, until, matches) => `La porte de la J${gw} se ferme dans ${until}. ${matches} collision${matches >= 2 ? "s attendent" : " attend"} de l'autre côté.`,
+      (gw, until, matches) => `Encore ${until} de libre arbitre avant que la J${gw} se verrouille. ${matches} collision${matches >= 2 ? "s" : ""} à rêver.`,
+      (gw, until, matches) => `Le temps se plie vers la J${gw} : encore ${until}, ${matches} match${matches >= 2 ? "s bourdonnent" : " bourdonne"} au loin.`,
+    ],
+    seasonOver: "La dernière porte s'est refermée. Plus rien à préparer, seulement des échos à écouter.",
+    easiest: [
+      (team, avg, from, to) => `${team} flotte sur le courant le plus doux, J${from}–J${to} (gravité ${avg}).`,
+      (team, avg, from, to) => `Alerte bain tiède : ${team}, gravité ${avg} de la J${from} à la J${to}. Ses attaquants rayonnent.`,
+      (team, avg, from, to) => `L'univers est tendre avec ${team} : ${avg} sur J${from}–J${to}.`,
+    ],
+    toughest: [
+      (team, avg, from, to) => `${team} marche droit dans l'orage, J${from}–J${to} (gravité ${avg}).`,
+      (team, avg, from, to) => `Air lourd pour ${team} : ${avg} par orbite de la J${from} à la J${to}. Lâchez prise en douceur.`,
+      (team, avg, from, to) => `Le bad trip du moment : ${team}, ${avg} sur J${from}–J${to}.`,
+    ],
+    swing: [
+      (team, before, after, gw) => `La marée tourne pour ${team} : la gravité ${before} fond à ${after} dès la J${gw}. Arrivez avant la foule.`,
+      (team, before, after, gw) => `À la J${gw}, les nuages s'écartent au-dessus de ${team} : ${before} avant, ${after} après.`,
+      (team, before, after, gw) => `Vous le sentez bouger ? ${team} passe de ${before} à ${after} quand arrive la J${gw}.`,
+    ],
+    double: [
+      (gw, teams) => `La J${gw} se dédouble pour ${teams} : deux fois plus de collisions.`,
+      (gw, teams) => `Vision double en J${gw} : ${teams} jouent deux fois.`,
+      (gw, teams) => `${teams} existent deux fois en J${gw}. Les chips se mettent à bourdonner.`,
+    ],
+    blank: [
+      (gw, teams) => `${teams} disparaissent de la J${gw}. Pas une seule collision.`,
+      (gw, teams) => `La J${gw} a un trou en forme de ${teams}.`,
+      (gw, teams) => `Silence en J${gw} pour ${teams} : leurs joueurs brillent à zéro.`,
+    ],
   },
 
   chips: {
@@ -84,7 +124,11 @@ export const tripFr: TripOverlay = {
     notFoundLead: (id: number) => `Aucune ligue classique avec l'ID ${id} n'existe dans cette dimension. Vérifiez la variable d'environnement `,
     preSeason: "Avant le big bang",
     emptyTitle: "Le cosmos est vide pour l'instant",
-    emptyBody: "Le classement se matérialise après la date limite de la première journée.",
+    emptyBodies: [
+      "Le classement se matérialise après la date limite de la première journée.",
+      "Rien n'a encore de forme. La première date limite lui en donnera une.",
+      "Le cosmos choisit encore ses effectifs. Revenez après le coup d'envoi de la journée 1.",
+    ],
     joined: (n: number) => ` ${n} ${n >= 2 ? "voyageurs ont" : "voyageur a"} embarqué pour l'instant.`,
     summary: "L'état du cosmos",
     leader: "Le Soleil",
@@ -92,6 +136,77 @@ export const tripFr: TripOverlay = {
     managers: "Voyageurs",
     truncated: "Seules les premières couches sont affichées",
     caption: (name: string) => `${name}, selon l'univers`,
+    leaderHint: [
+      (name: string, gap: string) => `${name}, ${gap} plus près de la lumière`,
+      (name: string, gap: string) => `${name}, ${gap} plus lumineux que le deuxième`,
+      (name: string, gap: string) => `${name}, ${gap} de ciel dégagé`,
+    ],
+    bestLive: (name: string) => `${name}, encore en train de monter`,
+    storyLabel: "Ce que dit le cosmos cette semaine",
+    phase: {
+      upcoming: [
+        (gw: number) => `La J${gw} n'est pas encore née. Le mercato est une porte ; franchissez-la.`,
+        (gw: number) => `La date limite de la J${gw} bourdonne encore au loin. Capitaines pas choisis.`,
+        (gw: number) => `Avant la J${gw} : le calme, les plans, le calendrier qui luit doucement.`,
+      ],
+      live: [
+        (gw: number) => `La J${gw} respire. Chaque but change les couleurs.`,
+        (gw: number) => `La J${gw} se passe en ce moment. Rien ici n'est encore solide.`,
+        (gw: number) => `La J${gw} bouge encore ; le classement est une lampe à lave jusqu'au coup de sifflet final.`,
+      ],
+      provisional: [
+        (gw: number) => `La J${gw} se dépose encore. FPL n'a pas fait sa vérification finale.`,
+        (gw: number) => `L'encre de la J${gw} est fraîche : les points sont là, la bénédiction de FPL non.`,
+        (gw: number) => `La J${gw} a atterri, en douceur. Les bonus sont là ; la vérification finale, pas encore.`,
+      ],
+      final: [
+        (gw: number) => `La J${gw} est gravée dans la pierre. FPL l'a validée.`,
+        (gw: number) => `La J${gw} ne bouge plus. Vérifiée, définitive, vraie.`,
+        (gw: number) => `FPL a scellé la J${gw}. Ces totaux ne fondront pas.`,
+      ],
+    },
+    story: {
+      newLeader: [
+        (c: StoryCopy) => `Un nouveau soleil : ${c.name}, monté depuis la ${c.place === 1 ? "1re" : `${c.place}e`} place.`,
+        (c: StoryCopy) => `${c.name} a dérivé depuis la ${c.place === 1 ? "1re" : `${c.place}e`} place et se retrouve au centre de tout.`,
+        (c: StoryCopy) => `La couronne a flotté jusqu'à ${c.name}, qui avait commencé la semaine ${leagueNth(c.place)}.`,
+      ],
+      titleRace: [
+        (c: StoryCopy) => `${c.name} brûle ${c.figure} plus fort que ${c.other}.`,
+        (c: StoryCopy) => `${leagueCap(c.figure)} de ciel entre ${c.name}, le soleil, et ${c.other}, la lune.`,
+        (c: StoryCopy) => `${c.other} gravite à ${c.figure} de ${c.name}${c.n <= 10 ? ", assez près pour sentir la chaleur" : ""}.`,
+      ],
+      level: [
+        (c: StoryCopy) => `Deux soleils : ${c.name} et ${c.other}, à égalité de points.`,
+        (c: StoryCopy) => `${c.name} et ${c.other} partagent une aura au sommet. Même total, exactement.`,
+        (c: StoryCopy) => `Le sommet est un duo : ${c.name} et ${c.other}, parfaitement à égalité.`,
+      ],
+      riser: [
+        (c: StoryCopy) => `${c.name} a lévité de ${c.figure} et plane désormais ${leagueNth(c.place)}.`,
+        (c: StoryCopy) => `La gravité a oublié ${c.name} : +${c.figure}, jusqu'à la ${c.place === 1 ? "1re" : `${c.place}e`} place.`,
+        (c: StoryCopy) => `${c.name} a flotté ${c.figure} plus haut et s'est posé ${leagueNth(c.place)}.`,
+      ],
+      faller: [
+        (c: StoryCopy) => `${c.name} a coulé de ${c.figure}, jusqu'à la ${c.place === 1 ? "1re" : `${c.place}e`} place. Respirez.`,
+        (c: StoryCopy) => `Le sol est monté à la rencontre de ${c.name} : ${c.figure} plus bas, désormais ${leagueNth(c.place)}.`,
+        (c: StoryCopy) => `${c.name} a dérivé de ${c.figure} vers l'aval et s'est échoué ${leagueNth(c.place)}.`,
+      ],
+      weekHigh: [
+        (c: StoryCopy) => `${c.name} a touché le plafond à la J${c.gw} : ${c.figure} après malus.`,
+        (c: StoryCopy) => `L'éclair le plus vif de la J${c.gw} : ${c.figure}, signé ${c.name}.`,
+        (c: StoryCopy) => `Personne n'a brillé comme ${c.name} à la J${c.gw}. ${leagueCap(c.figure)}.`,
+      ],
+      chips: [
+        (c: StoryCopy) => `${c.n === 1 ? "Une porte ouverte" : `${c.n} portes ouvertes`} à la J${c.gw} ; derrière le ${c.chip} de ${c.name}, ${c.figure}.`,
+        (c: StoryCopy) => `${c.name} a ouvert la porte ${c.chip} à la J${c.gw} et y a trouvé ${c.figure}.`,
+        (c: StoryCopy) => `J${c.gw}, rapport des portes : le ${c.chip} de ${c.name} a brillé pour ${c.figure}.`,
+      ],
+      bottom: [
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} repose tout en bas, partageant l'aura du vaisseau du dessus.` : `${c.name} repose tout en bas, à ${c.figure} du vaisseau suivant.`),
+        (c: StoryCopy) => (c.n === 0 ? `L'orbite la plus profonde : ${c.name}, seulement au départage.` : `${leagueCap(c.figure)} de fond marin entre ${c.name} et la surface.`),
+        (c: StoryCopy) => (c.n === 0 ? `${c.name} est dernier, à égalité de points avec le vaisseau du dessus. Flottez.` : `Dernière orbite : ${c.name}, à ${c.figure} de celle du dessus. La vague revient.`),
+      ],
+    },
   },
 
   table: {
@@ -131,29 +246,74 @@ export const tripFr: TripOverlay = {
     overall: "Place dans l'univers",
     chipsPlayed: "Portes ouvertes",
     noChips: "Toutes les portes encore fermées",
-    hotLine: (n: number) => (n === 1 ? "Lumineux : au-dessus de la moyenne cette semaine" : `Lumineux : ${n} semaines au-dessus de la moyenne`),
-    coldLine: (n: number) => (n === 1 ? "À la dérive : sous la moyenne cette semaine" : `À la dérive : ${n} semaines sous la moyenne`),
+    hotLines: [
+      (n: number) => (n === 1 ? "Lumineux : au-dessus de la moyenne cette semaine" : `Lumineux : ${n} semaines au-dessus de la moyenne`),
+      (n: number) => (n === 1 ? "Ça bourdonne au-dessus de la moyenne cette semaine" : `Radieux : ${n} semaines d'affilée au-dessus de la moyenne`),
+      (n: number) => (n === 1 ? "Une semaine tiède, au-dessus de la moyenne de la ligue" : `${n} semaines à flotter au-dessus de la moyenne de la ligue`),
+    ],
+    coldLines: [
+      (n: number) => (n === 1 ? "À la dérive : sous la moyenne cette semaine" : `À la dérive : ${n} semaines sous la moyenne`),
+      (n: number) => (n === 1 ? "Une semaine grise, sous la moyenne de la ligue" : `Sous l'eau : ${n} semaines d'affilée sous la moyenne`),
+      (n: number) => (n === 1 ? "Un léger naufrage sous la moyenne cette semaine" : `${n} semaines à dériver sous la moyenne de la ligue`),
+    ],
   },
 
   history: {
     eyebrow: "Souvenirs",
     title: "Les vies antérieures du classement",
     intro: "Le cosmos, figé au coup de sifflet final de chaque journée. Regardez comme tout le monde était jeune.",
+    lede: [
+      (latest, count) => `Le cosmos, figé à chaque coup de sifflet final : ${count} ${count < 2 ? "souvenir" : "souvenirs"} pour l'instant, la journée ${latest} étant le plus récent scellé.`,
+      (latest, count) => `La journée ${latest} est le souvenir scellé le plus frais, ${count} au total.`,
+      (latest, count) => `${count} ${count < 2 ? "journée remémorée" : "journées remémorées"}, la plus récente d'abord. Dernier scellé : journée ${latest}.`,
+    ],
+    latest: "Souvenir le plus récent",
+    live: [
+      (gw) => `La journée ${gw} se déroule maintenant ; elle deviendra un souvenir une fois scellée.`,
+      (gw) => `La journée ${gw} se déploie encore, elle n'est donc pas encore mémorisée.`,
+      (gw) => `Prochaine à être mémorisée : la journée ${gw}, une fois sa lueur confirmée.`,
+    ],
+    pending: [
+      (gw) => `La journée ${gw} est terminée. Elle est capturée lors du passage quotidien de 06:00 UTC, une fois le bonus posé par la FPL.`,
+      (gw) => `La journée ${gw} est finie ; son souvenir se forme avec la capture du lendemain matin.`,
+      (gw) => `Le coup de sifflet final de la journée ${gw} s'est estompé. Le souvenir arrive dès que la FPL scelle les points.`,
+    ],
+    filed: [
+      (gw) => `Tout est à jour : la journée ${gw} est scellée et mémorisée.`,
+      (gw) => `Le souvenir scellé de la journée ${gw} est là. Rien en attente.`,
+      (gw) => `Souvenirs complets jusqu'à la journée ${gw}.`,
+    ],
     emptyTitle: "Pas encore de souvenirs",
-    emptyBody: "Un souvenir se forme tout seul une fois la journée terminée et ses points bonus posés. Revenez quand celle-ci se sera estompée.",
+    emptyBody: [
+      "Un souvenir se forme tout seul une fois la journée terminée et ses points bonus posés. Revenez quand celle-ci se sera estompée.",
+      "Rien de mémorisé pour l'instant. Le premier souvenir se forme le lendemain matin de la confirmation des points d'une journée.",
+      "Les souvenirs se rassemblent seuls : un classement par journée, capturé une fois le bonus scellé par la FPL.",
+    ],
     rebuilt: "Remémoré",
     saved: "Capturé",
     back: "← Tous les souvenirs",
     missingTitle: (n: number) => `La Journée ${n} n'a jamais été mémorisée`,
-    missingBody: "Aucune photo de celle-ci n'a survécu. Les souvenirs se forment une fois la journée terminée et ses points bonus posés.",
+    missingBody: [
+      "Aucune photo de celle-ci n'a survécu. Les souvenirs se forment une fois la journée terminée et ses points bonus posés.",
+      "Cette journée n'a jamais été capturée. Les souvenirs se forment le lendemain matin du scellement des points par la FPL.",
+      "Rien de mémorisé ici : un classement n'est capturé qu'une fois sa journée scellée.",
+    ],
     standings: (n: number) => `Le cosmos après la Journée ${n}`,
     standingsAfter: (name: string, n: number) => `${name}, à l'issue de la Journée ${n}`,
     rebuiltTitle: "Recomposé morceau par morceau",
     rebuiltBody: "Ce classement n'a pas été capturé sur le moment. Il a été recomposé à partir des résultats FPL de chaque voyageur : les points sont ceux de FPL et l'ordre en découle. Les voyageurs à égalité de points sont classés par rang général, comme le fait FPL.",
+    summary: {
+      leader: [(name, pts) => `${name} était le Soleil, à ${pts}.`, (name, pts) => `Le plus lumineux : ${name}, ${pts}.`, (name, pts) => `${name} était celui à rattraper, avec ${pts} de lueur.`],
+      gap: [(pts) => `${pts} d'avance sur l'étoile suivante.`, (pts) => `Distance avec le deuxième : ${pts}.`, (pts) => `Le deuxième flottait ${pts} derrière.`],
+      level: ["À égalité de lueur avec le deuxième.", "Le deuxième brillait exactement autant.", "Aucun écart : premier et deuxième ont brillé pareil."],
+      best: [(name, pts) => `La semaine la plus lumineuse : ${name}, ${pts}.`, (name, pts) => `${name} a vécu la semaine cosmique, ${pts}.`, (name, pts) => `${pts} pour ${name}, le plus lumineux de la journée.`],
+      climber: [(name, places) => `Plus grande ascension : ${name}, ${places} de gagnées.`, (name, places) => `${name} est monté de ${places}, plus que quiconque.`, (name, places) => `${name} a flotté le plus haut : ${places}.`],
+      faller: [(name, places) => `Chute la plus profonde : ${name}, ${places} de perdues.`, (name, places) => `${name} a sombré de ${places}, le plus du cosmos.`, (name, places) => `Semaine pesante pour ${name} : ${places} de perdues.`],
+    },
   },
 
   team: {
-    header: { manager: "Pilote", gameweek: "Cette orbite", chip: "Porte ouverte", experience: "Temps dans le vide" },
+    header: { manager: "Pilote", gameweek: "Cette orbite", chip: "Porte ouverte", experience: "Temps dans le vide", league: "Place dans l'essaim" },
     positions: { 1: "Gardiens du seuil", 2: "Le Mur", 3: "Les Rêveurs", 4: "Les Comètes" },
     flags: { Doubtful: "Vacillant", Injured: "Brisé", Suspended: "Banni", Unavailable: "Ailleurs" },
     experience: (year: string, n: number) => `En voyage depuis ${year} · ${n} ${n >= 2 ? "saisons précédentes" : "saison précédente"}`,
@@ -176,6 +336,18 @@ export const tripFr: TripOverlay = {
     noPicksBody: "FPL n'a gardé aucun souvenir des choix de cette équipe cette semaine-là.",
     noLiveTitle: "Le flux en direct est silencieux",
     noLiveBody: (g: string) => `FPL n'a pas envoyé les points des joueurs pour la ${g}. L'équipe flotte ici sans scores.`,
+    vary: {
+      provisional: ["encore en train de se poser : FPL ne l'a pas scellée", "la lueur refroidit encore (FPL vérifie)", "vapeur provisoire, FPL compte encore"],
+      final: ["scellée dans l'ambre par FPL", "gravée dans la pierre : FPL a vérifié", "définitive, l'oracle a parlé"],
+      leagueSpot: [
+        (rank: number, size: number, moved: number, gap: number) =>
+          `${rank === 1 ? `Le soleil de ${size} âmes, ${gap} de lumière d'avance` : `Orbite ${rank} sur ${size}, à ${gap} du soleil`}${moved > 0 ? ` · +${moved}` : moved < 0 ? ` · −${-moved}` : ""}`,
+        (rank: number, size: number, moved: number, gap: number) =>
+          `${rank === 1 ? `Flotte ${gap} au-dessus de ${size - 1} autres` : `À ${gap} du plus brillant, à la dérive au rang ${rank} sur ${size}`}${moved ? `, ${moved > 0 ? "soulevé" : "entraîné"} de ${Math.abs(moved)} cette semaine` : ""}`,
+        (rank: number, size: number, moved: number, gap: number) =>
+          `#${rank} dans un essaim de ${size}${moved ? ` (${moved > 0 ? "▲" : "▼"}${Math.abs(moved)})` : ""}${rank === 1 ? `, ${gap} de ciel dégagé` : `, ${gap} de ciel à gravir`}`,
+      ],
+    },
   },
 
   sheet: {
@@ -222,6 +394,67 @@ export const tripFr: TripOverlay = {
     starter: "Élu",
     benchBadge: "Rêve",
     injuryReport: "Les brisés et les vacillants",
+    vary: {
+      heading: {
+        upcoming: [(g: string) => `La ${g} : l'air avant l'orage`, (g: string) => `La ${g}, encore une prémonition`, (g: string) => `Visions de la ${g}, avant la date limite`],
+        live: [(g: string) => `La ${g}, qui respire en ce moment`, (g: string) => `La ${g} : les couleurs bougent`, (g: string) => `Visions de la ${g}, en train d'éclore`],
+        provisional: [(g: string) => `La ${g}, qui scintille encore (FPL vérifie)`, (g: string) => `La ${g} : la poussière ne s'est pas posée`, (g: string) => `Visions de la ${g}, pas encore scellées`],
+        final: [(g: string) => `La ${g}, en souvenir`, (g: string) => `La ${g} : scellée dans l'ambre`, (g: string) => `La ${g}, le rapport de la redescente`],
+      },
+      waiting: [
+        (name: string) => `${name} attend encore en coulisses ; le troisième œil reste fermé.`,
+        (name: string) => `Pas encore de lumière de ${name}. Le brassard bourdonne, scellé.`,
+      ],
+      unused: [
+        (name: string) => `${name} n'a jamais traversé, alors la règle du remplaçant prend le brassard.`,
+        (name: string) => `${name} est resté dans une autre dimension : zéro minute, pas de verdict.`,
+      ],
+      spotOn: [
+        (provisional: boolean, name: string, points: number) => `Le troisième œil ${provisional ? "voit" : "a vu"} juste : ${name}, ${points} de lueur, personne de plus brillant.`,
+        (provisional: boolean, name: string, points: number) => `${name} ${provisional ? "est" : "était"} l'étoile la plus brillante du onze${provisional ? ", pour l'instant" : ""} : ${points} avec le brassard.`,
+      ],
+      regret: [
+        { before: (name: string, base: number, provisional: boolean) => `Un vous parallèle a donné le brassard à ${name} (${base}) et ${provisional ? "brille" : "a brillé"} de `, after: (provisional: boolean) => ` de plus${provisional ? ", pour l'instant" : ""}.` },
+        { before: (name: string, base: number, provisional: boolean) => `L'autre porte${provisional ? ", encore ouverte" : ""} : ${name} avec ${base}, qui valait `, after: (_provisional: boolean) => " de lueur en plus." },
+      ],
+      chipBboost: [
+        (points: number) => (points >= 10 ? `Les rêveurs ont marqué ${points} points en somnambules.` : `Les rêveurs se sont réveillés, ont bâillé, ont ajouté ${points}.`),
+        (points: number) => `Les quinze âmes éveillées ; le banc a donné ${points}.`,
+      ],
+      chipTc: [
+        (points: number) => `La copie en plus du troisième œil a brillé pour ${points}.`,
+        (points: number) => (points >= 8 ? `Le troisième œil s'est ouvert en grand : ${points} de plus.` : `Le troisième œil a plissé : seulement ${points} de plus.`),
+      ],
+      benchPine: [
+        (points: number, top: string) => `${points} points dissous sur le banc ; ${top} a rêvé le plus fort.`,
+        (points: number, top: string) => `${top} a brillé dans son sommeil, en tête de ${points} points perdus.`,
+      ],
+      benchNone: ["Les rêveurs n'ont rêvé de rien : aucune lueur perdue.", "Un banc silencieux : pas une étincelle gâchée."],
+      allPlayed: [
+        (n: number) => `Les ${n} âmes qui comptent ont touché la pelouse.`,
+        (n: number) => `${n} sur ${n} ont traversé ; seuls les minutes et le bonus tourbillonnent encore.`,
+      ],
+      somePlayed: [
+        (played: number, total: number, effective: number) => `${played} sur ${total} ont traversé ; ${total - played} encore dans le tunnel, ${effective} en comptant le brassard.`,
+        (played: number, total: number, effective: number) => `Lueur encore en route : ${effective} ${effective >= 2 ? "parts" : "part"} (brassard compris). Déjà passés : ${played} sur ${total}.`,
+      ],
+      unusedIntro: ["Éveillés, leur match fini, jamais invoqués :", "Laissés endormis par leurs tribus (aptes, match terminé, aucune minute) :"],
+      defconReached: [
+        (names: string, _n: number) => `Le Mur a tenu : +2 de lueur pour ${names}.`,
+        (names: string, n: number) => `${names} ${n >= 2 ? "sont devenus" : "est devenu"} le Mur : bonus DefCon.`,
+        (names: string, n: number) => `${n} ${n >= 2 ? "boucliers levés" : "bouclier levé"} : ${names}.`,
+      ],
+      defconClose: [
+        (name: string, gap: number, live: boolean) => `${name} est à ${gap} actes de devenir le Mur${live ? ", pour l'instant" : ""}.`,
+        (name: string, gap: number, live: boolean) => `${gap} ${gap >= 2 ? "actes" : "acte"} de résistance de plus ${live ? "lèveraient" : "auraient levé"} le bouclier de ${name}.`,
+        (name: string, gap: number, live: boolean) => `Au plus près de la lueur : ${name}, à ${gap}${live ? " pour l'instant" : ""}.`,
+      ],
+      flagsLead: [
+        (starters: number, total: number) => (starters ? `${starters} des Élus ${starters >= 2 ? "vacillent" : "vacille"} (${total} dans le vaisseau).` : `${total} qui vacillent, tous parmi les rêveurs.`),
+        (starters: number, total: number) => `${total} ${total >= 2 ? "âmes déphasées" : "âme déphasée"}${starters ? `, dont ${starters} parmi les Élus` : ", aucune parmi les Élus"}. Vérifiez avant la prochaine date limite.`,
+        (starters: number, total: number) => (starters ? `Les Élus portent ${starters} ${starters >= 2 ? "fêlures" : "fêlure"} ; ${total} dans tout le vaisseau.` : `Seuls les rêveurs vacillent (${total}).`),
+      ],
+    },
   },
 
   season: {
@@ -268,6 +501,47 @@ export const tripFr: TripOverlay = {
     verdict: { Kind: "Douce", Mixed: "Ondulante", Tough: "Pesante" },
     outlookNote: (from: number, to: number, avg: string) => `J${from}–${to}, gravité ${avg}`,
     outlookRuns: (easy: string, easyAvg: string, hard: string, hardAvg: string) => `Trajet le plus doux : ${easy} (${easyAvg}). Attraction la plus lourde : ${hard} (${hardAvg}).`,
+    vary: {
+      heading: [(through: string) => `Le long voyage, jusqu'à la ${through}`, (through: string) => `Tout ce qui s'est passé jusqu'à la fin de la ${through}`, (through: string) => `Le trajet jusqu'ici (jusqu'à la ${through})`],
+      trend: [
+        (up: boolean, recent: string, n: number, delta: string) => `Les ${n} dernières pulsations : ${recent} par semaine, ${delta} ${up ? "au-dessus" : "en dessous"} de l'altitude habituelle.`,
+        (up: boolean, recent: string, n: number, delta: string) => (up ? `En ascension : ${recent} par semaine sur les ${n} dernières, ${delta} de plus que le bourdonnement de la saison.` : `En chute : ${recent} par semaine sur les ${n} dernières, ${delta} de moins que le bourdonnement de la saison.`),
+        (up: boolean, recent: string, n: number, delta: string) => `Le pouls ${up ? "s'accélère" : "ralentit"} : ${recent} sur les ${n} dernières semaines (${up ? "+" : "−"}${delta}).`,
+      ],
+      averagingAfter: [
+        (g: string, best: string, bestPts: number, worst: string, worstPts: number) => ` par semaine jusqu'à la ${g}. Le plus haut : ${best} (${bestPts}). Le plus profond : ${worst} (${worstPts}).`,
+        (g: string, best: string, bestPts: number, worst: string, worstPts: number) => ` par semaine jusqu'à la ${g}, entre ${bestPts} à la ${best} et ${worstPts} à la ${worst}.`,
+      ],
+      rankMove: [
+        (up: boolean, amount: string, g: string) => `${up ? "Lévitation" : "Chute"} de ${amount} places à la ${g}.`,
+        (up: boolean, amount: string, g: string) => (up ? `La ${g} vous a élevé de ${amount} places vers les étoiles.` : `La ${g} vous a tiré de ${amount} places vers le sol.`),
+        (up: boolean, amount: string, g: string) => `La ${g} : ${amount} places ${up ? "d'élan" : "de gravité"}.`,
+      ],
+      freeExplain: [
+        (max: number) => `Lu dans le marc de votre historique de transferts (${max} au plus en réserve) ; le chiffre de FPL l'emporte sur la vision.`,
+        (max: number) => `Notre vision de l'historique, avec jusqu'à ${max} reportables. La page des transferts de FPL donne le vrai compte.`,
+      ],
+      freeState: [
+        (n: number, max: number, g: string) => (n >= max ? `Plein à ${max} : une ${g} immobile laisse s'évaporer la métamorphose de la semaine.` : n === 1 ? `Une métamorphose gratuite pour la ${g} ; une deuxième coûte 4 au passeur.` : `${n} gratuites pour la ${g} ; retenez votre souffle et ce sera ${Math.min(n + 1, max)} la semaine suivante.`),
+        (n: number, max: number, g: string) => (n >= max ? `${max}, c'est tout ce que l'univers permet ; la ${g} est la semaine pour changer.` : n === 1 ? `Une seule pour la ${g} ; au-delà, le passeur réclame −4.` : `${n} au creux de la main pour la ${g} : ${n} changements sans payer le passeur.`),
+        (n: number, max: number, g: string) => (n >= max ? `Coupe pleine (${max}) avant la ${g}.` : n === 1 ? `La ${g} : une métamorphose, ou laissez-la mûrir en 2 la semaine suivante.` : `${n} rassemblées pour la ${g}, sur un maximum de ${max}.`),
+      ],
+      benchMost: [(g: string, p: string) => `La plus longue sieste : la ${g}, ${p}.`, (g: string, p: string) => `La ${g} en a laissé le plus se dissoudre sur le banc : ${p}.`],
+      chipsLeft: [
+        (n: number, list: string, closes: string) => `${n} ${n >= 2 ? "portes encore closes" : "porte encore close"} : ${list}. Scellées après la ${closes}.`,
+        (_n: number, list: string, closes: string) => `Jamais ouvertes : ${list}. À franchir d'ici la ${closes}.`,
+        (n: number, list: string, closes: string) => `${list} ${n >= 2 ? "attendent" : "attend"} encore, et le couloir se ferme après la ${closes}.`,
+      ],
+      chipsNone: ["Chaque porte de ce couloir est ouverte ou scellée.", "Plus aucune porte à ouvrir, pour l'instant.", "Le couloir est nu jusqu'à l'apparition du suivant."],
+      hereSince: [(s: string) => `Matérialisé pour la première fois en ${s}.`, (s: string) => `À la dérive depuis ${s}.`],
+      valueUpDown: [(up: boolean, amount: string) => `${up ? "A gagné" : "A perdu"} ${amount} de masse depuis le big bang.`, (up: boolean, amount: string) => `${amount} de ${up ? "plus" : "moins"} qu'au premier souffle.`],
+      differentials: [(list: string) => `Hors de la carte de la ruche (moins de 10 %) : ${list}.`, (list: string) => `Les loups solitaires de votre onze, sous les 10 % : ${list}.`],
+      noDifferentials: ["Chaque titulaire bourdonne avec la ruche : aucun sous les 10 %.", "Pas de loup solitaire : le onze nage avec le banc de poissons."],
+      outlookRuns: [
+        (easy: string, easyAvg: string, hard: string, hardAvg: string) => `Gravité la plus légère : ${easy} (${easyAvg}). La plus lourde : ${hard} (${hardAvg}).`,
+        (easy: string, easyAvg: string, hard: string, hardAvg: string) => `${easy} glisse (${easyAvg}) ; ${hard} avance dans le sirop (${hardAvg}).`,
+      ],
+    },
   },
 
   club: {
@@ -280,7 +554,11 @@ export const tripFr: TripOverlay = {
     upNextEmpty: "Rien à l'horizon : plus aucune collision pour cette tribu.",
     recentEmpty: "Pas encore d'échos cette saison.",
     news: "Murmures du camp",
-    newsEmpty: "Toutes les âmes sont entières : FPL ne signale ni blessure, ni suspension, ni doute dans cette tribu.",
+    newsEmpty: [
+      (club) => `Toutes les âmes sont entières : FPL ne signale ni blessure, ni suspension, ni doute chez ${club}.`,
+      (club) => `Le camp de ${club} vibre d'une santé parfaite. Pas un murmure.`,
+      (club) => `Personne ne vacille chez ${club}. Toute la tribu est solide et présente.`,
+    ],
     severity: { out: "Parti", doubt: "Vacillant", note: "Murmure" },
     newsNoDetail: "Signalé par FPL, les détails perdus dans le brouillard.",
     chance: (n: number) => `${n} % d'apparaître`,
@@ -302,6 +580,55 @@ export const tripFr: TripOverlay = {
     headlinesEmpty: "Aucune transmission de BBC Sport pour cette tribu en ce moment.",
     nothing: "Rien ne s'est encore matérialisé",
     nothingBody: "FPL n'a encore ni collisions ni murmures pour cette tribu.",
+    formLine: {
+      hot: [
+        (club, w, d, _l, n) => `${club} s'élève : ${w} ascension${w >= 2 ? "s" : ""} sur les ${n} derniers, ${w * 3 + d} points sur ${n * 3}.`,
+        (club, w, d, l, n) => `${club} rayonne : ${w}V ${d}N ${l}D sur les ${n} derniers. L'énergie est réelle.`,
+        (club, w, d, _l, n) => `${w * 3 + d} points en ${n} échos. ${club} surfe une vague magnifique.`,
+      ],
+      cold: [
+        (club, w, d, l, n) => `${club} chute : ${l} chute${l >= 2 ? "s" : ""} sur les ${n} derniers, ${w * 3 + d} points sur ${n * 3}.`,
+        (club, w, d, l, n) => `Lumière faible chez ${club} : ${w}V ${d}N ${l}D sur les ${n} derniers. Approchez avec prudence.`,
+        (club, w, d, _l, n) => `Seulement ${w * 3 + d} point${w * 3 + d >= 2 ? "s" : ""} en ${n} pour ${club}. Les ondes sont lourdes.`,
+      ],
+      mixed: [
+        (club, w, d, l, n) => `${club} vacille : ${w}V ${d}N ${l}D sur les ${n} derniers.`,
+        (club, w, d, _l, n) => `${w * 3 + d} points en ${n} pour ${club}. Ni montée ni chute, juste du flottement.`,
+        (club, w, d, l, n) => `Vagues et creux : ${w} en haut, ${d} à niveau, ${l} en bas sur les ${n} derniers de ${club}.`,
+      ],
+    },
+    runLine: {
+      kind: [
+        (_club, avg, n) => `Les ${n} prochaines orbites semblent en apesanteur : gravité ${avg}.`,
+        (club, avg, n) => `Eaux calmes pour ${club} : ${avg} sur les ${n} prochains.`,
+        (club, avg, n) => `Les astres s'alignent pour ${club} : les ${n} prochains font ${avg} en moyenne.`,
+      ],
+      tough: [
+        (_club, avg, n) => `Nuages d'orage sur les ${n} prochains : gravité ${avg}.`,
+        (club, avg, n) => `${club} dérive dans un espace dense (${avg} sur les ${n} prochains). Peut-être les laisser se reposer sur le banc.`,
+        (club, avg, n) => `Gravité ${avg} sur les ${n} prochains. ${club} va être secoué.`,
+      ],
+      mixed: [
+        (_club, avg, n) => `Les ${n} prochaines orbites tanguent : gravité ${avg}.`,
+        (club, avg, n) => `Rien de cosmique dans un sens ou dans l'autre pour ${club} : ${avg} sur les ${n} prochains.`,
+        (_club, avg, n) => `Un peu de lumière, un peu d'ombre : les ${n} prochains font ${avg} en moyenne.`,
+      ],
+    },
+    starLine: [
+      (name, points, owned) => `L'étoile la plus brillante : ${name}, ${points} point${points >= 2 ? "s" : ""}${owned ? `, portée par ${owned} des voyageurs` : ""}.`,
+      (name, points, owned) => `${name} brille le plus fort cette saison : ${points} point${points >= 2 ? "s" : ""}${owned ? ` (${owned} tiennent la lumière)` : ""}.`,
+      (name, points, owned) => `Suivez la lueur jusqu'à ${name} : ${points} point${points >= 2 ? "s" : ""}${owned ? `, dans ${owned} des vaisseaux` : ""}.`,
+    ],
+    outLine: [
+      (names, _n, doubts) => `Partis pour l'instant : ${names}${doubts ? `, et ${doubts} autre${doubts >= 2 ? "s vacillent" : " vacille"}` : ""}.`,
+      (names, n, doubts) => `${n} âme${n >= 2 ? "s ont" : " a"} quitté la pièce (${names})${doubts ? ` ; ${doubts} autre${doubts >= 2 ? "s apparaissent et disparaissent" : " apparaît et disparaît"}` : ""}.`,
+      (names, _n, doubts) => `Le camp murmure des absences : ${names}${doubts ? `, avec ${doubts} doute${doubts >= 2 ? "s" : ""} dans l'air` : ""}.`,
+    ],
+    doubtLine: [
+      (doubts) => `Personne n'est parti, mais ${doubts} âme${doubts >= 2 ? "s vacillent" : " vacille"}.`,
+      (doubts) => `${doubts} murmure${doubts >= 2 ? "s" : ""} de doute flotte${doubts >= 2 ? "nt" : ""} dans le camp ; personne de perdu.`,
+      (doubts) => `Tous présents, ${doubts} brill${doubts >= 2 ? "ent" : "e"} un peu moins que d'habitude.`,
+    ],
   },
 
   bonus: {
@@ -326,8 +653,66 @@ export const tripFr: TripOverlay = {
     assists: "Passes décisives (bonnes ondes)",
     redCards: "Cartons rouges (bannis)",
     kickoff: "Le big bang",
-    upcomingNote: "La lueur apparaît dès le début du match.",
+    upcomingNote: [
+      (home, away) => `La lueur apparaît dès que ${home} et ${away} entrent en collision.`,
+      (home, away) => `Pas encore de BPS. L'univers attend que ${home}-${away} commence.`,
+      (home, away) => `${home}-${away} n'est encore qu'une graine. La course à la lueur commence au big bang.`,
+    ],
     noData: "Pas encore de données de lueur.",
+    lede: {
+      upcoming: [
+        (gw, total) => `${gw} : ${total} collision${total >= 2 ? "s" : ""} encore en formation. La lueur est prévue d'après le BPS en direct dès qu'elles commencent.`,
+        (gw, total) => `La ${gw} retient son souffle. ${total} course${total >= 2 ? "s" : ""} au bonus fleuriront ici au coup d'envoi.`,
+        (gw, total) => `Avant le big bang de la ${gw} : ${total} match${total >= 2 ? "s" : ""}, 3, 2 et 1 de lueur chacun.`,
+      ],
+      live: [
+        (gw, player, club, bps, _bestClub, _bonus) => `La ${gw} respire. Le plus lumineux pour l'instant : ${player} (${club}) à ${bps} BPS. Rien de ce qui est prévu n'est figé.`,
+        (gw, player, _club, bps, bestClub, bonus) => `${player} brûle le plus fort dans la ${gw} avec ${bps} BPS. ${bestClub} réunit ${bonus} de lueur, en cet instant.`,
+        (gw, player, _club, bps, _bestClub, _bonus) => `La ${gw} est en mouvement et la lueur ne cesse de changer. ${player} est la lumière à suivre avec ${bps} BPS.`,
+      ],
+      provisional: [
+        (gw, player, club, bps, _bestClub, _bonus) => `Toutes les collisions de la ${gw} sont finies, mais la poussière retombe encore : bonus provisoire jusqu'à la vérification de FPL. ${player} (${club}) a brillé le plus avec ${bps}.`,
+        (gw, _player, _club, _bps, bestClub, bonus) => `La ${gw} est terminée et la lueur se pose encore. ${bestClub} en a absorbé le plus : ${bonus}.`,
+        (gw, player, _club, bps, _bestClub, _bonus) => `Le dernier coup de sifflet de la ${gw} résonne encore. Lueur provisoire pour l'instant ; les ${bps} BPS de ${player} ont illuminé la semaine.`,
+      ],
+      final: [
+        (gw, player, club, bps, _bestClub, _bonus) => `La ${gw} est gravée dans la pierre. La vision finale : ${player} (${club}) a flamboyé avec ${bps} BPS.`,
+        (gw, _player, _club, _bps, bestClub, bonus) => `L'oracle a parlé pour la ${gw} : bonus confirmé. ${bestClub} a recueilli le plus de lueur, ${bonus} point${bonus >= 2 ? "s" : ""}.`,
+        (gw, player, _club, bps, _bestClub, _bonus) => `Écrit dans les étoiles : la lueur de la ${gw} est définitive. ${player} a porté la couronne à ${bps} BPS.`,
+      ],
+    },
+    race: {
+      projected: [
+        (player, bps, lead, runnerUp) => `${player} brille le plus avec ${bps} BPS, ${lead} devant ${runnerUp}.`,
+        (player, bps, lead, runnerUp) => `Prévu : 3 pour ${player} (${bps}). ${runnerUp} dérive ${lead} derrière.`,
+        (player, bps, lead, runnerUp) => `${player} surfe la vague à ${bps} BPS ; il manque ${lead} à ${runnerUp} pour la rattraper.`,
+      ],
+      provisional: [
+        (player, bps, lead, runnerUp) => `Ça se pose : ${player} garde le 3 à ${bps} BPS, ${lead} au-delà de ${runnerUp}.`,
+        (player, bps, lead, runnerUp) => `La poussière retombe sur ${player}, en tête à ${bps} (${runnerUp} à ${lead}). Pas encore gravé.`,
+        (player, bps, lead, runnerUp) => `Coup de sifflet final : les ${bps} de ${player} éclipsent ${runnerUp} de ${lead}. Ça se pose encore.`,
+      ],
+      confirmed: [
+        (player, bps, lead, runnerUp) => `Gravé dans la pierre : ${player} a pris le 3 avec ${bps} BPS, ${lead} au-delà de ${runnerUp}.`,
+        (player, bps, lead, runnerUp) => `${player} était la lumière la plus vive ici, ${bps} BPS, ${lead} de plus que ${runnerUp}.`,
+        (player, bps, lead, runnerUp) => `Vérité éternelle : ${player} à ${bps}, ${runnerUp} à ${lead}.`,
+      ],
+      level: [
+        (player, other, bps) => `${player} et ${other} brillent comme un seul à ${bps} BPS : les flammes jumelles partagent le bonus maximal.`,
+        (player, other, bps) => `Image miroir au sommet : ${player} et ${other}, ${bps} BPS chacun.`,
+        (player, other, bps) => `${player} et ${other} ont fusionné à ${bps} BPS. Les deux prennent 3 si la vision tient.`,
+      ],
+      bubbleOpen: [
+        (inside, outside, gap) => `Au bord de la lumière : ${outside} est à ${gap} BPS de ${inside}.`,
+        (inside, outside, gap) => `${inside} s'accroche à la dernière lueur, seulement ${gap} BPS au-dessus de ${outside}.`,
+        (inside, outside, gap) => `Un voile fin de ${gap} BPS entre ${inside} (dans la lueur) et ${outside} (dans le noir).`,
+      ],
+      bubbleShut: [
+        (_inside, outside, gap) => `${outside} a manqué la lueur de ${gap} BPS.`,
+        (inside, outside, gap) => `${inside} s'est glissé dans la lumière, ${gap} BPS devant ${outside}.`,
+        (inside, outside, gap) => `${outside} a tendu la main vers la lueur et s'est arrêté à ${gap} de ${inside}.`,
+      ],
+    },
   },
 
   notFound: {
@@ -339,16 +724,34 @@ export const tripFr: TripOverlay = {
 
   times: {
     mastheadLeft: "Hallucinations officielles de la Lobster League",
-    mastheadRight: "Chaque semaine, imprimé sur de la vapeur",
+    mastheadRight: ["Chaque semaine, imprimé sur de la vapeur", "Capté après chaque journée", "Toutes les visions dignes d'être imprimées"],
     emptyTitle: "Rien n'a encore été capté",
-    emptyBody: "L'édition de chaque semaine fait surface ici dès sa publication.",
-    latest: (n: number | null) => `La vision la plus récente${n ? ` · Journée ${n}` : ""}`,
+    emptyBody: [
+      "La vision de chaque semaine fait surface ici dès qu'elle est captée.",
+      "La première vision fera surface ici une fois qu'une journée aura été rêvée.",
+      "Les rotatives bourdonnent. Les visions apparaissent ici au fil de leur captation.",
+    ],
+    latest: [
+      (gw) => `La vision la plus récente${gw ? ` · Journée ${gw}` : ""}`,
+      (gw) => `Tout juste sortie de l'éther${gw ? ` · Journée ${gw}` : ""}`,
+      (gw) => `Fraîchement captée${gw ? ` · Journée ${gw}` : ""}`,
+    ],
+    awaiting: [
+      (gw) => `La journée ${gw} est terminée ; sa vision est en cours de captation.`,
+      (gw) => `Retenez la vapeur : la journée ${gw} est finie et se rêve en ce moment.`,
+      (gw) => `La vision de la journée ${gw} arrive.`,
+    ],
+    inPlay: [
+      (gw) => `La journée ${gw} se déploie. La prochaine vision sera captée une fois qu'elle sera scellée.`,
+      (gw) => `Les voyants sont dans les stades pour la journée ${gw}.`,
+      (gw) => `La journée ${gw} se déroule ; la vapeur se posera quand la FPL aura confirmé les points.`,
+    ],
     read: "Entrer",
     filterBy: "Filtrer les visions",
     all: "Tout à la fois",
     noIssuesTitle: "Rien dans ce recoin de l'esprit",
     showAll: "Tout montrer",
-    noIssuesBody: "Essayez un autre type, ou laissez tout entrer.",
+    noIssuesBody: ["Essayez un autre type, ou laissez tout entrer.", "Rien dans ce recoin. Les archives profondes gardent le reste.", "Choisissez un autre type, ou laissez tout entrer."],
     archive: "Les archives profondes",
     back: "← Les Marées",
     turn: "Tourner la page (doucement)",
@@ -358,36 +761,127 @@ export const tripFr: TripOverlay = {
 
   tools: {
     heading: "Le Labo",
+    brief: {
+      title: "Cette semaine dans le cosmos",
+      seasonEnd: "la fin de la saison",
+      upcoming: [
+        (next) => `Le voyage commence au portail de la ${next}. Tous les vaisseaux sont encore parfaits.`,
+        (next) => `Personne n'a encore brillé. Le portail de la ${next} est le premier qui compte.`,
+        (next) => `Prochaine étape, la ${next} : le premier portail de la saison, et la dernière chance gratuite de refaire votre vaisseau.`,
+      ],
+      live: [
+        (gw, next) => `La ${gw} se déroule en ce moment. La lueur bouge, le bonus flotte. Ensuite : ${next}.`,
+        (gw, next) => `La ${gw} a commencé, donc rien de ce que vous changez maintenant n'atterrit cette semaine. Après : ${next}.`,
+        (gw, next) => `Les matchs de la ${gw} se déploient et le cosmos se réarrange à la minute. Ensuite : ${next}.`,
+      ],
+      provisional: [
+        (gw, next) => `Les matchs de la ${gw} sont finis ; la FPL pose encore la lueur du bonus. Ensuite : ${next}.`,
+        (gw, next) => `Les coups de sifflet finaux de la ${gw} se sont estompés, mais la lueur n'est fixée qu'après vérification par la FPL. Après : ${next}.`,
+        (gw, next) => `La ${gw} est jouée, pas encore scellée : le bonus peut encore dériver. Ensuite : ${next}.`,
+      ],
+      final: [
+        (gw, next) => `La ${gw} est scellée : la FPL a confirmé chaque point de lueur. Tous les regards dérivent vers la ${next}.`,
+        (gw, next) => `La ${gw} s'est cristallisée, bonus compris. Le portail de la ${next} vous attend.`,
+        (gw, next) => `Les points de la ${gw} sont fixés dans les étoiles. Votre prochain coup se joue pour la ${next}.`,
+      ],
+      over: [
+        (gw) => `La ${gw} est scellée et la saison s'est dissoute. Tous les points ont atterri.`,
+        (gw) => `Le voyage est fini : la ${gw} est confirmée et il ne reste aucun portail.`,
+        (gw) => `Plus de portails. La ${gw} a clos la saison et la FPL l'a scellée.`,
+      ],
+      average: [
+        (gw, pts) => `Le voyageur moyen a brillé ${pts} lors de la ${gw}.`,
+        (gw, pts) => `Lueur moyenne de la ${gw} : ${pts}.`,
+        (gw, pts) => `Le niveau de base de la ruche pour la ${gw} : ${pts}.`,
+      ],
+      bought: [
+        (name, club, n) => `La ruche est attirée par ${name} (${club}) : ${n} transferts entrants.`,
+        (name, club, n) => `Le plus invoqué : ${name} (${club}), ${n} arrivées.`,
+        (name, club, n) => `${n} voyageurs ont fait monter ${name} (${club}) à bord, plus que quiconque.`,
+      ],
+      sold: [
+        (name, club, n) => `La ruche lâche ${name} (${club}) : ${n} transferts sortants.`,
+        (name, club, n) => `Le plus relâché : ${name} (${club}), ${n} départs.`,
+        (name, club, n) => `${n} voyageurs ont laissé ${name} (${club}) partir à la dérive.`,
+      ],
+      rising: [
+        (count, name) => (count < 2 ? `${name} est sur le point de monter en prix.` : `${count} êtres sont sur le point de monter en prix, ${name} en premier.`),
+        (count, name) => (count < 2 ? `Une ascension probable : ${name}.` : `${count} ascensions probables ; l'attraction la plus forte s'exerce sur ${name}.`),
+        (count, name) => (count < 2 ? `Surveillez ${name} : son prix vibre vers le haut.` : `${count} prix vibrent vers le haut, ${name} en tête.`),
+      ],
+      falling: [
+        (count, name) => (count < 2 ? `${name} est sur le point de baisser en prix.` : `${count} êtres sont sur le point de baisser en prix, ${name} en premier.`),
+        (count, name) => (count < 2 ? `Une chute probable : ${name}.` : `${count} chutes probables ; ${name} subit l'attraction la plus lourde.`),
+        (count, name) => (count < 2 ? `${name} dérive vers une baisse de prix.` : `${count} prix dérivent vers le bas, ${name} le plus profond.`),
+      ],
+      calm: [
+        "Aucun être ne vibre encore assez fort pour changer de prix.",
+        "Les prix sont parfaitement immobiles pour l'instant.",
+        "Mer d'huile : ni ascension ni chute en vue.",
+      ],
+    },
     upside: {
       title: "La dimension de l'upside",
-      note: "Pour grimper au classement mondial : les âmes que presque personne ne possède mais que FPL voit encore briller, les paris de brassard, et ceux que la foule achète avant que le prix ne bouge. Le reste du monde regarde ailleurs. C'est tout l'intérêt.",
+      note: [
+        (name, owned, xp) => `Pour grimper au classement mondial : ${name} n'appartient qu'à ${owned} de la ruche, et pourtant la FPL lui voit ${xp} de lueur. Âmes cachées, paris de brassard et achats de la foule avant que le prix ne bouge.`,
+        (name, owned, xp) => `Le reste du monde regarde ailleurs. C'est tout l'intérêt. L'âme cachée la plus lumineuse : ${name}, ${owned} de la ruche, ${xp} pressentis.`,
+        (name, owned, xp) => `Une lueur que la foule n'a pas vue : ${name}, à ${owned} de la ruche et ${xp} pressentis, mène les joyaux cachés.`,
+      ],
       differentials: "Joyaux cachés, points attendus éclatants",
       captain: "Paris de brassard",
       risers: "À saisir avant leur ascension",
       cols: { player: "Être", owned: "Ruche", xp: "xP", form: "Pouls", price: "Prix", buying: "Afflux" },
-      none: "Rien ne brille encore.",
-      tip: "Murmure : un loup solitaire et un brassard audacieux vous portent plus loin que cinq échanges prudents.",
+      none: ["Rien ne brille encore.", "Aucune âme ne scintille encore ici.", "La dimension de l'upside est silencieuse cette semaine."],
+      tip: [
+        (name) => `Murmure : un brassard audacieux vous porte plus loin que cinq échanges prudents. Le plus audacieux de la semaine : ${name}.`,
+        (name) => `Si vous êtes en chasse, ${name} est le brassard que la ruche ne choisit pas.`,
+        (name) => `Un élu sûr vous laisse flotter où vous êtes ; ${name} pourrait vous élever.`,
+      ],
     },
     lab: {
       captainTitle: "Mille lignes temporelles",
-      captainNote: (g: string, trials: string) => `Pour la ${g} : ${trials} journées parallèles par joueur, rêvées à partir des chiffres de FPL elle-même (minutes, buts et passes attendus, gravité du calendrier, clean sheets, DefCon, cartons, bonus). Trois questions, trois réponses : la moyenne la plus lumineuse, la meilleure chance d'un gros score, la meilleure chance d'un score cosmique. Un brassard les double ; un Capitaine triple les triple.`,
+      captainNote: [
+        (gw, trials, name, mean, ceiling, p15) => `Pour la ${gw} : ${trials} journées parallèles par joueur, rêvées à partir des chiffres de la FPL. ${name} brille le plus en moyenne (${mean}) ; ${ceiling} atteint 15+ le plus souvent (${p15}). Un brassard les double ; un Capitaine triple les triple.`,
+        (gw, trials, name, mean, ceiling, p15) => `${trials} versions rêvées de la ${gw} par joueur (minutes, buts et passes attendus, gravité du calendrier, clean sheets, DefCon, cartons, bonus). L'élu le plus stable : ${name}, ${mean}. Le plafond le plus haut : ${ceiling}, 15+ dans ${p15} des lignes temporelles.`,
+        (gw, trials, name, mean, ceiling, p15) => `${name} affiche ${mean} de moyenne sur ${trials} versions parallèles de la ${gw}, le plus lumineux ; ${ceiling} atteint 15+ ${p15} du temps. Trois questions, trois réponses : la moyenne, un gros score, un score cosmique.`,
+      ],
       byMean: "Lueur moyenne la plus vive",
       byHaul: "Le plus de lignes temporelles à 10+",
       byCeiling: "Le plus de lignes temporelles à 15+ (paris du Troisième œil)",
       cols: { player: "Être", owned: "Ruche", sim: "xP rêvé", double: "En élu", fixture: "Collision", pair: "Âmes jumelles", average: "Gravité moy.", picks: "Jouer celui dont le trajet est le plus doux", yellows: "Jaunes", toBan: "Exil", share: "De la lueur" },
       rotationTitle: "Âmes jumelles",
-      rotationNote: (span: number) => `Deux clubs dont les défenseurs peuvent partager un même maillot : titularisez chaque semaine celui dont le trajet est le plus doux. Les ${span} prochaines journées, les plus douces d'abord.`,
+      rotationNote: [
+        (span, pair, avg) => `Deux clubs dont les défenseurs peuvent partager un maillot : titularisez celui dont le trajet est le plus doux. Sur les ${span} prochaines journées, ${pair} glissent le mieux (gravité moyenne ${avg}).`,
+        (span, pair, avg) => `${pair} : les âmes jumelles les plus douces des ${span} prochaines journées, gravité moyenne de ${avg} en jouant le trajet le plus facile.`,
+        (span, pair, avg) => `Deux gardiens bon marché, un maillot, la collision la plus douce chaque semaine. Meilleurs jumeaux pour les ${span} prochaines : ${pair}, gravité ${avg}.`,
+      ],
       penaltiesTitle: "Gardiens du point de penalty",
-      penaltiesNote: "Premiers sur la liste des tireurs et assez entiers pour jouer. Onze mètres, c'est la magie la moins chère du jeu.",
+      penaltiesNote: [
+        (name, club, xp) => `Premiers sur la liste des tireurs et assez entiers pour jouer. ${name} (${club}) mène la lueur pressentie (${xp}).`,
+        (name, club, xp) => `Onze mètres, c'est la magie la moins chère du jeu ; ${name} (${club}) mène les gardiens du point de penalty avec ${xp}.`,
+        (name, club, xp) => `Tireurs de penalty probablement titulaires : ${name} (${club}, ${xp}) brille le plus cette semaine.`,
+      ],
       suspensionsTitle: "Au bord du bannissement",
-      suspensionsNote: "À un ou deux cartons jaunes d'une suspension (5, 10, 15). Flou : les dates limites exactes sont celles de FPL, alors écoutez les murmures avant d'agir.",
+      suspensionsNote: [
+        (name, yellows, toBan) => `${name} porte ${yellows} cartons jaunes, à ${toBan < 2 ? "un carton" : `${toBan} cartons`} du bannissement. Flou : les seuils (5, 10, 15) ne comptent qu'avant les dates limites de la FPL, alors écoutez les murmures.`,
+        (name, yellows, toBan) => `Le plus proche de l'exil : ${name}, ${yellows} jaunes et ${toBan < 2 ? "encore un" : `encore ${toBan}`} avant la sanction. Les dates limites sont celles de la FPL ; vérifiez avant d'agir.`,
+        (name, yellows, toBan) => `Un carton peut coûter une semaine : ${name} en a ${yellows} et n'est qu'à ${toBan < 2 ? "un" : toBan} de l'exil. Flou ; les dates limites de la FPL font foi.`,
+      ],
       defconTitle: "Les ancres du Mur",
-      defconNote: "Défenseurs et milieux qui atteignent le plus souvent le seuil de la lueur de +2 pour contribution défensive.",
-      none: "Le vide est encore en train de charger.",
+      defconNote: [
+        (name, share) => `Défenseurs et milieux qui atteignent le plus souvent la lueur de +2 pour contribution défensive. ${name} en atteint ${share} par 90 minutes.`,
+        (name, share) => `${name} ancre le Mur avec ${share} du seuil par 90 : le +2 le plus régulier du cosmos.`,
+        (name, share) => `La lueur défensive de +2, encaissée chaque semaine : ${name} atteint ${share} de la barre par 90.`,
+      ],
+      none: ["Le vide est encore en train de charger.", "Rien ne s'est encore matérialisé.", "Aucun être ne se qualifie encore."],
     },
     xi: {
       title: (g: string) => `Les Onze Élus · ${g}`,
-      note: "Le onze valide le plus lumineux d'après les points attendus de FPL elle-même pour la prochaine journée. Les brisés et les improbables restent dans l'ombre.",
+      note: [
+        (captain, formation, total) => `${captain} porte le brassard dans ce ${formation}, le onze valide le plus lumineux d'après les points attendus de la FPL pour la prochaine journée (${total}, élu doublé). Les brisés et les improbables restent dans l'ombre.`,
+        (captain, formation, total) => `Les points pressentis de la FPL invoquent un ${formation} qui vaut ${total} élu doublé, ${captain} en tête. Seuls ceux qui joueront probablement sont appelés.`,
+        (captain, formation, total) => `Si les visions de la FPL disent vrai, ce ${formation} brille ${total} la prochaine journée avec ${captain} comme élu. Les brisés restent dans l'ombre.`,
+      ],
       formation: "Géométrie sacrée",
       total: "Points pressentis, élu doublé",
       captain: "L'élu",
@@ -397,7 +891,11 @@ export const tripFr: TripOverlay = {
     },
     prices: {
       title: "Secousses de prix",
-      note: "Une intuition, pas la règle de FPL : combien de managers ont acheté ou vendu un joueur depuis la dernière date limite, en proportion des managers qui le possèdent.",
+      note: [
+        (rising, falling) => `Une intuition, pas la règle de la FPL : ${rising} ascensions et ${falling} chutes probables, d'après les transferts nets depuis la dernière date limite rapportés aux propriétaires de chaque être.`,
+        (rising, falling) => `Une intuition, pas la règle de la FPL : le flux net depuis la fermeture du portail, face à la ruche. En ce moment, elle pressent ${rising} ascensions et ${falling} chutes.`,
+        (rising, falling) => `Combien de voyageurs ont acheté ou vendu un être depuis la dernière date limite, en proportion de ceux qui le possèdent. Elle pressent ${rising} ascensions et ${falling} chutes.`,
+      ],
       searchPlaceholder: "Nommez un être",
       position: "Plan",
       allPositions: "Tous les plans",
@@ -412,35 +910,43 @@ export const tripFr: TripOverlay = {
       cols: { player: "Être", status: "Vibration", price: "Prix", net: "Flux net", owned: "Esprit de ruche" },
       statuses: { rose: "Élevé cette semaine", likelyRise: "Sur le point de s'élever", closeRise: "Bourdonne vers le haut", steady: "Parfaitement immobile", closeFall: "Bourdonne vers le bas", likelyFall: "Sur le point de sombrer", fell: "A sombré cette semaine" },
       showing: (shown: number, total: number) => (shown === total ? `${total} êtres` : `${shown} êtres sur ${total}`),
-      none: "Aucun être ne correspond.",
+      none: ["Aucun être ne correspond.", "Aucun être ne répond à ces filtres.", "Personne ne vibre à cette recherche."],
       share: (pct: string) => `${pct} de la ruche`,
     },
     eo: {
       title: "L'esprit de ruche",
-      note: (managers: number, g: string) => `Sur ${managers} ${managers >= 2 ? "esprits" : "esprit"} de cette ligue, ${g}. Un capitaine compte double et un capitaine triple, triple. La possession du monde entier flotte à côté.`,
+      note: [
+        (managers, gw, top, eo) => `Sur ${managers} ${managers < 2 ? "esprit" : "esprits"} de cette ligue, ${gw} : ${top} mène la ruche avec ${eo}. Un capitaine compte double et un capitaine triple, triple ; la possession du monde flotte à côté.`,
+        (managers, gw, top, eo) => `${top} est l'attraction la plus forte de la ruche lors de la ${gw} (${eo} sur ${managers} ${managers < 2 ? "esprit" : "esprits"}). Les élus comptent double, les Troisièmes yeux triple.`,
+        (managers, gw, top, eo) => `${gw}, ${managers} ${managers < 2 ? "esprit" : "esprits"} : contre qui vous courez vraiment. ${top} mène avec ${eo}. Les brassards comptent double (triple pour un Troisième œil).`,
+      ],
       groups: "Cercle",
       tiers: { top4: "Cercle intérieur (4 premiers)", top10: "10 premiers", all: "Tout le monde, tout à la fois" },
       by: { eo: "Esprit de ruche", captain: "Élus" },
       cols: { player: "Être", eo: "PE", started: "Élu", captained: "L'élu", owned: "Ruche mondiale" },
-      none: "Pas encore de compositions pour lire la ruche.",
+      none: ["Pas encore de compositions pour lire la ruche.", "La ruche n'a pas encore choisi.", "Aucun esprit décidé, donc rien à compter."],
     },
     teams: {
       title: "Entrer dans un vaisseau",
-      note: "Le monde entier de chaque voyageur.",
+      note: [
+        (count, leader, pts) => `Le monde entier de chaque voyageur, ${count} en tout. ${leader} brille le plus avec ${pts}.`,
+        (count, leader, pts) => `${leader} flotte au sommet avec ${pts}. Entrez dans n'importe lequel des ${count} vaisseaux pour voir comment.`,
+        (count, leader, pts) => `Les ${count} vaisseaux, du Soleil (${leader}, ${pts}) jusqu'aux profondeurs.`,
+      ],
       open: (team: string) => `Entrer dans le vaisseau ${team}`,
       points: (n: string) => `Lueur ${n}`,
     },
   },
 
   loading: {
-    tools: "Le Labo fait ses mélanges",
+    tools: ["Le Labo fait ses mélanges", "Les chiffres se rêvent", "Syntonisation des prix"],
     team: "Syntonisation du vaisseau",
     club: "Recherche de la tribu",
     fixtures: "Cartographie des orbites",
     bonus: "Récolte de la lueur",
-    history: "Remémoration",
+    history: ["Remémoration", "À la recherche des vieux souvenirs", "Ouverture de la boîte à souvenirs"],
     historySlow: "Réveil du serveur de souvenirs. Il rêve quand il est inactif, donc la première visite peut prendre jusqu'à une minute.",
-    times: "Captation des Marées",
-    issue: "Ouverture de la vision",
+    times: ["Captation des Marées", "À la recherche de la vision la plus récente", "Dépliage des Marées"],
+    issue: ["Ouverture de la vision", "Dérive vers la première page", "Les pages entrent"],
   },
 };

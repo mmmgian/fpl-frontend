@@ -109,3 +109,53 @@ export function buildFdrMatrix(
   rows.sort((a, b) => a.score - b.score || String(name.get(a.teamId)).localeCompare(String(name.get(b.teamId))));
   return { start, window, gameweeks, rows };
 }
+
+export interface FdrRun {
+  teamId: number;
+  /** Difficulty per gameweek over the stretch (a blank counts as 3). */
+  average: number;
+}
+
+export interface FdrHighlights {
+  easiest: FdrRun;
+  toughest: FdrRun;
+  /** The club whose fixtures ease the most from the first half of the window to the second, if it eases by a full point. */
+  swing: { teamId: number; before: number; after: number; from: number } | null;
+  /** The first gameweek in the window with a double, and who has it. */
+  double: { gw: number; teams: number[] } | null;
+  /** The first gameweek in the window with a blank, and who has it. */
+  blank: { gw: number; teams: number[] } | null;
+}
+
+const cellDifficulty = (c: FdrCell) => (c.matches.length ? mean(c.matches.map((m) => m.difficulty)) : NEUTRAL_DIFFICULTY);
+
+/** The facts worth a sentence in a difficulty matrix: best and worst run, the biggest swing, the first double and blank. */
+export function fdrHighlights(matrix: FdrMatrix): FdrHighlights | null {
+  const { rows, gameweeks } = matrix;
+  if (rows.length === 0 || gameweeks.length === 0) return null;
+  const split = Math.floor(gameweeks.length / 2);
+  let swing: FdrHighlights["swing"] = null;
+  if (split > 0) {
+    for (const row of rows) {
+      const before = mean(row.cells.slice(0, split).map(cellDifficulty));
+      const after = mean(row.cells.slice(split).map(cellDifficulty));
+      if (before - after >= 1 && (!swing || before - after > swing.before - swing.after)) swing = { teamId: row.teamId, before, after, from: gameweeks[split] };
+    }
+  }
+  const first = (pick: (c: FdrCell) => boolean): { gw: number; teams: number[] } | null => {
+    for (let i = 0; i < gameweeks.length; i++) {
+      const teams = rows.filter((r) => pick(r.cells[i])).map((r) => r.teamId);
+      // A gameweek where nobody plays yet (not scheduled) is not a blank worth flagging.
+      if (teams.length > 0 && teams.length < rows.length) return { gw: gameweeks[i], teams };
+    }
+    return null;
+  };
+  const last = rows[rows.length - 1];
+  return {
+    easiest: { teamId: rows[0].teamId, average: rows[0].average },
+    toughest: { teamId: last.teamId, average: last.average },
+    swing,
+    double: first((c) => c.matches.length >= 2),
+    blank: first((c) => c.matches.length === 0),
+  };
+}

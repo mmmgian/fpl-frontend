@@ -162,7 +162,7 @@ describe("FixtureFeed", () => {
 });
 
 describe("FixtureFeedView", () => {
-  const ok = (over: Partial<Extract<FixtureFeedModel, { kind: "ok" }>> = {}): FixtureFeedModel => ({ kind: "ok", startIndex: 4, gameweeks: feed, teams, windows: [3, 5, 10], ...over });
+  const ok = (over: Partial<Extract<FixtureFeedModel, { kind: "ok" }>> = {}): FixtureFeedModel => ({ kind: "ok", startIndex: 4, gameweeks: feed, teams, windows: [3, 5, 10], highlights: null, next: null, variety: 0, ...over });
 
   it("offers the feed and the 3/5/10 grids, with the feed marked as the current view", () => {
     render(<FixtureFeedView model={ok()} />);

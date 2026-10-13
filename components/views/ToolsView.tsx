@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
-import { entrySlugs, LAB_TRIALS, fdrBand, minus, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
+import { entrySlugs, LAB_TRIALS, fdrBand, minus, pickVariant, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
 import type { PositionId } from "@/lib/domain/types";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
 
 type Tools = Extract<ToolsModel, { kind: "ok" }>;
+
+/**
+ * Each card draws its wording from a few variants with the model's salt (new every day and whenever the gameweek moves
+ * on), each with its own slot so neighbouring cards don't move in step. Only the words change; every figure is a fact.
+ */
+const SLOT = { brief: 1, average: 2, bought: 3, sold: 4, prices: 5, xi: 7, eo: 8, teams: 9, upside: 10, tip: 11, captain: 12, rotation: 13, penalties: 14, suspensions: 15, defcon: 16, none: 17 } as const;
+const say = <T,>(items: readonly T[], variety: number, slot: number): T => pickVariant(items, variety, slot);
 
 const shirt = (clubCode: number | null) => (clubCode ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${clubCode}-66.png` : null);
 
@@ -33,13 +40,14 @@ function href(model: Tools, over: Record<string, string | null>, hash: string): 
   return `/tools${s ? `?${s}` : ""}#${hash}`;
 }
 
-function TeamOfTheWeek({ xi }: { xi: NonNullable<Tools["xi"]> }) {
+function TeamOfTheWeek({ xi, variety }: { xi: NonNullable<Tools["xi"]>; variety: number }) {
   const t = getT();
   const x = t.tools.xi;
   const f = getFormat();
+  const captain = xi.best.lines.flatMap((l) => l.players).find((p) => p.captain);
   return (
     <Card title={x.title(gameweekName(`Gameweek ${xi.gw}`))} headingLevel={2} className={styles.full}>
-      <p className={styles.note}>{x.note}</p>
+      <p className={styles.note}>{say(x.note, variety, SLOT.xi)(captain?.name ?? "—", xi.best.formation, x.ep(f.oneDecimal(xi.best.total)))}</p>
       <p className={styles.formation}>
         <span>{x.formation}</span> {xi.best.formation}
         <span>{x.total}</span> {f.oneDecimal(xi.best.total)}
@@ -81,10 +89,11 @@ function TeamOfTheWeek({ xi }: { xi: NonNullable<Tools["xi"]> }) {
 const pct = (p: number) => Math.round(p * 100);
 
 /** The altered view's heavier tools, from the lab: the captaincy simulation, rotation pairs and the three trackers. */
-function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
+function LabCards({ lab, variety }: { lab: NonNullable<Tools["lab"]>; variety: number }) {
   const t = getT();
   const l = t.tools.lab;
   const f = getFormat();
+  const none = say(l.none, variety, SLOT.none);
   const player = (r: { name: string; club: string; clubCode: number | null; positionId: PositionId }) => (
     <span className={styles.player}>
       <Crest code={r.clubCode} name={r.club} size={22} />
@@ -160,16 +169,26 @@ function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
     { key: "owned", header: l.cols.owned, align: "end", hideBelow: "sm", cell: (r) => t.common.percent(f.oneDecimal(r.ownership)) },
   ];
   const gwName = gameweekName(`Gameweek ${lab.gw}`);
+  const best = lab.captain.byMean[0];
+  const ceiling = lab.captain.byCeiling[0];
+  const pair = lab.rotation[0];
+  const taker = lab.penalties[0];
+  const ban = lab.suspensions[0];
+  const wall = lab.defcon[0];
   return (
     <>
       <section id="captain" className={styles.full}>
         <Card title={l.captainTitle} headingLevel={2} className={styles.full}>
-          <p className={styles.note}>{l.captainNote(gwName, f.number(LAB_TRIALS))}</p>
+          {best && ceiling ? (
+            <p className={styles.note}>
+              {say(l.captainNote, variety, SLOT.captain)(gwName, f.number(LAB_TRIALS), best.name, f.oneDecimal(best.mean), ceiling.name, t.common.percent(String(pct(ceiling.p15))))}
+            </p>
+          ) : null}
           <div className={styles.wideGrid}>
             {lists.map(([title, rows]) => (
               <div key={title}>
                 <h3 className={styles.upsideTitle}>{title}</h3>
-                <DataTable caption={title} hideCaption dense columns={captainCols} rows={rows} rowKey={(r) => r.id} empty={l.none} />
+                <DataTable caption={title} hideCaption dense columns={captainCols} rows={rows} rowKey={(r) => r.id} empty={none} />
               </div>
             ))}
           </div>
@@ -177,23 +196,23 @@ function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
       </section>
       <section id="rotation" className={styles.full}>
         <Card title={l.rotationTitle} headingLevel={2} className={styles.full}>
-          <p className={styles.note}>{l.rotationNote(lab.rotation[0]?.perGw.length ?? 5)}</p>
-          <DataTable caption={l.rotationTitle} hideCaption dense columns={pairCols} rows={lab.rotation} rowKey={(r) => r.clubs.join("-")} empty={l.none} />
+          {pair ? <p className={styles.note}>{say(l.rotationNote, variety, SLOT.rotation)(pair.perGw.length, pair.clubs.join(" + "), f.oneDecimal(pair.average))}</p> : null}
+          <DataTable caption={l.rotationTitle} hideCaption dense columns={pairCols} rows={lab.rotation} rowKey={(r) => r.clubs.join("-")} empty={none} />
         </Card>
       </section>
       <section id="trackers" className={styles.full}>
         <div className={styles.upsideGrid}>
           <Card title={l.penaltiesTitle} headingLevel={2}>
-            <p className={styles.note}>{l.penaltiesNote}</p>
-            <DataTable caption={l.penaltiesTitle} hideCaption dense columns={lineCols} rows={lab.penalties} rowKey={(r) => r.id} empty={l.none} />
+            {taker ? <p className={styles.note}>{say(l.penaltiesNote, variety, SLOT.penalties)(taker.name, taker.club, t.tools.xi.ep(f.oneDecimal(taker.xp)))}</p> : null}
+            <DataTable caption={l.penaltiesTitle} hideCaption dense columns={lineCols} rows={lab.penalties} rowKey={(r) => r.id} empty={none} />
           </Card>
           <Card title={l.suspensionsTitle} headingLevel={2}>
-            <p className={styles.note}>{l.suspensionsNote}</p>
-            <DataTable caption={l.suspensionsTitle} hideCaption dense columns={banCols} rows={lab.suspensions} rowKey={(r) => r.id} empty={l.none} />
+            {ban ? <p className={styles.note}>{say(l.suspensionsNote, variety, SLOT.suspensions)(ban.name, ban.yellows, ban.toBan)}</p> : null}
+            <DataTable caption={l.suspensionsTitle} hideCaption dense columns={banCols} rows={lab.suspensions} rowKey={(r) => r.id} empty={none} />
           </Card>
           <Card title={l.defconTitle} headingLevel={2}>
-            <p className={styles.note}>{l.defconNote}</p>
-            <DataTable caption={l.defconTitle} hideCaption dense columns={defconCols} rows={lab.defcon} rowKey={(r) => r.id} empty={l.none} />
+            {wall ? <p className={styles.note}>{say(l.defconNote, variety, SLOT.defcon)(wall.name, t.common.percent(String(pct(wall.share))))}</p> : null}
+            <DataTable caption={l.defconTitle} hideCaption dense columns={defconCols} rows={lab.defcon} rowKey={(r) => r.id} empty={none} />
           </Card>
         </div>
       </section>
@@ -202,7 +221,7 @@ function LabCards({ lab }: { lab: NonNullable<Tools["lab"]> }) {
 }
 
 /** The altered view's tool: little-owned players worth chasing, the armband gambles and the players about to rise. */
-function UpsideLab({ upside }: { upside: NonNullable<Tools["upside"]> }) {
+function UpsideLab({ upside, variety }: { upside: NonNullable<Tools["upside"]>; variety: number }) {
   const t = getT().tools.upside;
   const tt = getT();
   const f = getFormat();
@@ -233,9 +252,12 @@ function UpsideLab({ upside }: { upside: NonNullable<Tools["upside"]> }) {
     [t.captain, upside.captainGambles, false],
     [t.risers, upside.risers, true],
   ];
+  const lead = upside.differentials[0];
+  const gamble = upside.captainGambles[0];
+  const none = say(t.none, variety, SLOT.none);
   return (
     <Card title={t.title} headingLevel={2} className={styles.full}>
-      <p className={styles.note}>{t.note}</p>
+      {lead ? <p className={styles.note}>{say(t.note, variety, SLOT.upside)(lead.name, tt.common.percent(f.oneDecimal(lead.ownership)), tt.tools.xi.ep(f.oneDecimal(lead.xp)))}</p> : null}
       <div className={styles.upsideGrid}>
         {lists.map(([title, rows, buying]) => (
           <div key={title}>
@@ -247,12 +269,12 @@ function UpsideLab({ upside }: { upside: NonNullable<Tools["upside"]> }) {
               columns={buying ? [...columns.slice(0, 2), { key: "buying", header: t.cols.buying, align: "end", cell: (r: UpsidePick) => f.number(r.transfersIn) }, columns[2]] : columns}
               rows={rows}
               rowKey={(r) => r.id}
-              empty={t.none}
+              empty={none}
             />
           </div>
         ))}
       </div>
-      <p className={styles.note}>{t.tip}</p>
+      {gamble ? <p className={styles.note}>{say(t.tip, variety, SLOT.tip)(gamble.name)}</p> : null}
     </Card>
   );
 }
@@ -299,7 +321,7 @@ function PriceChanges({ model }: { model: Tools }) {
   ];
   return (
     <Card title={p.title} headingLevel={2} className={styles.full}>
-      <p className={styles.note}>{p.note}</p>
+      <p className={styles.note}>{say(p.note, model.phase.variety, SLOT.prices)(model.pulse.rising, model.pulse.falling)}</p>
       <form method="get" action="/tools" className={styles.filters}>
         {model.eo ? <input type="hidden" name="eo" value={model.eo.tier} /> : null}
         {model.eo?.by === "captain" ? <input type="hidden" name="by" value="captain" /> : null}
@@ -351,7 +373,7 @@ function PriceChanges({ model }: { model: Tools }) {
           {p.go}
         </Button>
       </form>
-      <DataTable caption={p.title} hideCaption dense columns={columns} rows={rows} rowKey={(r) => r.id} empty={p.none} />
+      <DataTable caption={p.title} hideCaption dense columns={columns} rows={rows} rowKey={(r) => r.id} empty={say(p.none, model.phase.variety, SLOT.none)} />
       <p className={styles.count}>{p.showing(rows.length, matching)}</p>
     </Card>
   );
@@ -386,7 +408,9 @@ function EffectiveOwnership({ model }: { model: Tools }) {
     <Card title={e.title} headingLevel={2} className={styles.full}>
       {eo ? (
         <>
-          <p className={styles.note}>{e.note(eo.managers, gameweekName(`Gameweek ${eo.gw}`))}</p>
+          {eo.rows[0] ? (
+            <p className={styles.note}>{say(e.note, model.phase.variety, SLOT.eo)(eo.managers, gameweekName(`Gameweek ${eo.gw}`), eo.rows[0].name, t.common.percent(f.oneDecimal(eo.rows[0].eo)))}</p>
+          ) : null}
           <div className={styles.tabs}>
             <span className={styles.tabGroup} role="group" aria-label={e.groups}>
               <span aria-hidden="true">{e.groups}</span>
@@ -404,22 +428,23 @@ function EffectiveOwnership({ model }: { model: Tools }) {
               ))}
             </span>
           </div>
-          <DataTable caption={e.title} hideCaption dense columns={columns} rows={eo.rows} rowKey={(r) => r.id} empty={e.none} />
+          <DataTable caption={e.title} hideCaption dense columns={columns} rows={eo.rows} rowKey={(r) => r.id} empty={say(e.none, model.phase.variety, SLOT.none)} />
         </>
       ) : (
-        <p className={styles.note}>{e.none}</p>
+        <p className={styles.note}>{say(e.none, model.phase.variety, SLOT.none)}</p>
       )}
     </Card>
   );
 }
 
-function Teams({ teams }: { teams: Tools["teams"] }) {
+function Teams({ teams, variety }: { teams: Tools["teams"]; variety: number }) {
   const t = getT().tools.teams;
   const f = getFormat();
   const slugs = entrySlugs(teams.map((x) => ({ id: x.entry, name: x.teamName })));
+  const leader = teams.find((x) => x.rank === 1) ?? teams[0];
   return (
     <Card title={t.title} headingLevel={2} className={styles.full}>
-      <p className={styles.note}>{t.note}</p>
+      <p className={styles.note}>{say(t.note, variety, SLOT.teams)(teams.length, leader.teamName, t.points(f.number(leader.total)))}</p>
       <ul className={styles.teams}>
         {teams.map((team) => (
           <li key={team.entry}>
@@ -442,6 +467,48 @@ function Teams({ teams }: { teams: Tools["teams"] }) {
         ))}
       </ul>
     </Card>
+  );
+}
+
+/**
+ * The week at a glance, phase-aware: before a deadline it frames that deadline; while a gameweek is live or settling it
+ * says so; once FPL marks it final it points at the next one. Then the crowd's moves, from all of FPL.
+ */
+function WeekBrief({ model }: { model: Tools }) {
+  const t = getT();
+  const b = t.tools.brief;
+  const f = getFormat();
+  const v = model.phase.variety;
+  const { phase, gw, next, average } = model.phase;
+  const name = (n: number) => gameweekName(`Gameweek ${n}`);
+  const nextName = next ? name(next) : b.seasonEnd;
+  const headline =
+    phase === "upcoming" || gw === null ? (next ? say(b.upcoming, v, SLOT.brief)(nextName) : null)
+    : phase === "over" ? say(b.over, v, SLOT.brief)(name(gw))
+    : say(b[phase], v, SLOT.brief)(name(gw), nextName);
+  const { bought, sold, rising, falling, topRiser, topFaller } = model.pulse;
+  const lines = [
+    gw !== null && average !== null && phase !== "live" ? say(b.average, v, SLOT.average)(name(gw), t.common.points(average)) : null,
+    bought ? say(b.bought, v, SLOT.bought)(bought.name, bought.club, f.number(bought.count)) : null,
+    sold ? say(b.sold, v, SLOT.sold)(sold.name, sold.club, f.number(sold.count)) : null,
+    rising && topRiser ? say(b.rising, v, SLOT.prices)(rising, topRiser) : null,
+    falling && topFaller ? say(b.falling, v, SLOT.prices + 1)(falling, topFaller) : null,
+    !rising && !falling ? say(b.calm, v, SLOT.prices) : null,
+  ].filter((x): x is string => x !== null);
+  if (!headline && lines.length === 0) return null;
+  return (
+    <section id="brief" className={styles.full}>
+      <Card title={b.title} headingLevel={2} className={styles.full}>
+        {headline ? <p className={styles.briefLead}>{headline}</p> : null}
+        {lines.length ? (
+          <ul className={styles.briefList}>
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
+      </Card>
+    </section>
   );
 }
 
@@ -484,15 +551,16 @@ export function ToolsView({ model }: { model: Tools }) {
         </ul>
       </nav>
       <div className={styles.grid}>
+        <WeekBrief model={model} />
         {trip && model.upside ? (
           <section id="upside" className={styles.full}>
-            <UpsideLab upside={model.upside} />
+            <UpsideLab upside={model.upside} variety={model.phase.variety} />
           </section>
         ) : null}
-        {trip && model.lab ? <LabCards lab={model.lab} /> : null}
+        {trip && model.lab ? <LabCards lab={model.lab} variety={model.phase.variety} /> : null}
         {model.xi ? (
           <section id="xi" className={styles.full}>
-            <TeamOfTheWeek xi={model.xi} />
+            <TeamOfTheWeek xi={model.xi} variety={model.phase.variety} />
           </section>
         ) : null}
         <section id="prices" className={styles.full}>
@@ -503,7 +571,7 @@ export function ToolsView({ model }: { model: Tools }) {
         </section>
         {model.teams.length ? (
           <section id="teams" className={styles.full}>
-            <Teams teams={model.teams} />
+            <Teams teams={model.teams} variety={model.phase.variety} />
           </section>
         ) : null}
       </div>

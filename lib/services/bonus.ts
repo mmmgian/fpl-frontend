@@ -1,6 +1,6 @@
 import type { Fixture, FplElement, FplTeam } from "../domain";
-import { bpsRanking, compareByKickoff, fixtureState, isFinished, matchBonus, matchEvents, selectGameweek, sideLeaders } from "../domain";
-import type { BonusLine, BonusModel, EventLine, FixtureCard } from "./models";
+import { BUBBLE_GAP, bonusRace, bpsRanking, compareByKickoff, fixtureState, isFinished, matchBonus, matchEvents, selectGameweek, sideLeaders, varietyKey } from "../domain";
+import type { BonusLine, BonusModel, BonusRaceView, EventLine, FixtureCard } from "./models";
 import type { FplPort, ServiceOptions } from "./ports";
 
 /** Early in a match many players tie on BPS (and all take the same bonus); show this many per side. */
@@ -32,6 +32,17 @@ function toFixtureCard(f: Fixture, teams: Map<number, FplTeam>, players: Map<num
   const awaySide = side("a", away);
   const lines = (events: { element: number; count: number }[]): EventLine[] => events.map((e) => ({ player: player(e.element), count: e.count }));
   const events = matchEvents(f);
+  const r = bonusRace(f, bonus.rows);
+  const race: BonusRaceView | null = r
+    ? {
+        leader: player(r.leader.element),
+        bps: r.leader.bps,
+        runnerUp: r.runnerUp ? player(r.runnerUp.element) : null,
+        lead: r.lead,
+        // Only a close bonus line is worth a sentence.
+        bubble: r.bubble && r.bubble.gap <= BUBBLE_GAP ? { inside: player(r.bubble.inside.element), outside: player(r.bubble.outside.element), gap: r.bubble.gap } : null,
+      }
+    : null;
 
   return {
     id: f.id,
@@ -48,6 +59,29 @@ function toFixtureCard(f: Fixture, teams: Map<number, FplTeam>, players: Map<num
       hidden: { home: homeSide.hidden, away: awaySide.hidden },
     },
     events: { goals: lines(events.goals), assists: lines(events.assists), redCards: lines(events.redCards) },
+    race,
+  };
+}
+
+/** The gameweek's highest BPS and the club whose players are collecting the most bonus. */
+function weekSummary(fixtures: Fixture[], teams: Map<number, FplTeam>, players: Map<number, FplElement>): Extract<BonusModel, { kind: "ok" }>["summary"] {
+  let top: { element: number; bps: number; team: number } | null = null;
+  const byClub = new Map<number, number>();
+  for (const f of fixtures) {
+    const lead = bpsRanking(f)[0];
+    if (lead && (!top || lead.bps > top.bps)) top = { element: lead.element, bps: lead.bps, team: lead.side === "h" ? f.team_h : f.team_a };
+    for (const row of matchBonus(f).rows) {
+      const team = row.side === "h" ? f.team_h : f.team_a;
+      byClub.set(team, (byClub.get(team) ?? 0) + row.bonus);
+    }
+  }
+  if (!top) return null;
+  const clubName = (id: number) => teams.get(id)?.name ?? "Unknown club";
+  // Most bonus first; a tie goes to the lower team id so the line never flickers between refreshes.
+  const [bestId, bestBonus] = [...byClub].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] ?? [top.team, 0];
+  return {
+    top: { player: players.get(top.element)?.web_name ?? `Player ${top.element}`, club: clubName(top.team), bps: top.bps },
+    bestClub: { club: clubName(bestId), bonus: bestBonus },
   };
 }
 
@@ -56,7 +90,8 @@ export function createBonusService(fpl: Pick<FplPort, "bootstrap" | "fixtures">,
   return {
     async load(requestedGw: string | string[] | undefined): Promise<BonusModel> {
       const bootstrap = await fpl.bootstrap();
-      const selection = selectGameweek(bootstrap.events, requestedGw, 1, now());
+      const at = now();
+      const selection = selectGameweek(bootstrap.events, requestedGw, 1, at);
       if (!selection) return { kind: "no-season" };
 
       const fixtures = [...(await fpl.fixtures(selection.gw, selection.status === "final"))].sort(compareByKickoff);
@@ -75,6 +110,8 @@ export function createBonusService(fpl: Pick<FplPort, "bootstrap" | "fixtures">,
           finished: states.filter((s) => s === "final" || s === "provisional").length,
           upcoming: states.filter((s) => s === "upcoming").length,
         },
+        summary: weekSummary(fixtures, teams, players),
+        variety: varietyKey(selection.gw, selection.status, at),
       };
     },
   };

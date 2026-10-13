@@ -3,12 +3,35 @@
  * goals and expected goals, defence, who was picked and what they cost, rank and value, and the league table), the
  * context those questions and answers may quote, and which topics apply and how much each is worth. Pure: no I/O.
  */
+import type { GwStatus } from "./gameweek";
 import type { FullTopic } from "./interview";
 import type { Lab } from "./lab";
 import type { Upside } from "./upside";
 
-/** Where the topics come from. The conference takes one from the faults and one from the league, then spreads out. */
-export type Group = "blunder" | "injury" | "attack" | "defence" | "market" | "season" | "position";
+/**
+ * Where the topics come from. The conference takes one from the faults, one from the league and one about the moment
+ * (`phase`: what is still to play, the bonus FPL has yet to confirm, the signed-off verdict, or the next deadline), then
+ * spreads out.
+ */
+export type Group = "blunder" | "injury" | "attack" | "defence" | "market" | "season" | "position" | "phase";
+
+/**
+ * The moment the conference is held in, which colours how the journalists introduce their questions: while matches
+ * are on, while FPL's bonus is still provisional, once FPL has signed the gameweek off, or (the latest gameweek being
+ * over) in the run-up to the next deadline.
+ */
+export type InterviewMood = "live" | "provisional" | "final" | "ahead";
+export const INTERVIEW_MOODS: readonly InterviewMood[] = ["live", "provisional", "final", "ahead"];
+
+/**
+ * The mood of a conference: live while it is played, provisional while FPL's bonus is unconfirmed; once FPL signs the
+ * gameweek off, the next deadline if one is ahead, else the final verdict (the season's last gameweek).
+ */
+export function interviewMood(phase: GwStatus | undefined, ahead: boolean): InterviewMood {
+  if (phase === "live") return "live";
+  if (phase === "provisional") return "provisional";
+  return phase === "upcoming" || ahead ? "ahead" : "final";
+}
 
 export interface InterviewPlayer {
   name: string;
@@ -112,6 +135,19 @@ export interface InterviewInput {
   upside: Upside | null;
   /** The lab's simulations and trackers, for the altered press conference. */
   lab: Lab | null;
+  /** Where FPL is with this gameweek (live, provisional, final); absent means unknown, and no question is asked about it. */
+  phase?: GwStatus;
+  /** While live: starters who count and have not played yet (and the same weighted by multiplier). */
+  remaining?: { count: number; effective: number } | null;
+  /**
+   * The next deadline, when it is still ahead (the latest gameweek is over and another follows): its name, the squad's
+   * best armband by the lab's simulation for it, and a starter facing a hard fixture in it.
+   */
+  ahead?: {
+    gw: string;
+    captain: { name: string; xp: number; p10: number } | null;
+    fixture: { name: string; opponent: string; difficulty: number } | null;
+  } | null;
 }
 
 /** What a question or answer may mention. Every field is always filled; a topic only uses what it was chosen for. */
@@ -228,6 +264,22 @@ export interface InterviewContext {
   /** The next percentile door in the world rank (top N%), and roughly which rank that is. */
   goalTop: number;
   goalRank: string;
+  // the moment: still to play, provisional bonus, the next deadline
+  /** Counting players yet to play (live), and the bonus FPL has provisionally given the XI (with the captain's multiplier). */
+  remaining: number;
+  bonusPts: number;
+  /** The next deadline's gameweek, e.g. "Gameweek 7"; the squad's best armband for it by simulation, its mean and chance of 10+ (whole %). */
+  nextGw: string;
+  nextCaptain: string;
+  nextCaptainXp: string;
+  nextCaptainP10: number;
+  /** A starter facing a hard fixture next ("ARS (A)"), and its difficulty. */
+  nextPlayer: string;
+  nextOpp: string;
+  nextFdr: number;
+  /** A squad player FPL flags ahead of the next deadline, with the flag in the reader's words. */
+  nextFlag: string;
+  nextFlagLabel: string;
 }
 
 const best = <T>(items: T[], pick: (t: T) => number): T | undefined =>
@@ -264,7 +316,8 @@ function squadFacts(i: InterviewInput) {
   const vice = SQUAD(i).find((p) => p.vice);
   const positions = [2, 3, 4].map((pos) => starters(i).filter((p) => p.pos === pos).length);
   const flagged = SQUAD(i).filter((p) => p.flag);
-  return { xi, goals, xg, scorer, defScorer, assister, waster, gk, back, expensive, template, diff, cold, hotBench, trio, gross, star, cap, vice, positions, flagged };
+  const bonus = xi.reduce((s, p) => s + p.bonus * p.multiplier, 0);
+  return { xi, goals, xg, scorer, defScorer, assister, waster, gk, back, expensive, template, diff, cold, hotBench, trio, gross, star, cap, vice, positions, flagged, bonus };
 }
 
 /** The next milestone up the world ranking: the largest "top N%" door the manager is not yet through. */
@@ -298,6 +351,7 @@ export function interviewContext(i: InterviewInput, fmt: InterviewFormat = PLAIN
   const delta = i.value ? i.value.now - i.value.start : 0;
   const planetPct = i.planet?.of ? Math.round((1 - i.planet.rank / i.planet.of) * 100) : 0;
   const goal = nextDoor(i.planet);
+  const nextFlag = nextFlagged(i);
   return {
     team: i.team,
     first: i.first,
@@ -401,7 +455,25 @@ export function interviewContext(i: InterviewInput, fmt: InterviewFormat = PLAIN
     upNote: "",
     goalTop: goal?.top ?? 0,
     goalRank: goal ? fmt.number(goal.rank) : "",
+    remaining: i.remaining?.count ?? 0,
+    bonusPts: f.bonus,
+    nextGw: i.ahead?.gw ?? "",
+    nextCaptain: i.ahead?.captain?.name ?? "",
+    nextCaptainXp: i.ahead?.captain ? fmt.oneDecimal(i.ahead.captain.xp) : "",
+    nextCaptainP10: i.ahead?.captain ? Math.round(i.ahead.captain.p10 * 100) : 0,
+    nextPlayer: i.ahead?.fixture?.name ?? "",
+    nextOpp: i.ahead?.fixture?.opponent ?? "",
+    nextFdr: i.ahead?.fixture?.difficulty ?? 0,
+    nextFlag: nextFlag?.name ?? "",
+    nextFlagLabel: nextFlag?.flag?.label ?? "",
   };
+}
+
+/** The squad player whose flag matters most before the next deadline: a starter before a bench player, "out" before "doubt". */
+function nextFlagged(i: InterviewInput): InterviewPlayer | undefined {
+  const flagged = SQUAD(i).filter((p) => p.flag);
+  const rank = (p: InterviewPlayer) => (p.started ? 2 : 0) + (p.flag?.kind === "out" ? 1 : 0);
+  return best(flagged, rank);
 }
 
 export interface Candidate {
@@ -451,7 +523,7 @@ export function candidatesOf(i: InterviewInput): Candidate[] {
     if (f.scorer && f.scorer.goals >= 3) add("hatTrick", "attack", 75);
     else if (f.scorer && f.scorer.goals === 2) add("brace", "attack", 45);
     if (f.defScorer) add("defenderScored", "attack", 55);
-    if (f.assister && f.assister.assists >= 2) add("assistHaul", "attack", 45);
+    if (f.assister && f.assister.assists >= 2) add("assistHaul", "attack", 30 + Math.min((f.assister.assists - 2) * 12, 36)); // two assists is common, three-plus is a story
     if (settled && f.xi.some((p) => p.pos >= 3) && f.xi.filter((p) => p.pos >= 3).every((p) => p.goals === 0)) add("blankAttack", "attack", 65);
     if (settled && f.waster && f.waster.xg >= 0.9) add("xgWaste", "attack", 60 + Math.min(Math.round(f.waster.xg * 10), 15));
     if (settled && f.goals >= 2 && f.goals >= f.xg + 1.5) add("luckyGoals", "attack", 50);
@@ -476,7 +548,7 @@ export function candidatesOf(i: InterviewInput): Candidate[] {
     if (f.cold) add("coldStarter", "market", 50);
     if (f.hotBench) add("hotBench", "market", 55);
     if (f.trio) add("tripleUp", "market", 35);
-    if (f.positions.reduce((s, n) => s + n, 0) === 10) add("formation", "market", 20);
+    if (f.positions.reduce((s, n) => s + n, 0) === 10) add("formation", "market", 12);
     if (settled && f.star && f.gross >= 30 && (pts(f.star) * f.star.multiplier) / f.gross >= 0.4) add("oneManShow", "market", 50);
     if (settled && f.cap && f.vice && played(f.cap) && played(f.vice) && pts(f.vice) >= pts(f.cap) + 6) add("viceBetter", "blunder", 65);
     if (settled && f.cap && pts(f.cap) >= 10) add("captainHaul", "attack", 45);
@@ -522,6 +594,23 @@ export function candidatesOf(i: InterviewInput): Candidate[] {
     if (l.down && l.points - l.down.points >= 1 && l.points - l.down.points <= NEAR_POINTS) add("looksBack", "position", 45);
     if (l.moved >= 2) add("climber", "position", 50);
     if (l.moved <= -2) add("faller", "position", 55);
+  }
+
+  // the moment: what is still to play, what FPL has yet to confirm, the verdict, the next deadline
+  const phase = i.phase;
+  if (phase === "live") {
+    if (c?.state === "waiting") add("captainWaiting", "phase", 70);
+    if (i.remaining && i.remaining.count >= 3) add("stillToPlay", "phase", 50 + Math.min(i.remaining.effective * 3, 20));
+  }
+  if (phase === "provisional" && f.bonus >= 1) add("bonusPending", "phase", 65);
+  if (phase === "final") add("finalVerdict", "phase", 40);
+  const ahead = i.ahead;
+  if (ahead && phase !== "live") {
+    if (ahead.captain) add("nextCaptain", "phase", 70);
+    if (ahead.fixture && ahead.fixture.difficulty >= 4) add("nextFixture", "phase", 55 + (ahead.fixture.difficulty - 4) * 10);
+    if ((i.freeTransfers ?? 0) >= 1) add("nextTransfers", "phase", 50);
+    const flag = nextFlagged(i);
+    if (flag) add("nextFlag", "phase", flag.flag?.kind === "out" ? 70 : 55);
   }
   return out;
 }

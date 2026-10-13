@@ -1,22 +1,39 @@
 import Link from "next/link";
 import { ButtonLink, English, StateMessage, getIntlLocale, getLocale, getT } from "@/components/ui";
-import { issueAssets, localizeIssue } from "@/lib/domain";
-import type { TimesLibraryModel } from "@/lib/services/models";
+import { issueAssets, localizeIssue, pickVariant } from "@/lib/domain";
+import type { TimesLibraryModel, TimesPress } from "@/lib/services/models";
 import { IssueCard, formatPublished } from "./IssueCard";
 import styles from "./times.module.css";
 
-/** The newspaper's nameplate. Everything on /times sits under it. */
-export function Masthead() {
+/** Slots for the library's lines, so the masthead, the hero and the notices don't change in step. */
+const SLOT = { masthead: 1, latest: 2, press: 3, empty: 4 } as const;
+
+/** The newspaper's nameplate. Everything on /times sits under it. `variety` salts the strapline. */
+export function Masthead({ variety = 0 }: { variety?: number }) {
   const t = getT().times;
   return (
     <header className={styles.masthead}>
       <p className={styles.mastheadTop}>
         <span>{t.mastheadLeft}</span>
-        <span>{t.mastheadRight}</span>
+        <span>{pickVariant(t.mastheadRight, variety, SLOT.masthead)}</span>
       </p>
       <h1 className={styles.nameplate}>The Lobster Times</h1>
     </header>
   );
+}
+
+/** Where the presses stand: a finished gameweek whose edition is on its way, or one still being played. */
+function PressNote({ press }: { press: TimesPress }) {
+  const t = getT().times;
+  const line =
+    press.awaiting !== null ? pickVariant(t.awaiting, press.variety, SLOT.press)(press.awaiting)
+    : press.phase === "live" && press.gw !== null ? pickVariant(t.inPlay, press.variety, SLOT.press)(press.gw)
+    : null;
+  return line ? (
+    <p className={styles.press} role="note">
+      {line}
+    </p>
+  ) : null;
 }
 
 const href = (kind: string | null) => (kind ? `/times?kind=${kind}` : "/times");
@@ -26,20 +43,21 @@ export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
   if (model.kind === "empty") {
     return (
       <>
-        <Masthead />
+        <Masthead variety={model.press.variety} />
         <StateMessage title={t.emptyTitle}>
-          <p>{t.emptyBody}</p>
+          <p>{pickVariant(t.emptyBody, model.press.variety, SLOT.empty)}</p>
         </StateMessage>
       </>
     );
   }
 
-  const { hero: heroEnglish, issues, filters, active } = model;
+  const { hero: heroEnglish, issues, filters, active, press } = model;
   const hero = heroEnglish && localizeIssue(heroEnglish, getLocale()); // IssueCard localizes the cards itself
 
   return (
     <>
-      <Masthead />
+      <Masthead variety={press.variety} />
+      <PressNote press={press} />
 
       {hero ? (
         <section aria-labelledby="latest-heading" className={styles.hero}>
@@ -58,7 +76,7 @@ export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
           </Link>
           <div className={styles.heroText}>
             <p className={styles.eyebrow} id="latest-heading">
-              {t.latest(hero.gameweek)}
+              {pickVariant(t.latest, press.variety, SLOT.latest)(hero.gameweek)}
             </p>
             <h2 className={styles.heroTitle}>
               <English>{hero.title}</English>
@@ -88,7 +106,7 @@ export function TimesLibraryView({ model }: { model: TimesLibraryModel }) {
 
       {issues.length === 0 ? (
         <StateMessage title={t.noIssuesTitle} action={<ButtonLink href="/times">{t.showAll}</ButtonLink>}>
-          <p>{t.noIssuesBody}</p>
+          <p>{pickVariant(t.noIssuesBody, press.variety, SLOT.empty)}</p>
         </StateMessage>
       ) : (
         <section aria-labelledby="issues-heading">

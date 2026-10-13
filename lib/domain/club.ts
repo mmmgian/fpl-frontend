@@ -259,3 +259,39 @@ export interface Headline {
 }
 
 export const clubIdentity = (t: FplTeam) => ({ id: t.id, name: t.name, short: t.short_name || t.name, code: t.code });
+
+// ---------- Outlook ----------
+
+export type FormMood = "hot" | "cold" | "mixed";
+export type RunMood = "kind" | "tough" | "mixed";
+
+export interface ClubOutlook {
+  /** Recent results, with points per game deciding the mood (2+ hot, under 1 cold). */
+  form: { played: number; wins: number; draws: number; losses: number; points: number; mood: FormMood } | null;
+  /** The next few matches' difficulty for the club (2.5 or less kind, 3.5 or more tough). */
+  run: { matches: number; average: number; mood: RunMood } | null;
+  /** The club's top FPL scorer this season. */
+  star: { name: string; points: number; ownership: number | null } | null;
+  /** Ruled out, most serious and most recent first, and how many more are doubts. */
+  out: string[];
+  doubts: number;
+}
+
+/** What the club page's opening lines are about, all from facts already on the page. */
+export function clubOutlook(form: Result[], next: ClubMatch[], players: ClubPlayer[], news: ClubNewsItem[], take = 3): ClubOutlook {
+  const count = (r: Result) => form.filter((x) => x === r).length;
+  const [wins, draws, losses] = [count("W"), count("D"), count("L")];
+  const points = wins * 3 + draws;
+  const ppg = form.length ? points / form.length : 0;
+  // Not kicked off yet, dated or not: a match without a time still has its difficulty.
+  const run = next.filter((m) => m.state === "upcoming" || m.state === "tbc").slice(0, take);
+  const average = run.length ? run.reduce((s, m) => s + m.band, 0) / run.length : 0;
+  const star = players.filter((p) => !hasLeft(p) && p.points > 0).sort((a, b) => b.points - a.points || a.id - b.id)[0];
+  return {
+    form: form.length ? { played: form.length, wins, draws, losses, points, mood: ppg >= 2 ? "hot" : ppg < 1 ? "cold" : "mixed" } : null,
+    run: run.length ? { matches: run.length, average, mood: average <= 2.5 ? "kind" : average >= 3.5 ? "tough" : "mixed" } : null,
+    star: star ? { name: star.name, points: star.points, ownership: star.ownership } : null,
+    out: news.filter((n) => n.severity === "out").map((n) => n.player.name),
+    doubts: news.filter((n) => n.severity === "doubt").length,
+  };
+}

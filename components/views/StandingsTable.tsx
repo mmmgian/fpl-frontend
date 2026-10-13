@@ -29,9 +29,11 @@ interface StandingsTableProps {
   zones?: boolean;
   /** Per-manager extras from the league service. Left out for frozen history tables. */
   stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw" | "squad">;
+  /** Picks the phrasings in the stats panels (see varietyKey); the first phrasing without it. */
+  variety?: number;
 }
 
-export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras }: StandingsTableProps) {
+export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, variety }: StandingsTableProps) {
   const t = getT();
   const tt = t.table;
   const f = getFormat();
@@ -150,7 +152,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       rowKey={(r) => r.entry}
       isCurrentRow={highlightEntry ? (r) => r.entry === highlightEntry : undefined}
       rowTone={zones ? (r) => zoneOf(r.rank, rows.length) : undefined}
-      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} /> : null) : undefined}
+      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} variety={variety} /> : null) : undefined}
       empty={tt.empty}
     />
   );

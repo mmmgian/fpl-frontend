@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { Badge, GameweekPager, LiveRefresh, StateMessage, StatList, gameweekName, getFormat, getT } from "@/components/ui";
+import { refreshIntervalMs, varietyKey } from "@/lib/domain";
 import type { TeamGameweek, TeamIdentity, TeamModel, TeamSummary } from "@/lib/services/models";
 import { InterviewPanel } from "./InterviewPanel";
 import { GwStatusBadge } from "./GwStatusBadge";
-import { MatchdayInsights, SeasonInsightsView } from "./TeamInsightsView";
+import { MatchdayInsights, SeasonInsightsView, chooser, type Choose } from "./TeamInsightsView";
 import { TeamHeader, type HeaderFact } from "./TeamHeader";
 import { TeamSheetView } from "./TeamSheetView";
 import styles from "./sheet.module.css";
@@ -20,10 +21,14 @@ const pagerFor = (team: TeamIdentity, gw: TeamGameweek) => (
   <GameweekPager gw={gw.gw} min={gw.min} max={gw.max} href={(n) => `/team/${team.slug ?? team.entryId}?gw=${n}`} />
 );
 
-function Summary({ summary, isLive, gameweekName: gwName }: { summary: TeamSummary; isLive: boolean; gameweekName: string }) {
+function Summary({ summary, gw, gameweekName: gwName, pick }: { summary: TeamSummary; gw: TeamGameweek; gameweekName: string; pick: Choose }) {
   const t = getT().team;
   const f = getFormat();
   const { hit } = summary;
+  const { isLive } = gw;
+  // Where FPL is with the latest gameweek's points: still checking, or signed off (data_checked). Past weeks are all final.
+  const phase =
+    gw.gw !== gw.max ? null : gw.status === "provisional" ? pick(t.vary.provisional, 40) : gw.status === "final" ? pick(t.vary.final, 41) : null;
   return (
     <StatList
       label={t.summary(gwName)}
@@ -32,7 +37,7 @@ function Summary({ summary, isLive, gameweekName: gwName }: { summary: TeamSumma
           label: isLive ? t.gwPointsLive : t.gwPoints,
           value: summary.gwPoints,
           tone: "accent" as const,
-          hint: [hit ? t.inclHit(hit) : null, isLive ? t.beforeAutoSubs : null].filter(Boolean).join(" · ") || undefined,
+          hint: [hit ? t.inclHit(hit) : null, isLive ? t.beforeAutoSubs : null, phase].filter(Boolean).join(" · ") || undefined,
         },
         { label: t.total, value: f.number(summary.total), tone: "cool" as const },
         { label: t.overallRank, value: f.rank(summary.overallRank), tone: "good" as const },
@@ -44,7 +49,7 @@ function Summary({ summary, isLive, gameweekName: gwName }: { summary: TeamSumma
 }
 
 /** The ruled row under the name: which gameweek and its state, the chip if one is played, and the manager's experience. */
-function factsFor(gw: TeamGameweek, extra: { chip?: string | null; experience?: string | null } = {}): HeaderFact[] {
+function factsFor(gw: TeamGameweek, extra: { chip?: string | null; experience?: string | null; league?: string | null } = {}): HeaderFact[] {
   const t = getT();
   const h = t.team.header;
   return [
@@ -58,11 +63,21 @@ function factsFor(gw: TeamGameweek, extra: { chip?: string | null; experience?: 
       ),
     },
     ...(extra.chip ? [{ label: h.chip, value: <Badge tone="accent">{(t.chips as Record<string, string>)[extra.chip] ?? extra.chip}</Badge> }] : []),
+    ...(extra.league ? [{ label: h.league, value: extra.league }] : []),
     ...(extra.experience ? [{ label: h.experience, value: extra.experience }] : []),
   ];
 }
 
-export function TeamView({ model }: { model: TeamState }) {
+/** The team's place in the league: position, movement since last gameweek, and the gap to the top (or the lead). */
+function leagueLine(team: TeamIdentity, pick: Choose): string | null {
+  const spot = team.league;
+  if (!spot) return null;
+  const gap = spot.rank === 1 ? spot.points - (spot.next?.points ?? spot.points) : spot.leader.points - spot.points;
+  return pick(getT().team.vary.leagueSpot, 42)(spot.rank, spot.size, spot.moved, gap);
+}
+
+/** `now` is only used when the model carries no variety key (hand-built models); tests can pin it. */
+export function TeamView({ model, now }: { model: TeamState; now?: Date }) {
   const { team } = model;
   const tv = getT().team;
 
@@ -107,19 +122,21 @@ export function TeamView({ model }: { model: TeamState }) {
 
     case "ok": {
       const gw = model.gameweek;
+      const variety = gw.variety ?? varietyKey(gw.gw, gw.status, now ?? new Date());
+      const pick = chooser(variety, team.entryId);
       return page(
         <>
           {header(
             team,
-            factsFor(gw, { chip: model.chip, experience: experience(model.insights.season) }),
+            factsFor(gw, { chip: model.chip, experience: experience(model.insights.season), league: leagueLine(team, pick) }),
             <>
               {pagerFor(team, gw)}
-              {gw.isLive ? <LiveRefresh enabled /> : null}
+              {refreshEvery(gw) ? <LiveRefresh enabled intervalMs={refreshEvery(gw)!} /> : null}
             </>,
             gw.gw,
           )}
 
-          <Summary summary={model.summary} isLive={gw.isLive} gameweekName={gameweekName(gw.name)} />
+          <Summary summary={model.summary} gw={gw} gameweekName={gameweekName(gw.name)} pick={pick} />
 
           {!model.showPoints ? (
             <StateMessage tone="info" title={tv.noLiveTitle}>
@@ -129,7 +146,7 @@ export function TeamView({ model }: { model: TeamState }) {
 
           <InterviewPanel model={model} />
 
-          <MatchdayInsights data={model.insights.gameweek} gameweek={gameweekName(gw.name)} />
+          <MatchdayInsights data={model.insights.gameweek} gameweek={gameweekName(gw.name)} status={gw.status} variety={variety} slot={team.entryId} />
 
           <TeamSheetView
             sheet={model.sheet}
@@ -139,9 +156,13 @@ export function TeamView({ model }: { model: TeamState }) {
             benchCounted={model.insights.gameweek.bench?.counted ?? false}
           />
 
-          <SeasonInsightsView season={model.insights.season} squad={model.insights.squad} nextGw={gw.max + 1} />
+          <SeasonInsightsView season={model.insights.season} squad={model.insights.squad} nextGw={gw.max + 1} variety={variety} slot={team.entryId} />
         </>,
       );
     }
   }
 }
+
+/** Only the latest gameweek moves: every minute while live, slowly while provisional until FPL marks it final. */
+const refreshEvery = (gw: TeamGameweek): number | null =>
+  gw.isLive ? 60_000 : gw.gw === gw.max ? refreshIntervalMs(gw.status) : null;

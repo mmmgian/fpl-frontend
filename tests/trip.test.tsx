@@ -139,6 +139,8 @@ const richTrip = (): InterviewInput => ({
   captain: { name: "Capt", base: 2, state: "played", bestName: "Besto", bestBase: 12, regret: 20 }, bench: { points: 14, top: { name: "Benchy", points: 6 }, counted: false },
   chip: { code: "3xc", label: "Triple Captain", points: 3 }, flagged: { name: "Hurt", label: "injured" }, autoSub: { out: "Outy", in: "Inny", inPoints: 7, outPoints: 0 },
   season: { average: 66, benchPoints: 52, hitPoints: 12 }, rotated: { name: "Rotato" }, rankMove: { from: 400_000, to: 800_000 }, value: { now: 1022, start: 1000 }, beat: { weeks: 1, of: 5 }, transfers: 3,
+  freeTransfers: 2, remaining: { count: 4, effective: 3 },
+  ahead: { gw: "Gameweek 7", captain: { name: "Nexto", xp: 6.4, p10: 0.31 }, fixture: { name: "Fwdb", opponent: "ARS (A)", difficulty: 5 } },
   players: [
     pl({ name: "Keepy", pos: 1, club: "Arsenal", points: 1, saves: 7, cleanSheet: true, conceded: 1 }),
     pl({ name: "Defa", pos: 2, club: "Chelsea", points: 8, goals: 1, cleanSheet: true, defconReached: true, form: 6 }),

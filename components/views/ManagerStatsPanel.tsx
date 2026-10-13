@@ -1,6 +1,6 @@
 import { MiniBars, getFormat, getT, isTrip } from "@/components/ui";
-import { daresFor, type ManagerStats, type SquadWeek } from "@/lib/domain";
-import { dareLine, streakLabel } from "./leagueCopy";
+import { anglesFor, daresFor, type ManagerStats, type SquadWeek } from "@/lib/domain";
+import { angleLine, dareLine, streakLabel, vary } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
 
 /**
@@ -30,8 +30,11 @@ function Fact({ label, children, keepCase = false }: { label: string; children: 
   );
 }
 
-/** One team's full breakdown: the weekly bars with every number, then the facts. */
-export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek }) {
+/**
+ * One team's full breakdown: the weekly bars with every number, a talking point (or, in the altered view, daring moves),
+ * then the facts. `variety` picks the phrasings and which talking point to feature (see varietyKey).
+ */
+export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, variety }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek; variety?: number }) {
   const t = getT();
   const trip = isTrip();
   // The altered view relabels the facts (same figures, same order); everything not relabelled falls back to the plain words.
@@ -39,7 +42,10 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }
   const f = getFormat();
   const latestGw = stats.formGws.at(-1) ?? 1;
   const dares = trip && comparable ? daresFor(stats, latestGw) : [];
-  const streak = comparable ? streakLabel(stats) : null;
+  const streak = comparable ? streakLabel(stats, variety) : null;
+  // Every talking point that applies is true; the key only decides which one gets said today.
+  const angles = trip ? [] : anglesFor(stats, latestGw);
+  const angle = angles.length ? angleLine(vary(angles, variety, stats.entry), stats.entry + 1, variety) : null;
   const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
   const chips = stats.chips.length ? stats.chips.map((c) => `${chipName(c.name)} (${t.common.gw(c.event)})`).join(", ") : s.noChips;
   const form = stats.form.map((v, i) => s.formEntry(t.common.gw(stats.formGws[i]), v)).join(", ");
@@ -59,6 +65,7 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }
         />
         <p className={styles.legend}>{s.legend}</p>
         {streak ? <p className={styles.streak}>{streak}</p> : null}
+        {angle ? <p className={styles.angle}>{angle}</p> : null}
         {squad ? <p className={styles.legend}>{s.squadNote(t.common.gw(squad.gw))}</p> : null}
       </div>
       <dl className={styles.facts}>
@@ -104,9 +111,9 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad }
         <div className={styles.dares}>
           <h4 className={styles.daresTitle}>{t.blotter.daresHeading}</h4>
           <ol className={styles.dareList}>
-            {dares.map((d) => (
+            {dares.map((d, i) => (
               <li key={d.key} className={styles.dare}>
-                {dareLine(d)}
+                {dareLine(d, variety, stats.entry * 8 + i)}
               </li>
             ))}
           </ol>

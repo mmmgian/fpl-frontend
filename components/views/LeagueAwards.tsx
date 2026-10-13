@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Crest, getT, isTrip } from "@/components/ui";
-import { entrySlugs, type Award, type AwardKey, type StandingRow } from "@/lib/domain";
-import { awardFigure, awardLine, awardTitle, tiedNote } from "./leagueCopy";
+import { entrySlugs, type Award, type AwardKey, type StandingRow, type StatsPhase } from "@/lib/domain";
+import { awardFigure, awardLine, awardsPhaseLine, awardTitle, tiedNote, visionsLede } from "./leagueCopy";
 import styles from "./leagueExtras.module.css";
 
 /** Each vision's sigil and hue in the altered view: decoration only, hidden from assistive technology. */
@@ -16,8 +16,20 @@ const VISION: Record<AwardKey, { glyph: string; hue: number }> = {
   deepPockets: { glyph: "◈", hue: 95 },
 };
 
+interface LeagueAwardsProps {
+  awards: Award[];
+  rows: StandingRow[];
+  /** The week the awards are for (the last finished one). */
+  gw?: number;
+  /** How settled that week is; with `liveGw`, the gameweek being played when it is not the awards' week. */
+  phase?: StatsPhase | null;
+  liveGw?: number | null;
+  /** Picks the phrasings (see varietyKey); the first phrasing without it. */
+  variety?: number;
+}
+
 /** The league's superlatives: who won the week, who is on fire, who is wasting the bench. Handed out by the numbers. */
-export function LeagueAwards({ awards, rows, gw }: { awards: Award[]; rows: StandingRow[]; gw?: number }) {
+export function LeagueAwards({ awards, rows, gw, phase, liveGw = null, variety }: LeagueAwardsProps) {
   const byEntry = new Map(rows.map((r) => [r.entry, r]));
   const slugs = entrySlugs(rows.map((r) => ({ id: r.entry, name: r.entry_name })));
   const items = awards.flatMap((a) => {
@@ -33,7 +45,8 @@ export function LeagueAwards({ awards, rows, gw }: { awards: Award[]; rows: Stan
       <h2 id="awards-title" className={styles.awardsTitle}>
         {trip ? t.blotter.awardsHeading : t.league.awardsHeading}
       </h2>
-      {trip ? <p className={styles.visionsLede}>{t.blotter.awardsLede}</p> : null}
+      {trip ? <p className={styles.visionsLede}>{visionsLede(variety)}</p> : null}
+      {phase && gw ? <p className={styles.awardsPhase}>{awardsPhaseLine(phase, gw, liveGw, variety)}</p> : null}
       <ul className={styles.awardList}>
         {items.map(({ a, row }, i) => (
           <li
@@ -54,7 +67,7 @@ export function LeagueAwards({ awards, rows, gw }: { awards: Award[]; rows: Stan
                 {row.entry_name}
               </Link>
             </p>
-            <p className={styles.awardLine}>{awardLine(a, row.entry_name, gw)}</p>
+            <p className={styles.awardLine}>{awardLine(a, row.entry_name, gw, { place: row.rank, variety })}</p>
             {tiedNote(a) ? <p className={styles.awardTie}>{tiedNote(a)}</p> : null}
           </li>
         ))}

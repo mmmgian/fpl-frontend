@@ -24,5 +24,5 @@ export default async function SnapshotPage({ params }: Props) {
   const gw = parseSnapshotGw((await params).gw);
   if (!gw) notFound();
 
-  return <SnapshotView gw={gw} snapshot={await services.history.snapshot(leagueId(), gw)} />;
+  return <SnapshotView gw={gw} snapshot={await services.history.snapshot(leagueId(), gw)} now={new Date()} />;
 }

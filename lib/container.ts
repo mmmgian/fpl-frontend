@@ -28,7 +28,7 @@ export const services = {
   bonus: createBonusService(fplGateway),
   fixtures: createFixturesService(fplGateway),
   club: createClubService(fplGateway, { europe: createFootballData(process.env.FOOTBALL_DATA_API_KEY), news: createBbcNews() }),
-  history: createHistoryService(historyGateway, avatarGateway, { replaceBadges }),
-  times: createTimesService(timesGateway),
+  history: createHistoryService(historyGateway, avatarGateway, { replaceBadges, fpl: fplGateway }),
+  times: createTimesService(timesGateway, { fpl: fplGateway }),
   tools: createToolsService(fplGateway, { avatars: avatarGateway, replaceBadges }),
 };

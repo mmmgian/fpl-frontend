@@ -1,4 +1,4 @@
-import { currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
+import { cleanStandings, currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
 import type { LeagueModel } from "./models";
@@ -24,18 +24,19 @@ async function loadHistories(fpl: Pick<FplPort, "history">, rows: StandingRow[])
 
 /**
  * What each manager's XI did in a finished gameweek (xG, xA, DefCon): one request for the gameweek's live numbers, one
- * for the schedule (to spot double gameweeks), and one per manager for their picks. These are settled data, so they
- * are cached for an hour; a manager whose picks fail is simply left out, and a failure of the shared requests means none.
+ * for the schedule (to spot double gameweeks), and one per manager for their picks. Once FPL has checked the week
+ * (`settled`) they are cached for an hour; while it is provisional, bonus points can still change, so they are asked
+ * for fresh. A manager whose picks fail is simply left out, and a failure of the shared requests means none.
  */
-async function loadSquads(fpl: Pick<FplPort, "picks" | "live" | "allFixtures">, rows: StandingRow[], gw: number, elements: Bootstrap["elements"]): Promise<Map<number, SquadWeek>> {
+async function loadSquads(fpl: Pick<FplPort, "picks" | "live" | "allFixtures">, rows: StandingRow[], gw: number, settled: boolean, elements: Bootstrap["elements"]): Promise<Map<number, SquadWeek>> {
   const found = new Map<number, SquadWeek>();
-  const [live, schedule] = await Promise.allSettled([fpl.live(gw, true), fpl.allFixtures()]);
+  const [live, schedule] = await Promise.allSettled([fpl.live(gw, settled), fpl.allFixtures()]);
   if (live.status !== "fulfilled") return found;
   const matches = schedule.status === "fulfilled" ? matchCounts(schedule.value, gw) : null;
   await withinDeadline(
     Promise.allSettled(
       rows.map(async (r) => {
-        const picks = await fpl.picks(r.entry, gw, true);
+        const picks = await fpl.picks(r.entry, gw, settled);
         if (picks) found.set(r.entry, squadWeek(gw, picks, live.value, elements, matches));
       }),
     ),
@@ -54,34 +55,42 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
       const standings = await fpl.standings(leagueId);
       if (!standings) return { kind: "not-found", leagueId };
 
-      const rows = withAvatars(standings.standings.results, avatars, { replaceBadges });
+      const rows = withAvatars(cleanStandings(standings.standings?.results), avatars, { replaceBadges });
       // Only for leagues of a size where one request per manager is reasonable; bigger ones get the plain table.
       const withExtras = rows.length > 0 && rows.length <= MAX_STATS_MANAGERS;
       // Everything runs through the last finished gameweek: the one in progress is half-played.
-      const settledThrough = (events: Bootstrap["events"]) => Math.max(0, ...events.filter((e) => e.finished).map((e) => e.id));
+      const lastFinished = (events: Bootstrap["events"]) => events.filter((e) => e.finished).reduce<Bootstrap["events"][number] | null>((a, e) => (!a || e.id > a.id ? e : a), null);
+      const settledThrough = (events: Bootstrap["events"]) => lastFinished(events)?.id ?? 0;
       // The squads need only the gameweek number, so they load alongside the histories, not after them.
       const squadsRequest: Promise<Map<number, SquadWeek>> = bootstrapRequest
-        .then(({ events, elements }) => (withExtras && settledThrough(events) > 0 ? loadSquads(fpl, rows, settledThrough(events), elements) : new Map<number, SquadWeek>()))
+        .then(({ events, elements }) => {
+          const done = lastFinished(events);
+          return withExtras && done ? loadSquads(fpl, rows, done.id, Boolean(done.data_checked), elements) : new Map<number, SquadWeek>();
+        })
         .catch(() => new Map<number, SquadWeek>());
-      const [{ events }, histories, squads] = await Promise.all([
-        bootstrapRequest,
+      const [bootstrap, histories, squads] = await Promise.all([
+        // FPL's game-info file failing (it does while the game updates) costs the gameweek and the extras, not the table.
+        bootstrapRequest.catch(() => null),
         withExtras ? loadHistories(fpl, rows) : Promise.resolve(new Map<number, EntryHistory>()),
         squadsRequest,
       ]);
+      const events = bootstrap?.events ?? [];
       const event = currentEvent(events);
       const at = now();
       const status = event ? gwStatus(event, at) : null;
       const summary = summarizeStandings(rows);
-      const stats = leagueStats(rows, histories, settledThrough(events));
+      // Without the gameweek list there is no telling which week is half-played, so no extras rather than wrong ones.
+      const stats = bootstrap ? leagueStats(rows, histories, settledThrough(events)) : null;
 
       return {
         kind: "ok",
         leagueId,
-        name: standings.league.name,
+        name: typeof standings.league?.name === "string" ? standings.league.name : "",
         gameweek: event && status ? { name: event.name, status } : null,
+        gameweekUnavailable: !bootstrap,
         rows,
-        truncated: Boolean(standings.standings.has_next),
-        newEntries: standings.new_entries?.results.length ?? 0,
+        truncated: Boolean(standings.standings?.has_next),
+        newEntries: Array.isArray(standings.new_entries?.results) ? standings.new_entries.results.length : 0,
         summary: summary && { leader: summary.leader, best: event ? summary.best : null, managers: summary.managers },
         stats: stats && (squads.size ? { ...stats, squad: Object.fromEntries(squads) } : stats),
         currentGw: event?.id ?? null,

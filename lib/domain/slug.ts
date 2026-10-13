@@ -25,15 +25,23 @@ export function entrySlugs(entries: { id: number; name: string }[]): Map<number,
   for (const { id, name } of [...entries].sort((a, b) => a.id - b.id)) {
     let slug = slugify(name);
     if (/^\d+$/.test(slug)) slug = `team-${slug}`;
-    if (taken.has(slug)) slug = `${slug}-${id}`;
+    // A suffixed slug can itself be another team's natural one ("Foo 9" vs the second "Foo" of id 9): keep going until free.
+    if (taken.has(slug)) {
+      const base = `${slug}-${id}`;
+      slug = base;
+      for (let k = 2; taken.has(slug); k++) slug = `${base}-${k}`;
+    }
     taken.add(slug);
     out.set(id, slug);
   }
   return out;
 }
 
-/** The inverse of `entrySlugs`: the entry whose address is `slug`. */
+/** The inverse of `entrySlugs`: the entry whose address is `slug` (exactly, or failing that ignoring case and a stray trailing dash). */
 export function entryOfSlug(slugs: Map<number, string>, slug: string): number | null {
   for (const [id, s] of slugs) if (s === slug) return id;
+  const loose = slug.toLowerCase().replace(/-+$/, "");
+  if (!loose) return null;
+  for (const [id, s] of slugs) if (s === loose) return id;
   return null;
 }

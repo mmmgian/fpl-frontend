@@ -31,7 +31,7 @@ export function HistoryListView({ snapshots, shelf }: { snapshots: SnapshotListI
       <h2 id="tables-heading" className={styles.tablesTitle}>
         {h.title}
       </h2>
-      {status?.pending && (status.phase === "final" || status.phase === "over") ? <SnapshotNudge /> : null}
+      {status?.pending && (status.phase === "final" || status.phase === "over") ? <SnapshotNudge gw={status.gw} /> : null}
       <p className={styles.tablesIntro}>
         {intro}
         {statusLine && snapshots !== null ? <> {statusLine}</> : null}
@@ -58,9 +58,13 @@ export function HistoryListView({ snapshots, shelf }: { snapshots: SnapshotListI
                     </>
                   ) : null}
                 </span>
-                <span className={styles.snapshotDate}>
-                  {s.rebuilt ? h.rebuilt : h.saved} <LocalTime iso={s.takenAt} options={{ day: "numeric", month: "short", year: "numeric" }} />
-                </span>
+                {s.takenAt ? (
+                  <span className={styles.snapshotDate}>
+                    {s.rebuilt ? h.rebuilt : h.saved} <LocalTime iso={s.takenAt} options={{ day: "numeric", month: "short", year: "numeric" }} />
+                  </span>
+                ) : s.rebuilt ? (
+                  <span className={styles.snapshotDate}>{h.rebuilt}</span>
+                ) : null}
               </Link>
             </li>
           ))}

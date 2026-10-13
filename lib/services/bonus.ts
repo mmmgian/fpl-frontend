@@ -104,7 +104,8 @@ export function createBonusService(fpl: Pick<FplPort, "bootstrap" | "fixtures">,
         gameweek: { gw: selection.gw, name: selection.event.name, status: selection.status, min: 1, max: selection.latest.id },
         fixtures: fixtures.map((f) => toFixtureCard(f, teams, players)),
         finished: fixtures.filter(isFinished).length,
-        anyLive: states.includes("live"),
+        // A confirmed week can't change: an abandoned match (started, never finished) must not keep the page polling.
+        anyLive: selection.status !== "final" && states.includes("live"),
         counts: {
           live: states.filter((s) => s === "live").length,
           finished: states.filter((s) => s === "final" || s === "provisional").length,

@@ -84,8 +84,10 @@ export interface SnapshotFacts {
 }
 
 /** What a saved table says at a glance. null for an empty table. */
-export function snapshotFacts(rows: StandingRow[]): SnapshotFacts | null {
-  if (rows.length === 0) return null;
+export function snapshotFacts(unordered: StandingRow[]): SnapshotFacts | null {
+  if (unordered.length === 0) return null;
+  // The leader and the gap are read off rank order, whatever order the rows were stored in (ties keep their order).
+  const rows = [...unordered].sort((a, b) => a.rank - b.rank);
   const leader = rows[0];
   const best = rows.reduce((b, r) => (r.event_total > b.event_total ? r : b), leader);
   let climber: SnapshotFacts["climber"] = null;

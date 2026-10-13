@@ -207,12 +207,13 @@ export interface CaptainInsight {
 /** `states` says where each club is; pass null when match state is unknown (then 0 minutes reads as "waiting"). */
 export function captainInsight(sheet: TeamSheet, states: Map<number, TeamState> | null = null, inProgress = false): CaptainInsight | null {
   const starters = sheet.starters.flatMap((g) => g.players);
-  const captain = starters.find((p) => p.isCaptain);
+  // An auto-subbed captain sits on the bench now; he still wore the armband.
+  const captain = allPlayers(sheet).find((p) => p.isCaptain);
   if (!captain || captain.basePoints == null) return null;
 
   const scored = starters.filter((p): p is SheetPlayer & { basePoints: number } => p.basePoints != null);
   const top = scored.reduce((b, p) => (p.basePoints > b.basePoints ? p : b), captain as SheetPlayer & { basePoints: number });
-  const vice = starters.find((p) => p.isVice);
+  const vice = allPlayers(sheet).find((p) => p.isVice);
   const state = (captain.minutes ?? 0) > 0 ? "played" : captain.teamId != null && states?.get(captain.teamId) === "finished" ? "unused" : "waiting";
   return {
     captain: { name: captain.name, base: captain.basePoints, multiplier: captain.multiplier, points: captain.points ?? 0 },
@@ -250,9 +251,10 @@ export function chipContribution(sheet: TeamSheet, activeChip: string | null): {
     return bench ? { chip: activeChip, points: bench.points } : null;
   }
   if (activeChip === "3xc") {
-    const captain = sheet.starters.flatMap((g) => g.players).find((p) => p.isCaptain);
-    // If the captain didn't play, the triple passes to the vice-captain: not attributable from here.
-    return captain?.basePoints == null || captain.minutes === 0 ? null : { chip: activeChip, points: captain.basePoints };
+    // Whoever FPL tripled: the captain, or the vice-captain when the captain didn't play. Failing a ×3 pick, the captain if he played.
+    const all = allPlayers(sheet);
+    const tripled = all.find((p) => p.multiplier === 3 && p.basePoints != null && (p.minutes ?? 0) > 0) ?? all.find((p) => p.isCaptain && p.basePoints != null && p.minutes !== 0 && p.multiplier > 0);
+    return tripled ? { chip: activeChip, points: tripled.basePoints! } : null;
   }
   return null;
 }
@@ -337,6 +339,8 @@ export function playersRemaining(sheet: TeamSheet, states: Map<number, TeamState
 export const DEFCON_THRESHOLD: Record<number, number | null> = { 1: null, 2: 10, 3: 12, 4: 12 };
 
 export interface DefconProgress {
+  /** The player's FPL id (two players can share a short name). */
+  id?: number;
   name: string;
   value: number;
   threshold: number;
@@ -364,7 +368,7 @@ export function defconProgress(sheet: TeamSheet, matches: Map<number, number> | 
       const threshold = DEFCON_THRESHOLD[p.positionId];
       if (!threshold || !p.defcon) return [];
       const n = (p.teamId != null && matches?.get(p.teamId)) || 1;
-      return [{ name: p.name, value: p.defcon, threshold, reached: n === 1 && p.defcon >= threshold, matches: n }];
+      return [{ id: p.id, name: p.name, value: p.defcon, threshold, reached: n === 1 && p.defcon >= threshold, matches: n }];
     })
     .sort((a, b) => b.value / b.threshold - a.value / a.threshold || b.value - a.value);
 }

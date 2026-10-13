@@ -68,10 +68,13 @@ interface FdMatch {
 export function mapMatches(matches: unknown, clubId: number, max = 5): EuropeMatch[] {
   if (!Array.isArray(matches)) return [];
   const out: EuropeMatch[] = [];
+  const seen = new Set<number>();
   for (const m of matches as (FdMatch | null)[]) {
     if (!m || typeof m !== "object") continue;
     const competition = m.competition?.name;
-    if (typeof m.id !== "number" || !competition || !EUROPEAN.test(competition)) continue;
+    // A match the provider repeats (it can, across competitions' listings) is listed once: its id is the list's key.
+    if (typeof m.id !== "number" || seen.has(m.id) || !competition || !EUROPEAN.test(competition)) continue;
+    seen.add(m.id);
     const date = m.utcDate && !Number.isNaN(Date.parse(m.utcDate)) ? new Date(m.utcDate).toISOString() : null;
     out.push({
       id: m.id,
@@ -83,7 +86,9 @@ export function mapMatches(matches: unknown, clubId: number, max = 5): EuropeMat
       status: m.status ?? "SCHEDULED",
     });
   }
-  return out.sort((a, b) => (a.utcDate ? Date.parse(a.utcDate) : Infinity) - (b.utcDate ? Date.parse(b.utcDate) : Infinity)).slice(0, max);
+  // Undated matches last; ties by id, so two undated matches never compare as Infinity - Infinity (NaN).
+  const at = (x: EuropeMatch) => (x.utcDate ? Date.parse(x.utcDate) : Infinity);
+  return out.sort((a, b) => (at(a) === at(b) ? a.id - b.id : at(a) < at(b) ? -1 : 1)).slice(0, max);
 }
 
 /** The port, or null when no API key is configured (the page then says so instead of showing an empty card). */

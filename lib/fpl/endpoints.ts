@@ -8,19 +8,42 @@ function expectList<T>(value: unknown, path: string): T[] {
   return value as T[];
 }
 
-/** All pages of a classic league (50 per page), capped to protect against runaway paging. */
+const isStandingsPage = (v: unknown): v is LeagueStandings => {
+  const o = v as Partial<LeagueStandings> | null;
+  return Boolean(o && typeof o === "object" && !Array.isArray(o) && o.league && typeof o.league === "object" && o.standings && Array.isArray(o.standings.results));
+};
+const entryOf = (r: unknown) => (r && typeof r === "object" ? (r as { entry?: unknown }).entry : undefined);
+
+/**
+ * All pages of a classic league (50 per page), capped to protect against runaway paging. A malformed first page is an
+ * upstream error; a later page that fails or is malformed ends the paging with what was read, flagged as cut short
+ * (`has_next`), so one bad page doesn't cost the whole table. A manager listed again on the next page (the table moved
+ * between the two requests) is kept once.
+ */
 export async function getLeagueStandings(leagueId: number, maxPages = 10): Promise<LeagueStandings> {
-  const first = await fplGet<LeagueStandings>(`/leagues-classic/${leagueId}/standings/`, { revalidate: 60 });
-  let page = 1;
-  let last = first;
-  while (last.standings.has_next && page < maxPages) {
-    page += 1;
-    last = await fplGet<LeagueStandings>(`/leagues-classic/${leagueId}/standings/?page_standings=${page}`, {
-      revalidate: 60,
-    });
-    first.standings.results.push(...last.standings.results);
+  const path = `/leagues-classic/${leagueId}/standings/`;
+  const first = await fplGet<unknown>(path, { revalidate: 60 });
+  if (!isStandingsPage(first)) throw new FplError(`Unexpected response from FPL for ${path}`, 502);
+  const results = [...first.standings.results];
+  const seen = new Set(results.map(entryOf));
+  let hasNext = Boolean(first.standings.has_next);
+  for (let page = 2; hasNext && page <= maxPages; page++) {
+    let next: unknown;
+    try {
+      next = await fplGet<unknown>(`${path}?page_standings=${page}`, { revalidate: 60 });
+    } catch {
+      break; // has_next stays true: the table says it is incomplete
+    }
+    if (!isStandingsPage(next)) break;
+    for (const r of next.standings.results) {
+      const entry = entryOf(r);
+      if (entry !== undefined && seen.has(entry)) continue;
+      seen.add(entry);
+      results.push(r);
+    }
+    hasNext = Boolean(next.standings.has_next);
   }
-  return first;
+  return { ...first, standings: { ...first.standings, has_next: hasNext, results } };
 }
 
 export const getEntry = (entryId: number) => fplGet<Entry>(`/entry/${entryId}/`, { revalidate: 300 });

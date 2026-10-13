@@ -17,7 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const found = await services.team.resolve((await params).entryId);
   const team = found ? await services.team.identify(found.entryId) : null;
   if (!team) return { title: getT().meta.team };
-  const title = `${team.teamName} (${team.firstName} ${team.lastName})`;
+  // FPL can leave the manager's name out: then just the team, never "Team ()".
+  const title = team.manager ? `${team.teamName} (${team.manager})` : team.teamName;
   const press = team.mascot?.press;
   return {
     title,

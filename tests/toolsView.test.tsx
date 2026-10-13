@@ -26,7 +26,7 @@ describe("the Tools page", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument();
     expect(screen.getByRole("timer")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Tools" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#xi", "#prices", "#eo", "#teams"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#xi", "#prices", "#eo", "#injury-watch", "#template", "#differentials", "#head-to-head", "#teams"]);
   });
 
   it("shows the team of the week as a formation with captain, vice-captain and the opponent for each player", async () => {
@@ -90,7 +90,7 @@ describe("the Tools page", () => {
 
   it("leaves out the tools it can't fill rather than showing empty boxes", async () => {
     const m = await model({}, 3);
-    const { container } = render(<ToolsView model={{ ...m, xi: null, teams: [], eo: null }} />);
+    const { container } = render(<ToolsView model={{ ...m, xi: null, teams: [], eo: null, leagueTools: null }} />);
     expect(container.querySelector("#xi")).toBeNull();
     expect(container.querySelector("#teams")).toBeNull();
     expect(MESSAGES.en.tools.eo.none.some((line) => container.querySelector("#eo")?.textContent?.includes(line))).toBe(true);
@@ -249,7 +249,7 @@ describe("the Tools page in the altered view", () => {
     expect(m.lab).not.toBeNull();
     render(<ToolsView model={m} />);
     const nav = screen.getByRole("navigation", { name: "The Lab" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#upside", "#captain", "#xi", "#prices", "#eo", "#teams"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#upside", "#captain", "#xi", "#prices", "#eo", "#injury-watch", "#template", "#differentials", "#head-to-head", "#teams"]);
     for (const heading of ["The upside dimension", "A thousand timelines", "Twin souls", "Keepers of the spot", "On the edge of banishment", "The Wall's anchors"]) {
       expect(screen.getByRole("heading", { level: 2, name: heading }), heading).toBeInTheDocument();
     }

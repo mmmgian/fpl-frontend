@@ -59,8 +59,23 @@ function tag(block: string, name: string): string | null {
   const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, "i"));
   if (!m) return null;
   const cdata = m[1].match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/);
-  const text = cdata ? cdata[1].trim() : decode(m[1]);
+  const text = clean(cdata ? cdata[1] : m[1]);
   return text === "" ? null : text;
+}
+
+/** HTML tags (a letter or "/" after "<"): "<3" stays text. */
+const TAGS = /<\/?[a-z][^>]*>/gi;
+/** An entity left over after one decode: the feed escaped this text twice. */
+const ESCAPED_AGAIN = /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/i;
+
+/**
+ * Plain text from a feed field. The BBC HTML-escapes text inside CDATA too (where XML would leave it alone), sometimes
+ * escapes it twice, and wraps summaries in tags. React escapes whatever comes out, so this is about readability.
+ */
+function clean(raw: string): string {
+  let text = decode(raw.replace(TAGS, " ")).replace(TAGS, " ");
+  if (ESCAPED_AGAIN.test(text)) text = decode(text);
+  return text.replace(/\s+/g, " ").trim();
 }
 
 /** Only links that really go to the BBC are passed on: a feed can't make this page link anywhere else. */
@@ -76,10 +91,13 @@ export function isBbcUrl(raw: string): boolean {
 /** Items of a BBC RSS feed, newest first. Anything malformed is skipped, never thrown. */
 export function parseBbcFeed(xml: string, max = 6): Headline[] {
   const items: Headline[] = [];
+  const seen = new Set<string>();
   for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
     const title = tag(m[1], "title");
     const url = tag(m[1], "link");
-    if (!title || !url || !isBbcUrl(url)) continue;
+    // A story the feed repeats is listed once: its link is the list's key.
+    if (!title || !url || !isBbcUrl(url) || seen.has(url)) continue;
+    seen.add(url);
     const when = tag(m[1], "pubDate");
     const time = when ? Date.parse(when) : NaN;
     items.push({ title, url, summary: tag(m[1], "description"), publishedAt: Number.isNaN(time) ? null : new Date(time).toISOString() });

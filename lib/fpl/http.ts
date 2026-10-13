@@ -47,5 +47,11 @@ export async function fplGet<T>(path: string, { revalidate = 60, timeoutMs = 800
     // FPL returns 503 "The game is being updated" between gameweeks.
     throw new FplError(`FPL responded ${res.status} for ${path}`, res.status);
   }
-  return (await res.json()) as T;
+  // A 200 isn't always JSON: FPL's maintenance page is HTML, and a dropped connection cuts a body short.
+  // Either is FPL being unavailable (the page's error state), not a SyntaxError from deep inside a render.
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new FplError(`FPL sent an unreadable response for ${path}`, 502);
+  }
 }

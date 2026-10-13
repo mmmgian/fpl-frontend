@@ -23,6 +23,8 @@ export function FixturesView({ model }: { model: FixturesModel }) {
   }
 
   const { start, window, columns, rows } = model;
+  // Opponents FPL doesn't list as a club have no club page: show them as text, not a link to a 404.
+  const known = new Set(rows.map((r) => r.team.id));
   return (
     <>
       <PageHeader
@@ -99,9 +101,14 @@ export function FixturesView({ model }: { model: FixturesModel }) {
                       matches.map((m, j) => (
                         <FdrChip key={j} band={m.band} block label={t.client.fdr.difficulty(m.band)}>
                           <span>
-                            <ClubLink name={m.opponentName}>
-                              {m.opponent}
-                            </ClubLink>{" "}
+                            {known.has(m.opponentId) ? (
+                              <ClubLink name={m.opponentName}>{m.opponent}</ClubLink>
+                            ) : (
+                              <span>
+                                <span aria-hidden="true">{m.opponent}</span>
+                                <span className="sr-only">{t.common.unknownClub}</span>
+                              </span>
+                            )}{" "}
                             <span className={styles.venue}>({m.home ? f.homeShort : f.awayShort})</span>
                           </span>
                           <span className={styles.diff} aria-hidden="true">

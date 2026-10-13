@@ -46,7 +46,9 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
           <p className={styles.big}>
             {captain.captain.name} <CaptainBadge multiplier={captain.captain.multiplier} />
             <span className={styles.bigNote}>
-              {c.pts(captain.captain.points)} ({captain.captain.base} × {captain.captain.multiplier})
+              {c.pts(captain.captain.points)}
+              {/* The sum only means something when the armband multiplied; an unused captain's "0 × 0" says nothing. */}
+              {captain.captain.multiplier > 1 ? ` (${captain.captain.base} × ${captain.captain.multiplier})` : ""}
             </span>
           </p>
           {captain.state === "waiting" ? (
@@ -75,7 +77,8 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
       chip ? (
         <Card key="chip" title={(t.chips as Record<string, string>)[chip.chip] ?? chip.chip} headingLevel={3}>
           <p className={styles.big}>
-            +{chip.points}
+            {/* A bench can score minus points (red cards, own goals): "−2", never "+-2". */}
+            {chip.points < 0 ? `\u2212${-chip.points}` : `+${chip.points}`}
             <span className={styles.bigNote}>{m.chipFrom(chip.points)}</span>
           </p>
           <Fact>
@@ -133,8 +136,8 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
         <Card key="flags" title={m.injuryReport} headingLevel={3}>
           <Fact>{pick(v.flagsLead, 11)(flaggedStarters, flags.length)}</Fact>
           <ul className={styles.list}>
-            {flags.map((f) => (
-              <li key={f.name}>
+            {flags.map((f, i) => (
+              <li key={`${f.name}-${i}`}>
                 <strong>{f.name}</strong> <span className={styles.muted}>({f.club})</span>{" "}
                 <Badge tone={f.label === "Doubtful" ? "warning" : "live"}>
                   {t.team.flags[f.label] ?? f.label}
@@ -163,8 +166,8 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
           ) : null}
           <Fact>{m.defconRule}</Fact>
           <ul className={`${styles.bars} ${styles.barsWide}`}>
-            {defcon.slice(0, 5).map((d) => (
-              <li key={d.name}>
+            {defcon.slice(0, 5).map((d, i) => (
+              <li key={`${d.name}-${i}`}>
                 <span className={styles.barLabel}>
                   <span>{d.name}</span>
                   <span className={d.reached ? styles.reached : styles.muted}>
@@ -173,7 +176,7 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
                   </span>
                 </span>
                 <span className={styles.track} aria-hidden="true">
-                  <span className={`${styles.fill} ${d.reached ? styles.fillDone : ""}`} style={{ width: `${Math.min(100, Math.round((d.value / (d.threshold * d.matches)) * 100))}%` }} />
+                  <span className={`${styles.fill} ${d.reached ? styles.fillDone : ""}`} style={{ width: `${d.threshold * d.matches > 0 ? Math.min(100, Math.round((d.value / (d.threshold * d.matches)) * 100)) : 0}%` }} />
                 </span>
               </li>
             ))}
@@ -186,8 +189,8 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
         <Card key="rotation" title={m.unusedSubs} headingLevel={3}>
           <Fact>{pick([m.unusedIntro, ...v.unusedIntro], 14)}</Fact>
           <ul className={styles.list}>
-            {rotation.map((r) => (
-              <li key={r.name}>
+            {rotation.map((r, i) => (
+              <li key={`${r.name}-${i}`}>
                 <strong>{r.name}</strong> <span className={styles.muted}>({r.club})</span> {r.wasStarter ? <Badge tone="warning">{m.starter}</Badge> : <Badge>{m.benchBadge}</Badge>}
               </li>
             ))}

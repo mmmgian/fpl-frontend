@@ -76,7 +76,8 @@ export function selectGameweek(
 ): GameweekSelection | null {
   const latest = currentEvent(events);
   if (!latest) return null;
-  const gw = parseGw(requested, min, latest.id) ?? latest.id;
-  const event = events.find((e) => e.id === gw)!;
-  return { latest, gw, event, status: gwStatus(event, now) };
+  const asked = parseGw(requested, min, latest.id);
+  // A requested gameweek FPL doesn't list (a gap in `events`) falls back to the latest rather than crashing.
+  const event = (asked !== null ? events.find((e) => e.id === asked) : undefined) ?? latest;
+  return { latest, gw: event.id, event, status: gwStatus(event, now) };
 }

@@ -1,5 +1,5 @@
 import type { GwPhase, StandingRow } from "../domain";
-import { gwPhase, shelfStatus, snapshotFacts, varietyKey } from "../domain";
+import { cleanStandings, gwPhase, shelfStatus, snapshotFacts, varietyKey } from "../domain";
 import type { HistoryShelfModel, SnapshotListItem, SnapshotModel } from "./models";
 import { withAvatars } from "./avatars";
 import type { AvatarPort, FplPort, HistoryPort } from "./ports";
@@ -57,11 +57,15 @@ export function createHistoryService(history: HistoryPort, avatars?: AvatarPort,
     async snapshot(leagueId: number, gw: number): Promise<SnapshotModel | null> {
       const snap = await history.get(leagueId, gw);
       if (!snap) return null;
-      const rows = withAvatars(snap.data?.standings?.results ?? [], avatars, { replaceBadges });
+      // Stored years ago by whatever FPL sent then: cleaned like a live table (names, numbers, rank order).
+      const data = snap.data && typeof snap.data === "object" ? snap.data : null;
+      const rows = withAvatars(cleanStandings(data?.standings?.results), avatars, { replaceBadges });
+      const leagueName = data?.league?.name;
       return {
         gw,
-        leagueName: snap.data?.league?.name ?? "League",
-        takenAt: snap.taken_at,
+        // No English stand-in: the view titles a nameless table in the page's language.
+        leagueName: typeof leagueName === "string" && leagueName.trim() ? leagueName : null,
+        takenAt: typeof snap.taken_at === "string" ? snap.taken_at : "",
         rows,
         rebuilt: rebuiltNote(snap.data?.reconstructed, rows),
         facts: snapshotFacts(rows),

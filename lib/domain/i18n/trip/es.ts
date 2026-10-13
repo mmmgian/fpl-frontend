@@ -875,6 +875,30 @@ export const tripEs: TripOverlay = {
       ],
       none: ["El vacío todavía está cargando.", "Nada se ha materializado todavía.", "Ningún ser califica todavía."],
     },
+    planning: {
+      nav: { captain: "Los pocos elegidos", swings: "Mareas que giran", pairs: "Órbitas gemelas", setPieces: "Guardianes del balón quieto" },
+      derived: "Un sueño, medido",
+      swings: {
+        title: "Mareas que giran",
+        note: [
+          (soon, later) => `Donde giran las mareas: la gravedad de la FPL por choque en ${soon} frente a ${later}. Déjese llevar hacia las mareas verdes una semana antes; escápese de las rojas.`,
+          (soon, later) => `${soon} frente a ${later}: las tribus cuyo camino cambia de color. Las mareas verdes se suavizan, las rojas se endurecen.`,
+          (soon, later) => `El cosmos se inclina entre ${soon} y ${later}, según la propia gravedad de la FPL, sentida por choque.`,
+        ],
+        easing: "Marea verde: el camino se suaviza",
+        hardening: "Marea roja: el camino se endurece",
+        none: ["Las mareas están quietas en este tramo.", "Ningún camino se inclina con fuerza aquí.", "Ningún giro justifica un movimiento."],
+      },
+      setPieces: {
+        title: "Guardianes del balón quieto",
+        note: [
+          (clubs) => `A quién confía la FPL el penal, el tiro libre y el córner en ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, el primero de la fila primero, los rotos y los difusos señalados.`,
+          (clubs) => `Los rituales del balón quieto de ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, tal como los anotó la FPL. Si el primer guardián está señalado, el ritual pasa al siguiente.`,
+          (clubs) => `Penal, tiro libre, córner: el orden de la FPL en ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, con quién puede salir todavía al lado.`,
+        ],
+        out: "En otra parte",
+      },
+    },
     xi: {
       title: (g: string) => `Los Once Elegidos · ${g}`,
       note: [
@@ -925,6 +949,60 @@ export const tripEs: TripOverlay = {
       by: { eo: "Mente colmena", captain: "Elegidos" },
       cols: { player: "Ser", eo: "PE", started: "Elegido", captained: "El elegido", owned: "Colmena mundial" },
       none: ["Todavía no hay alineaciones para leer la colmena.", "La colmena todavía no eligió.", "Ninguna mente decidió, así que no hay nada que contar."],
+    },
+    leagueTools: {
+      unavailable: "Perdido en la niebla",
+      chips: {
+        title: "Hechizos que quedan en la bolsa",
+        note: [
+          (wildcards, freeHits, managers, next) => `En el portal de la ${next}, ${wildcards} de ${managers} viajeros todavía llevan un Wildcard y ${freeHits} un Free Hit. Leído del historial FPL de cada nave, según las ventanas de chips de FPL.`,
+          (wildcards, freeHits, managers, next) => `Quién esconde todavía la gran magia para la ${next}: ${wildcards} Wildcards y ${freeHits} Free Hits sin gastar entre ${managers} ${managers === 1 ? "viajero" : "viajeros"}.`,
+          (wildcards, freeHits, managers, next) => `Siente las bolsas a tu alrededor: de cara a la ${next}, ${wildcards} de ${managers} guardan un Wildcard y ${freeHits} un Free Hit.`,
+        ],
+        holders: "Todavía brillan en la bolsa",
+        gone: "Desvanecido",
+        nonePlayed: "Todos los hechizos sellados",
+      },
+      injuries: {
+        title: "La carpa de sanación",
+        note: [
+          (count, top, starters) => `${count === 1 ? "Un ser parpadea" : `${count} seres parpadean`} en las naves de la liga. La mayor inquietud: ${top}, titular para ${starters}.`,
+          (count, top, starters) => `FPL ha marcado a ${count === 1 ? "un ser" : `${count} seres`} de los que depende la colmena; ${top} es el que más duele (${starters} ${starters === 1 ? "nave lo alinea" : "naves lo alinean"}).`,
+          (count, top, starters) => `Revisa la banca, con suavidad: ${count} ${count === 1 ? "ser con dueño se apaga" : "seres con dueño se apagan"}, ${top} primero (titular para ${starters}).`,
+        ],
+        clear: [
+          (squads) => `Todos los seres de ${squads} ${squads === 1 ? "nave están" : "naves están"} enteros. El universo está amable hoy.`,
+          (squads) => `Auras intactas: FPL no ha marcado a nadie en ${squads} ${squads === 1 ? "nave" : "naves"}.`,
+          (squads) => `Ni un moretón en ${squads === 1 ? "la nave que sentimos" : `las ${squads} naves que sentimos`}.`,
+        ],
+      },
+      template: {
+        title: "El sueño compartido de la colmena",
+        note: [
+          (managers, formation, top, share) => `El once en el que más mentes coinciden, entre ${managers} naves (${formation}). La atracción más fuerte: ${top}, en el ${share} de ellas.`,
+          (managers, formation, top, share) => `Si la colmena soñara un solo equipo, sería este ${formation}. ${top} flota por el ${share} de las ${managers} naves.`,
+          (managers, formation, top, share) => `La manta de la liga, tejida en ${formation} con ${managers} naves; ${top} es el hilo más cálido (${share}).`,
+        ],
+      },
+      differentials: {
+        title: "Secretos que solo ellos guardan",
+        note: [
+          (team, count) => `Seres que nadie más en la liga ha encontrado. ${team} guarda más secretos: ${count}.`,
+          (team, count) => `Las visiones privadas de cada nave. ${team} ve más que nadie: ${count}.`,
+          (team, count) => `Donde un portal puede inclinarse: ${team} lleva ${count} ${count === 1 ? "ser" : "seres"} que ningún otro viajero tiene.`,
+        ],
+        none: "Sin secretos: todo compartido",
+      },
+      rivals: {
+        title: "Dos naves, un espejo",
+        note: [
+          (a, b, shared, onlyA, onlyB) => `${a} y ${b} comparten ${shared} ${shared === 1 ? "ser" : "seres"}; ${a} lleva ${onlyA} propios y ${b} ${onlyB}. Solo esos mueven la distancia.`,
+          (a, b, shared, onlyA, onlyB) => `${shared} en común, reflejados. El duelo vive en los ${onlyA} de ${a} y los ${onlyB} de ${b}.`,
+          (a, b, shared, onlyA, onlyB) => `Deja que los ${shared} seres compartidos se disuelvan: ${a} (${onlyA} únicos) contra ${b} (${onlyB} únicos) es donde se decide.`,
+        ],
+        prompt: "Elige dos naves y ponlas frente al espejo.",
+        compare: "Reflejar",
+      },
     },
     teams: {
       title: "Entrar en una nave",

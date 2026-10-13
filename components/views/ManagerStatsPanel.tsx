@@ -34,7 +34,13 @@ function Fact({ label, children, keepCase = false }: { label: string; children: 
  * One team's full breakdown: the weekly bars with every number, a talking point (or, in the altered view, daring moves),
  * then the facts. `variety` picks the phrasings and which talking point to feature (see varietyKey).
  */
-export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, variety }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek; variety?: number }) {
+/**
+ * `headingLevel` is the level of the panel's own heading (the altered view titles it): one below the section the table
+ * sits in, so 3 under the awards' h2, and 2 when there is no awards section between the page title and the table.
+ */
+export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, variety, headingLevel = 3 }: { stats: ManagerStats; teamName: string; comparable?: boolean; squad?: SquadWeek; variety?: number; headingLevel?: 2 | 3 }) {
+  const Title = headingLevel === 2 ? "h2" : "h3";
+  const Sub = headingLevel === 2 ? "h3" : "h4";
   const t = getT();
   const trip = isTrip();
   // The altered view relabels the facts (same figures, same order); everything not relabelled falls back to the plain words.
@@ -51,7 +57,7 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, 
   const form = stats.form.map((v, i) => s.formEntry(t.common.gw(stats.formGws[i]), v)).join(", ");
   return (
     <section className={trip ? `${styles.panel} ${styles.mind}` : styles.panel} aria-label={trip ? t.blotter.heading(teamName) : s.region(teamName)}>
-      {trip ? <h3 className={styles.mindTitle}>{t.blotter.heading(teamName)}</h3> : null}
+      {trip ? <Title className={styles.mindTitle}>{t.blotter.heading(teamName)}</Title> : null}
       <div className={styles.chart}>
         <MiniBars
           values={stats.form}
@@ -109,7 +115,7 @@ export function ManagerStatsDetail({ stats, teamName, comparable = true, squad, 
       </dl>
       {dares.length ? (
         <div className={styles.dares}>
-          <h4 className={styles.daresTitle}>{t.blotter.daresHeading}</h4>
+          <Sub className={styles.daresTitle}>{t.blotter.daresHeading}</Sub>
           <ol className={styles.dareList}>
             {dares.map((d, i) => (
               <li key={d.key} className={styles.dare}>

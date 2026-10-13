@@ -11,8 +11,16 @@ export function fixtureState(f: Fixture): FixtureState {
 }
 
 /** Kick-off order; fixtures without a time (postponed) go last, ties broken by id. */
-export const compareByKickoff = (a: Fixture, b: Fixture) =>
-  (a.kickoff_time ? Date.parse(a.kickoff_time) : Infinity) - (b.kickoff_time ? Date.parse(b.kickoff_time) : Infinity) || a.id - b.id;
+export const compareByKickoff = (a: Fixture, b: Fixture) => {
+  // A missing or unreadable time counts as "last" (a NaN here would make the sort order depend on the input order).
+  const at = (f: Fixture) => {
+    const t = f.kickoff_time ? Date.parse(f.kickoff_time) : Number.NaN;
+    return Number.isNaN(t) ? Infinity : t;
+  };
+  const ta = at(a);
+  const tb = at(b);
+  return ta === tb ? a.id - b.id : ta < tb ? -1 : 1;
+};
 
 export const isFinished = (f: Fixture) => f.finished || f.finished_provisional;
 
@@ -40,9 +48,27 @@ export function bonusFromBps<T extends { bps: number }>(players: T[]): (T & { bo
     .sort((a, b) => b.bonus - a.bonus || b.bps - a.bps);
 }
 
-function stat(f: Fixture, id: string) {
-  const s = f.stats?.find((x) => x.identifier === id);
-  return s ? [...s.h.map((v) => ({ ...v, side: "h" as const })), ...s.a.map((v) => ({ ...v, side: "a" as const }))] : [];
+/**
+ * One stat for both sides. FPL's feed is not always the shape its types promise: a side can be missing or not a list,
+ * entries can lack a player or a number, and a player can appear twice. Keep only usable entries, each player once.
+ */
+function stat(f: Fixture, id: string): { element: number; value: number; side: "h" | "a" }[] {
+  const s = Array.isArray(f.stats) ? f.stats.find((x) => x?.identifier === id) : undefined;
+  if (!s) return [];
+  const seen = new Set<number>();
+  const out: { element: number; value: number; side: "h" | "a" }[] = [];
+  for (const side of ["h", "a"] as const) {
+    const list: unknown = s[side];
+    if (!Array.isArray(list)) continue;
+    for (const v of list as { element?: unknown; value?: unknown }[]) {
+      if (!v || typeof v.element !== "number" || !Number.isFinite(v.element)) continue;
+      if (typeof v.value !== "number" || !Number.isFinite(v.value)) continue;
+      if (seen.has(v.element)) continue;
+      seen.add(v.element);
+      out.push({ element: v.element, value: v.value, side });
+    }
+  }
+  return out;
 }
 
 export function matchBonus(f: Fixture): { source: BonusSource; rows: BonusRow[] } {

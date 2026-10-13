@@ -4,12 +4,15 @@ import type { LeagueSpot, TeamGameweek, TeamIdentity, TeamModel } from "./models
 import type { AvatarPort, FplPort, MascotPort, ServiceOptions } from "./ports";
 import { buildInsights } from "./teamInsights";
 
+/** FPL sometimes leaves a name out or blank; never let that read as "undefined" or "null". */
+const text = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
 const identityOf = (entry: Entry, avatars?: AvatarPort, mascots?: MascotPort): TeamIdentity => ({
   entryId: entry.id,
-  teamName: entry.name,
-  firstName: entry.player_first_name,
-  lastName: entry.player_last_name,
-  manager: `${entry.player_first_name} ${entry.player_last_name}`.trim(),
+  teamName: text(entry.name) || `#${entry.id}`,
+  firstName: text(entry.player_first_name),
+  lastName: text(entry.player_last_name),
+  manager: [text(entry.player_first_name), text(entry.player_last_name)].filter(Boolean).join(" "),
   avatar: avatars?.src(entry.id) ?? null,
   mascot: mascots?.scenes(entry.id) ?? null,
 });
@@ -63,7 +66,8 @@ export function createTeamService(
       const table = await leagueTable();
       if (/^[1-9]\d{0,9}$/.test(param)) return { entryId: Number(param), slug: table?.slugs.get(Number(param)) ?? null };
       const id = table ? entryOfSlug(table.slugs, param) : null;
-      return id === null ? null : { entryId: id, slug: param };
+      // The canonical address, so "/team/Gaucho-F-C" is sent on to "/team/gaucho-f-c".
+      return id === null ? null : { entryId: id, slug: table!.slugs.get(id) ?? param };
     },
 
     /** Who the team is, or null if it doesn't exist or FPL can't be reached (used for page titles). */
@@ -96,11 +100,13 @@ export function createTeamService(
 
       const latest = currentEvent(bootstrap.events);
       if (!latest) return { kind: "no-season", team };
-      if (entry.started_event > latest.id) {
-        return { kind: "not-started", team, startedEvent: entry.started_event, deadlineName: latest.name };
+      // A missing or junk first gameweek means "from the start of the season".
+      const started = Number.isInteger(entry.started_event) && entry.started_event >= 1 ? entry.started_event : 1;
+      if (started > latest.id) {
+        return { kind: "not-started", team, startedEvent: started, deadlineName: latest.name };
       }
 
-      const selection = selectGameweek(bootstrap.events, requestedGw, entry.started_event, now())!;
+      const selection = selectGameweek(bootstrap.events, requestedGw, started, now())!;
       const guess = await speculative;
       const [picks, live, gwFixtures] = await (guess && guess.gw === selection.gw
         ? guess.data
@@ -110,15 +116,27 @@ export function createTeamService(
         gw: selection.gw,
         name: selection.event.name,
         status: selection.status,
-        min: entry.started_event,
+        min: started,
         max: selection.latest.id,
         isLive: selection.status === "live" && selection.gw === selection.latest.id,
         variety: varietyKey(selection.gw, selection.status, now()),
       };
-      if (!picks) return { kind: "no-picks", team, gameweek };
+      // Picks without a squad list are as good as none.
+      if (!picks || !Array.isArray(picks.picks)) return { kind: "no-picks", team, gameweek };
 
       const sheet = buildTeamSheet(picks, bootstrap, live);
-      const gwHistory = picks.entry_history;
+      const raw = picks.entry_history ?? ({} as Partial<typeof picks.entry_history>);
+      const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+      const gwHistory = {
+        ...raw,
+        points: n(raw.points),
+        event_transfers_cost: n(raw.event_transfers_cost),
+        total_points: n(raw.total_points),
+        event_transfers: n(raw.event_transfers),
+        value: n(raw.value),
+        bank: n(raw.bank),
+        overall_rank: typeof raw.overall_rank === "number" && raw.overall_rank > 0 ? raw.overall_rank : null,
+      } as typeof picks.entry_history;
       const { insights, next } = buildInsights({
         sheet,
         picks,

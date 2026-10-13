@@ -36,7 +36,8 @@ export function defaultFdrStart(events: FplEvent[]): number | null {
     const event = events[current];
     return event.finished ? (events[current + 1]?.id ?? event.id) : event.id;
   }
-  return (events.find((e) => !e.finished) ?? events[0]).id;
+  // Season over (nothing current, nothing left to play): stay on the last gameweek rather than jumping back to GW1.
+  return (events.find((e) => !e.finished) ?? events[events.length - 1]).id;
 }
 
 export interface FdrMatch {
@@ -68,6 +69,10 @@ export interface FdrMatrix {
   rows: FdrRow[];
 }
 
+/** FPL difficulty if it is a usable 1-5 rating; missing, null or out-of-range ratings count as neutral. */
+const rating = (value: unknown): number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= 5 ? value : NEUTRAL_DIFFICULTY;
+
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /** Each club's matches in one gameweek (empty = blank, two = double), keyed by FPL team id. */
@@ -76,8 +81,8 @@ export function matchesByTeam(fixtures: ScheduledFixture[], gw: number): Map<num
   const add = (teamId: number, match: FdrMatch) => byTeam.set(teamId, [...(byTeam.get(teamId) ?? []), match]);
   for (const f of fixtures) {
     if (f.event !== gw) continue;
-    add(f.team_h, { opponentId: f.team_a, home: true, difficulty: f.team_h_difficulty });
-    add(f.team_a, { opponentId: f.team_h, home: false, difficulty: f.team_a_difficulty });
+    add(f.team_h, { opponentId: f.team_a, home: true, difficulty: rating(f.team_h_difficulty) });
+    add(f.team_a, { opponentId: f.team_h, home: false, difficulty: rating(f.team_a_difficulty) });
   }
   return byTeam;
 }

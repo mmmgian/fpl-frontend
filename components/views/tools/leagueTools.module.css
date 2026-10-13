@@ -1,0 +1,22 @@
+/* League-aware tools (chip tracker, injury watch, template, differentials, head to head). Builds on tools.module.css. */
+.summary { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 var(--space-3); padding: 0; list-style: none; font-size: 13px; }
+.summary li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); }
+.summary strong { font-variant-numeric: tabular-nums; }
+.summaryTitle { margin: 0 0 var(--space-2); font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.cell { display: inline-grid; gap: 2px; justify-items: start; }
+.muted { font-size: 12px; color: var(--text-muted); }
+.again { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.chipList { display: flex; flex-wrap: wrap; gap: 4px; }
+.names { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.names li { display: inline-flex; align-items: center; gap: 4px; }
+.bench { font-size: 11px; color: var(--text-muted); }
+.news { display: block; max-width: 28ch; font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.teamLink { font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+.teamLink:hover { text-decoration: underline; }
+.scope { margin: calc(-1 * var(--space-2)) 0 var(--space-3); font-size: 12px; color: var(--text-muted); }
+.versus { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.versus h3 { margin: 0 0 var(--space-2); font-size: 14px; font-weight: 800; }
+.stack { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.stack li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.warn { margin: 0 0 var(--space-3); font-size: 13px; font-weight: 600; color: var(--negative); }
+.subhead { margin: var(--space-3) 0 var(--space-2); font-size: 14px; font-weight: 800; }

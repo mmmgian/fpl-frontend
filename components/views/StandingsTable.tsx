@@ -31,9 +31,11 @@ interface StandingsTableProps {
   stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw" | "squad">;
   /** Picks the phrasings in the stats panels (see varietyKey); the first phrasing without it. */
   variety?: number;
+  /** Heading level inside the stats panels: 3 under a section heading (the awards), 2 straight under the page title. */
+  panelHeadingLevel?: 2 | 3;
 }
 
-export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, variety }: StandingsTableProps) {
+export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, variety, panelHeadingLevel = 3 }: StandingsTableProps) {
   const t = getT();
   const tt = t.table;
   const f = getFormat();
@@ -139,7 +141,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
           },
         ] satisfies Column<StandingRow>[])
       : []),
-    { key: "gw", header: tt.gw, align: "end", width: "4.5rem", cell: (r) => r.event_total },
+    { key: "gw", header: tt.gw, align: "end", width: "4.5rem", cell: (r) => f.number(r.event_total) }, // a hit-taking week reads −4, with a real minus
     { key: "total", header: tt.total, align: "end", width: "5rem", cell: (r) => <strong>{f.number(r.total)}</strong> },
   ];
 
@@ -152,7 +154,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
       rowKey={(r) => r.entry}
       isCurrentRow={highlightEntry ? (r) => r.entry === highlightEntry : undefined}
       rowTone={zones ? (r) => zoneOf(r.rank, rows.length) : undefined}
-      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} variety={variety} /> : null) : undefined}
+      detail={stats ? (r) => (stats[r.entry] ? <ManagerStatsDetail stats={stats[r.entry]} teamName={r.entry_name} comparable={leagueExtras?.comparable} squad={leagueExtras?.squad?.[r.entry]} variety={variety} headingLevel={panelHeadingLevel} /> : null) : undefined}
       empty={tt.empty}
     />
   );

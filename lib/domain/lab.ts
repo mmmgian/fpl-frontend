@@ -214,7 +214,7 @@ export interface RotationPair {
   clubs: [string, string];
   /** Mean of the easier of the two clubs' fixtures over the window (blank gameweeks count as the hardest, 5). */
   average: number;
-  perGw: { gw: number; club: string; difficulty: number }[];
+  perGw: { gw: number; club: string; difficulty: number; blank?: boolean }[];
 }
 
 /** The two clubs whose fixtures, taking the easier each week, are kindest over the next `span` gameweeks. */
@@ -246,9 +246,13 @@ export function rotationPairs(
       const a = teams[i].id;
       const b = teams[j].id;
       const perGw = gws.map((gw) => {
+        const pa = diff.get(a)?.has(gw) ?? false;
+        const pb = diff.get(b)?.has(gw) ?? false;
         const da = diff.get(a)?.get(gw) ?? 5;
         const db = diff.get(b)?.get(gw) ?? 5;
-        return da <= db ? { gw, club: short.get(a) ?? "?", difficulty: da } : { gw, club: short.get(b) ?? "?", difficulty: db };
+        // A club without a fixture is never the one to start; a week where neither plays is marked as a blank.
+        if (!pa && !pb) return { gw, club: short.get(a) ?? "?", difficulty: 5, blank: true };
+        return pa && (!pb || da <= db) ? { gw, club: short.get(a) ?? "?", difficulty: da } : { gw, club: short.get(b) ?? "?", difficulty: db };
       });
       pairs.push({ clubs: [short.get(a) ?? "?", short.get(b) ?? "?"], average: Math.round((perGw.reduce((s, p) => s + p.difficulty, 0) / span) * 100) / 100, perGw });
     }

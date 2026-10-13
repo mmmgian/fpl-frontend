@@ -59,6 +59,9 @@ export interface FplElement {
   yellow_cards?: number;
   /** 1 = first-choice penalty taker, null/absent = not on penalties. */
   penalties_order?: number | null;
+  /** FPL's order for direct free kicks and for corners and indirect free kicks: 1 = first choice, null/absent = not listed. */
+  direct_freekicks_order?: number | null;
+  corners_and_indirect_freekicks_order?: number | null;
   points_per_game?: string;
 }
 

@@ -26,6 +26,10 @@ function FormGuide({ form }: { form: Result[] }) {
 }
 
 function Opponent({ m }: { m: ClubMatchView }) {
+  if (m.opponent.unknown) {
+    // No club page exists for a club FPL doesn't list: plain text, in the page's language.
+    return <span className={`${styles.opponent} ${styles.oppName}`}>{getT().common.unknownClub}</span>;
+  }
   return (
     <ClubLink name={m.opponent.name} className={styles.opponent}>
       <Crest code={m.opponent.code} name={m.opponent.name} size={26} />
@@ -228,7 +232,7 @@ export function ClubView({ model }: { model: Ok }) {
             <FormGuide form={model.form} />
             {upcoming ? (
               <span>
-                {c.next(upcoming.home, upcoming.opponent.name)}
+                {c.next(upcoming.home, upcoming.opponent.unknown ? t.common.unknownClub : upcoming.opponent.name)}
                 <LocalTime iso={upcoming.kickoff} options={when} fallback={t.common.timeTbc.toLowerCase()} />
               </span>
             ) : (

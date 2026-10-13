@@ -3,13 +3,22 @@ import type { ClubMatchView, ClubModel, Outside } from "./models";
 import type { EuropePort, FplPort, NewsPort, ServiceOptions } from "./ports";
 
 /** Runs one outside lookup so that its failure is a state of the page, not an error of the page. */
+/** However slow an outside source is, the club page waits this long for it at most (FPL's own facts don't wait). */
+export const OUTSIDE_DEADLINE_MS = 4000;
+
 async function outside<T>(source: unknown, run: () => Promise<T | null>): Promise<Outside<T>> {
   if (!source) return { status: "off" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("outside source timed out")), OUTSIDE_DEADLINE_MS);
+  });
   try {
-    const items = await run();
+    const items = await Promise.race([run(), deadline]);
     return items === null ? { status: "unavailable" } : { status: "ok", items };
   } catch {
     return { status: "unavailable" };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -22,9 +31,22 @@ export function createClubService(
   return {
     /** What an address means: a club number ("1") or a club's name as written in the address ("man-city"). Null if neither. */
     async resolve(param: string): Promise<{ id: number; slug: string } | null> {
-      const teams = await fpl.bootstrap().then((b) => b.teams).catch(() => []);
+      // An FPL outage rejects here, so the page shows its error (with a retry) instead of a 404 for a real club.
+      const teams = (await fpl.bootstrap()).teams;
       const slugOf = (t: { name: string }) => slugify(t.name);
-      const found = /^[1-9]\d{0,5}$/.test(param) ? teams.find((t) => t.id === Number(param)) : teams.find((t) => slugOf(t) === param) ?? teams.find((t) => slugify(t.short_name) === param);
+      // "Arsenal", "Man City" or "man%20city" reach the club too; the page then redirects to its one address.
+      let decoded = param;
+      try {
+        decoded = decodeURIComponent(param);
+      } catch {
+        // A malformed escape is just an unknown club.
+      }
+      const wanted = slugify(decoded);
+      const found = /^[1-9]\d{0,5}$/.test(param)
+        ? teams.find((t) => t.id === Number(param))
+        : wanted
+          ? teams.find((t) => slugOf(t) === wanted) ?? teams.find((t) => slugify(t.short_name) === wanted)
+          : undefined;
       if (found) return { id: found.id, slug: slugOf(found) };
       return /^[1-9]\d{0,5}$/.test(param) ? { id: Number(param), slug: param } : null;
     },
@@ -50,7 +72,7 @@ export function createClubService(
       const view = (m: ClubMatch): ClubMatchView => {
         const { opponentId, ...rest } = m;
         const o = bootstrap.teams.find((t) => t.id === opponentId);
-        return { ...rest, opponent: o ? clubIdentity(o) : { id: opponentId, name: "Unknown club", short: "?", code: 0 } };
+        return { ...rest, opponent: o ? clubIdentity(o) : { id: opponentId, name: "Unknown club", short: "?", code: 0, unknown: true as const } };
       };
       const { next, recent } = clubMatches(schedule, clubId);
       const players = clubPlayers(bootstrap.elements, clubId);

@@ -875,6 +875,30 @@ export const tripFr: TripOverlay = {
       ],
       none: ["Le vide est encore en train de charger.", "Rien ne s'est encore matérialisé.", "Aucun être ne se qualifie encore."],
     },
+    planning: {
+      nav: { captain: "Les quelques élus", swings: "Marées qui tournent", pairs: "Orbites jumelles", setPieces: "Gardiens du ballon arrêté" },
+      derived: "Un rêve, mesuré",
+      swings: {
+        title: "Marées qui tournent",
+        note: [
+          (soon, later) => `Là où les marées tournent : la gravité FPL par collision en ${soon} contre ${later}. Dérivez vers les marées vertes une semaine plus tôt ; éloignez-vous des rouges.`,
+          (soon, later) => `${soon} contre ${later} : les tribus dont le chemin change de couleur. Les marées vertes s'adoucissent, les rouges se durcissent.`,
+          (soon, later) => `Le cosmos bascule entre ${soon} et ${later}, selon la gravité de la FPL elle-même, ressentie par collision.`,
+        ],
+        easing: "Marée verte : le chemin s'adoucit",
+        hardening: "Marée rouge : le chemin se durcit",
+        none: ["Les marées sont plates sur cette période.", "Aucun chemin ne bascule nettement ici.", "Aucun tournant qui vaille un mouvement."],
+      },
+      setPieces: {
+        title: "Gardiens du ballon arrêté",
+        note: [
+          (clubs) => `À qui la FPL confie le penalty, le coup franc et le corner dans ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, le premier de la file d'abord, les brisés et les flous signalés.`,
+          (clubs) => `Les rituels du ballon arrêté de ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, tels que la FPL les a notés. Si le premier gardien est signalé, le rituel passe au suivant.`,
+          (clubs) => `Penalty, coup franc, corner : l'ordre de la FPL dans ${clubs} ${clubs === 1 ? "tribu" : "tribus"}, avec qui peut encore entrer à côté.`,
+        ],
+        out: "Ailleurs",
+      },
+    },
     xi: {
       title: (g: string) => `Les Onze Élus · ${g}`,
       note: [
@@ -925,6 +949,60 @@ export const tripFr: TripOverlay = {
       by: { eo: "Esprit de ruche", captain: "Élus" },
       cols: { player: "Être", eo: "PE", started: "Élu", captained: "L'élu", owned: "Ruche mondiale" },
       none: ["Pas encore de compositions pour lire la ruche.", "La ruche n'a pas encore choisi.", "Aucun esprit décidé, donc rien à compter."],
+    },
+    leagueTools: {
+      unavailable: "Perdu dans la brume",
+      chips: {
+        title: "Les sorts qui restent dans la bourse",
+        note: [
+          (wildcards, freeHits, managers, next) => `Au portail de la ${next}, ${wildcards} voyageurs sur ${managers} portent encore un Wildcard et ${freeHits} un Free Hit. Lu dans l'historique FPL de chaque vaisseau, selon les fenêtres de chips de FPL.`,
+          (wildcards, freeHits, managers, next) => `Qui cache encore la grande magie pour la ${next} : ${wildcards} Wildcards et ${freeHits} Free Hits pas encore dépensés chez ${managers} ${managers === 1 ? "voyageur" : "voyageurs"}.`,
+          (wildcards, freeHits, managers, next) => `Sentez les bourses autour de vous : avant la ${next}, ${wildcards} sur ${managers} gardent un Wildcard, ${freeHits} un Free Hit.`,
+        ],
+        holders: "Brillent encore dans la bourse",
+        gone: "Évaporé",
+        nonePlayed: "Tous les sorts encore scellés",
+      },
+      injuries: {
+        title: "La tente de guérison",
+        note: [
+          (count, top, starters) => `${count === 1 ? "Un être vacille" : `${count} êtres vacillent`} dans les vaisseaux de la ligue. Inquiétude principale : ${top}, titulaire chez ${starters}.`,
+          (count, top, starters) => `FPL a signalé ${count === 1 ? "un être" : `${count} êtres`} sur qui compte la ruche ; ${top} fait le plus mal (${starters} ${starters === 1 ? "vaisseau le titularise" : "vaisseaux le titularisent"}).`,
+          (count, top, starters) => `Regardez le banc, doucement : ${count} ${count === 1 ? "être détenu s'éteint" : "êtres détenus s'éteignent"}, ${top} d'abord (titulaire chez ${starters}).`,
+        ],
+        clear: [
+          (squads) => `Tous les êtres de ${squads} ${squads === 1 ? "vaisseau sont" : "vaisseaux sont"} entiers. L'univers est doux aujourd'hui.`,
+          (squads) => `Auras intactes : FPL n'a signalé personne sur ${squads} ${squads === 1 ? "vaisseau" : "vaisseaux"}.`,
+          (squads) => `Pas un bleu dans ${squads === 1 ? "le vaisseau ressenti" : `les ${squads} vaisseaux ressentis`}.`,
+        ],
+      },
+      template: {
+        title: "Le rêve partagé de la ruche",
+        note: [
+          (managers, formation, top, share) => `Le onze sur lequel le plus d'esprits s'accordent, parmi ${managers} vaisseaux (${formation}). L'attraction la plus forte : ${top}, dans ${share} d'entre eux.`,
+          (managers, formation, top, share) => `Si la ruche rêvait une seule équipe, ce serait ce ${formation}. ${top} flotte dans ${share} des ${managers} vaisseaux.`,
+          (managers, formation, top, share) => `La couverture de la ligue, tissée en ${formation} avec ${managers} vaisseaux ; ${top} en est le fil le plus chaud (${share}).`,
+        ],
+      },
+      differentials: {
+        title: "Les secrets qu'eux seuls gardent",
+        note: [
+          (team, count) => `Des êtres que personne d'autre dans la ligue n'a trouvés. ${team} garde le plus de secrets : ${count}.`,
+          (team, count) => `Les visions privées de chaque vaisseau. ${team} en voit le plus : ${count}.`,
+          (team, count) => `Là où un portail peut basculer : ${team} porte ${count} ${count === 1 ? "être" : "êtres"} qu'aucun autre voyageur n'a.`,
+        ],
+        none: "Aucun secret : tout est partagé",
+      },
+      rivals: {
+        title: "Deux vaisseaux, un miroir",
+        note: [
+          (a, b, shared, onlyA, onlyB) => `${a} et ${b} partagent ${shared} ${shared === 1 ? "être" : "êtres"} ; ${a} en porte ${onlyA} à lui, ${b} ${onlyB}. Seuls ceux-là font bouger l'écart.`,
+          (a, b, shared, onlyA, onlyB) => `${shared} en commun, en miroir. Le duel vit dans les ${onlyA} de ${a} et les ${onlyB} de ${b}.`,
+          (a, b, shared, onlyA, onlyB) => `Laissez les ${shared} êtres partagés se dissoudre : ${a} (${onlyA} uniques) contre ${b} (${onlyB} uniques), c'est là que tout se décide.`,
+        ],
+        prompt: "Choisissez deux vaisseaux et tendez-leur le miroir.",
+        compare: "Refléter",
+      },
     },
     teams: {
       title: "Entrer dans un vaisseau",

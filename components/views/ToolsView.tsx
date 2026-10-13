@@ -5,6 +5,10 @@ import type { PositionId } from "@/lib/domain/types";
 import type { ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
+import { CaptainShortlist } from "./tools/CaptainShortlist";
+import { FixtureSwings, RotationPairs } from "./tools/FixtureSwings";
+import { SetPieces } from "./tools/SetPieces";
+import { LeagueToolsNav, LeagueToolsSections } from "./tools/LeagueTools";
 
 type Tools = Extract<ToolsModel, { kind: "ok" }>;
 
@@ -32,12 +36,18 @@ function href(model: Tools, over: Record<string, string | null>, hash: string): 
   set("moving", f.movingOnly ? "1" : null);
   set("eo", model.eo?.tier);
   set("by", model.eo?.by === "captain" ? "captain" : null);
+  set("vs", model.leagueTools?.rivals?.selected?.join(","));
   for (const [k, v] of Object.entries(over)) {
     if (v === null) q.delete(k);
     else q.set(k, v);
   }
   const s = q.toString();
   return `/tools${s ? `?${s}` : ""}#${hash}`;
+}
+
+/** The other tools' filters as plain fields, for a form that sets its own (the head to head's `vs`). */
+function keepFor(model: Tools): Record<string, string> {
+  return Object.fromEntries(new URL(href(model, { vs: null }, "x"), "https://x.invalid").searchParams);
 }
 
 function TeamOfTheWeek({ xi, variety }: { xi: NonNullable<Tools["xi"]>; variety: number }) {
@@ -141,11 +151,17 @@ function LabCards({ lab, variety }: { lab: NonNullable<Tools["lab"]>; variety: n
       hideBelow: "sm",
       cell: (r) => (
         <span className={styles.tileMeta}>
-          {r.perGw.map((p) => (
-            <FdrChip key={p.gw} band={fdrBand(p.difficulty)} label={t.client.fdr.difficulty(fdrBand(p.difficulty))}>
-              {t.common.gw(p.gw)} {p.club}
-            </FdrChip>
-          ))}
+          {r.perGw.map((p) =>
+            p.blank ? (
+              <Badge key={p.gw} tone="warning">
+                {t.common.gw(p.gw)} {t.tools.planning.pairs.neither}
+              </Badge>
+            ) : (
+              <FdrChip key={p.gw} band={fdrBand(p.difficulty)} label={t.client.fdr.difficulty(fdrBand(p.difficulty))}>
+                {t.common.gw(p.gw)} {p.club}
+              </FdrChip>
+            ),
+          )}
         </span>
       ),
     },
@@ -325,6 +341,7 @@ function PriceChanges({ model }: { model: Tools }) {
       <form method="get" action="/tools" className={styles.filters}>
         {model.eo ? <input type="hidden" name="eo" value={model.eo.tier} /> : null}
         {model.eo?.by === "captain" ? <input type="hidden" name="by" value="captain" /> : null}
+        {model.leagueTools?.rivals?.selected ? <input type="hidden" name="vs" value={model.leagueTools.rivals.selected.join(",")} /> : null}
         <label className={styles.field}>
           {p.search}
           <input className={styles.input} type="search" name="q" defaultValue={filter.q} placeholder={p.searchPlaceholder} maxLength={40} />
@@ -532,9 +549,25 @@ export function ToolsView({ model }: { model: Tools }) {
               <a href="#captain">{tt.lab.captainTitle}</a>
             </li>
           ) : null}
+          {/* The altered view's lab already carries the captain simulation and rotation pairs, so these two are normal-mode only. */}
+          {!trip && model.planning?.captain ? (
+            <li>
+              <a href="#shortlist">{tt.planning.nav.captain}</a>
+            </li>
+          ) : null}
           {model.xi ? (
             <li>
               <a href="#xi">{tt.xi.title(gameweekName(`Gameweek ${model.xi.gw}`)).split(" · ")[0]}</a>
+            </li>
+          ) : null}
+          {model.planning?.swings ? (
+            <li>
+              <a href="#swings">{tt.planning.nav.swings}</a>
+            </li>
+          ) : null}
+          {!trip && model.planning?.rotation ? (
+            <li>
+              <a href="#pairs">{tt.planning.nav.pairs}</a>
             </li>
           ) : null}
           <li>
@@ -543,6 +576,12 @@ export function ToolsView({ model }: { model: Tools }) {
           <li>
             <a href="#eo">{tt.eo.title}</a>
           </li>
+          {model.planning?.setPieces ? (
+            <li>
+              <a href="#setpieces">{tt.planning.nav.setPieces}</a>
+            </li>
+          ) : null}
+          <LeagueToolsNav league={model.leagueTools} />
           {model.teams.length ? (
             <li>
               <a href="#teams">{tt.teams.title}</a>
@@ -558,9 +597,24 @@ export function ToolsView({ model }: { model: Tools }) {
           </section>
         ) : null}
         {trip && model.lab ? <LabCards lab={model.lab} variety={model.phase.variety} /> : null}
+        {!trip && model.planning?.captain ? (
+          <section id="shortlist" className={styles.full}>
+            <CaptainShortlist captain={model.planning.captain} variety={model.phase.variety} />
+          </section>
+        ) : null}
         {model.xi ? (
           <section id="xi" className={styles.full}>
             <TeamOfTheWeek xi={model.xi} variety={model.phase.variety} />
+          </section>
+        ) : null}
+        {model.planning?.swings ? (
+          <section id="swings" className={styles.full}>
+            <FixtureSwings swings={model.planning.swings} variety={model.phase.variety} />
+          </section>
+        ) : null}
+        {!trip && model.planning?.rotation ? (
+          <section id="pairs" className={styles.full}>
+            <RotationPairs rotation={model.planning.rotation} variety={model.phase.variety} />
           </section>
         ) : null}
         <section id="prices" className={styles.full}>
@@ -569,6 +623,12 @@ export function ToolsView({ model }: { model: Tools }) {
         <section id="eo" className={styles.full}>
           <EffectiveOwnership model={model} />
         </section>
+        {model.planning?.setPieces ? (
+          <section id="setpieces" className={styles.full}>
+            <SetPieces rows={model.planning.setPieces} variety={model.phase.variety} />
+          </section>
+        ) : null}
+        <LeagueToolsSections league={model.leagueTools} variety={model.phase.variety} keep={keepFor(model)} slugs={entrySlugs(model.teams.map((x) => ({ id: x.entry, name: x.teamName })))} />
         {model.teams.length ? (
           <section id="teams" className={styles.full}>
             <Teams teams={model.teams} variety={model.phase.variety} />

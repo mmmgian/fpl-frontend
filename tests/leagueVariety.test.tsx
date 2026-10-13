@@ -205,6 +205,7 @@ describe("LeagueView's storyline", () => {
     leagueId: 1,
     name: "Test League",
     gameweek: { name: "Gameweek 4", status },
+    gameweekUnavailable: false,
     rows,
     truncated: false,
     newEntries: 0,

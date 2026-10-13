@@ -879,6 +879,30 @@ export const tripEn: TripOverlay = {
       ],
       none: ["The void is still loading.", "Nothing has materialised yet.", "No beings qualify yet."],
     },
+    planning: {
+      nav: { captain: "The chosen few", swings: "Tides turning", pairs: "Twin orbits", setPieces: "Keepers of the dead ball" },
+      derived: "A dream, measured",
+      swings: {
+        title: "Tides turning",
+        note: [
+          (soon, later) => `Where the tides turn: FPL's gravity per collision in ${soon} against ${later}. Drift toward the green tides a week early; slip away from the red ones.`,
+          (soon, later) => `${soon} against ${later}: the tribes whose path changes colour. Green tides soften, red tides harden.`,
+          (soon, later) => `The cosmos tilts between ${soon} and ${later}, by FPL's own gravity, felt per collision.`,
+        ],
+        easing: "Green tide: the path softens",
+        hardening: "Red tide: the path hardens",
+        none: ["The tides are flat in this stretch.", "No path tilts sharply here.", "No turning worth a move."],
+      },
+      setPieces: {
+        title: "Keepers of the dead ball",
+        note: [
+          (clubs) => `Who FPL trusts with the spot, the free kick and the corner across ${clubs} ${clubs === 1 ? "tribe" : "tribes"}, first in line first, the broken and the hazy flagged.`,
+          (clubs) => `The dead-ball rituals of ${clubs} ${clubs === 1 ? "tribe" : "tribes"}, as FPL wrote them down. If the first keeper is flagged, the ritual passes on.`,
+          (clubs) => `Spot, free kick, corner: FPL's order across ${clubs} ${clubs === 1 ? "tribe" : "tribes"}, with who can still walk out alongside.`,
+        ],
+        out: "Elsewhere",
+      },
+    },
     xi: {
       title: (g: string) => `The Chosen Eleven · ${g}`,
       note: [
@@ -929,6 +953,60 @@ export const tripEn: TripOverlay = {
       by: { eo: "Hive mind", captain: "Chosen ones" },
       cols: { player: "Being", eo: "EO", started: "Chosen", captained: "Chosen one", owned: "World hive" },
       none: ["No picks to read the hive from yet.", "The hive hasn't chosen yet.", "No minds made up, so nothing to count."],
+    },
+    leagueTools: {
+      unavailable: "Lost in the fog",
+      chips: {
+        title: "Spells left in the pouch",
+        note: [
+          (wildcards, freeHits, managers, next) => `At the ${next} portal, ${wildcards} of ${managers} travellers still carry a Wildcard and ${freeHits} a Free Hit. Read from each vessel's own FPL history, measured against FPL's chip windows.`,
+          (wildcards, freeHits, managers, next) => `Who still hides the big magic for ${next}: ${wildcards} Wildcards and ${freeHits} Free Hits unspent across ${managers} ${managers === 1 ? "traveller" : "travellers"}.`,
+          (wildcards, freeHits, managers, next) => `Feel the pouches around you: going into ${next}, ${wildcards} of ${managers} hold a Wildcard, ${freeHits} a Free Hit.`,
+        ],
+        holders: "Still glowing in the pouch",
+        gone: "Faded",
+        nonePlayed: "All spells still sealed",
+      },
+      injuries: {
+        title: "The healing tent",
+        note: [
+          (count, top, starters) => `${count === 1 ? "One being flickers" : `${count} beings flicker`} in the league's vessels. Loudest worry: ${top}, chosen to start by ${starters}.`,
+          (count, top, starters) => `FPL has marked ${count === 1 ? "one being" : `${count} beings`} the hive relies on; ${top} hurts most (${starters} ${starters === 1 ? "vessel starts" : "vessels start"} him).`,
+          (count, top, starters) => `Check the bench, gently: ${count} owned ${count === 1 ? "being is" : "beings are"} fading, ${top} first (started by ${starters}).`,
+        ],
+        clear: [
+          (squads) => `Every being in ${squads} ${squads === 1 ? "vessel" : "vessels"} is whole. The universe is kind today.`,
+          (squads) => `All auras intact: FPL has marked nobody across ${squads} ${squads === 1 ? "vessel" : "vessels"}.`,
+          (squads) => `Not a single bruise in the ${squads} ${squads === 1 ? "vessel" : "vessels"} we felt.`,
+        ],
+      },
+      template: {
+        title: "The hive's shared dream",
+        note: [
+          (managers, formation, top, share) => `The eleven most minds agree on, across ${managers} vessels (${formation}). The strongest pull: ${top}, in ${share} of them.`,
+          (managers, formation, top, share) => `If the hive dreamed one team, it would be this ${formation}. ${top} floats through ${share} of the ${managers} vessels.`,
+          (managers, formation, top, share) => `The league's comfort blanket, woven as ${formation} from ${managers} vessels; ${top} is the warmest thread at ${share}.`,
+        ],
+      },
+      differentials: {
+        title: "Secrets only they keep",
+        note: [
+          (team, count) => `Beings nobody else in the league has found. ${team} keeps the most secrets: ${count}.`,
+          (team, count) => `Each vessel's private visions. ${team} sees the most of them: ${count}.`,
+          (team, count) => `Where a portal can tilt: ${team} carries ${count} ${count === 1 ? "being" : "beings"} no other traveller has.`,
+        ],
+        none: "No secrets: all shared",
+      },
+      rivals: {
+        title: "Two vessels, one mirror",
+        note: [
+          (a, b, shared, onlyA, onlyB) => `${a} and ${b} share ${shared} ${shared === 1 ? "being" : "beings"}; ${a} carries ${onlyA} of their own, ${b} ${onlyB}. Only those move the gap.`,
+          (a, b, shared, onlyA, onlyB) => `${shared} in common, mirrored. The duel lives in ${a}'s ${onlyA} and ${b}'s ${onlyB}.`,
+          (a, b, shared, onlyA, onlyB) => `Let the ${shared} shared beings dissolve: ${a} (${onlyA} unique) against ${b} (${onlyB} unique) is where it's decided.`,
+        ],
+        prompt: "Choose two vessels and hold them up to the mirror.",
+        compare: "Reflect",
+      },
     },
     teams: {
       title: "Step into a vessel",

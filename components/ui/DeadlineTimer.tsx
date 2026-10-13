@@ -16,16 +16,24 @@ const WHEN: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", mon
  */
 export function DeadlineTimer({ at, now, gameweek }: { at: string; now: string; gameweek: string }) {
   const t = useT().deadline;
+  // FPL can send a deadline that doesn't parse: then there is nothing to count down to (and no NaN to print).
+  const valid = !Number.isNaN(Date.parse(at));
   const [left, setLeft] = useState(() => countdown(at, now));
 
   useEffect(() => {
-    const tick = () => setLeft(countdown(at, Date.now()));
+    if (!valid) return;
     let id: ReturnType<typeof setInterval> | undefined;
+    const tick = () => {
+      const next = countdown(at, Date.now());
+      setLeft(next);
+      // Passed: the page says so, and nothing changes after that, so stop ticking.
+      if (next.totalMs === 0) clearInterval(id);
+    };
     // A hidden tab has nobody to show the seconds to: stop ticking (and re-rendering) until it is visible again.
     const start = () => {
       clearInterval(id);
-      tick();
       id = setInterval(tick, 1000);
+      tick();
     };
     const onVisibility = () => (document.visibilityState === "visible" ? start() : clearInterval(id));
     onVisibility();
@@ -34,7 +42,7 @@ export function DeadlineTimer({ at, now, gameweek }: { at: string; now: string; 
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [at]);
+  }, [at, valid]);
 
   const parts: [number, string][] = [[left.days, t.days], [left.hours, t.hours], [left.minutes, t.mins], [left.seconds, t.secs]];
   return (
@@ -43,7 +51,7 @@ export function DeadlineTimer({ at, now, gameweek }: { at: string; now: string; 
         <h2 className={styles.title}>{t.title}</h2>
         <span className={styles.gw}>{gameweek}</span>
       </header>
-      {left.totalMs === 0 ? (
+      {!valid ? null : left.totalMs === 0 ? (
         <p className={styles.passed}>{t.passed}</p>
       ) : (
         <div className={styles.cells} role="timer">

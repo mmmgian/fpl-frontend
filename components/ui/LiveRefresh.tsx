@@ -65,7 +65,8 @@ export function LiveRefresh({ enabled, intervalMs = 60_000, minFocusGapMs = 15_0
       if (Date.now() - lastStartRef.current >= minFocusGapMs) refresh();
       start();
     };
-    start();
+    // Opened in a background tab: nothing to show yet, so wait for the tab to be seen (it then refreshes if stale).
+    if (document.visibilityState !== "hidden") start();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       clearInterval(id);

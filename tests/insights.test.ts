@@ -216,9 +216,9 @@ describe("live matchday", () => {
       elements: live.elements.map((e) => ({ ...e, stats: { ...e.stats, defensive_contribution: { 1: 8, 2: 10, 3: 6, 4: 12 }[e.id] ?? 0 } })),
     });
     expect(defconProgress(sheet)).toEqual([
-      { name: "Haaland", value: 12, threshold: 12, reached: true, matches: 1 },
-      { name: "Saliba", value: 10, threshold: 10, reached: true, matches: 1 },
-      { name: "Saka", value: 6, threshold: 12, reached: false, matches: 1 },
+      { id: 4, name: "Haaland", value: 12, threshold: 12, reached: true, matches: 1 },
+      { id: 2, name: "Saliba", value: 10, threshold: 10, reached: true, matches: 1 },
+      { id: 3, name: "Saka", value: 6, threshold: 12, reached: false, matches: 1 },
     ]); // Raya (GK) excluded; both 100% complete, so the higher count first, then Saka at 50%
   });
 });
@@ -298,9 +298,9 @@ describe("review fixes: derived facts only say what the data supports", () => {
   it("DefCon never claims the +2 in a double gameweek, where live stats add both matches", () => {
     const sheet = buildTeamSheet(picks, bootstrap, { elements: live.elements.map((e) => ({ ...e, stats: { ...e.stats, defensive_contribution: e.id === 2 ? 13 : 0 } })) });
     const single = defconProgress(sheet, new Map([[1, 1]]));
-    expect(single).toEqual([{ name: "Saliba", value: 13, threshold: 10, reached: true, matches: 1 }]);
+    expect(single).toEqual([{ id: 2, name: "Saliba", value: 13, threshold: 10, reached: true, matches: 1 }]);
     const double = defconProgress(sheet, new Map([[1, 2]]));
-    expect(double).toEqual([{ name: "Saliba", value: 13, threshold: 10, reached: false, matches: 2 }]);
+    expect(double).toEqual([{ id: 2, name: "Saliba", value: 13, threshold: 10, reached: false, matches: 2 }]);
     expect(defconProgress(sheet)[0].matches).toBe(1); // unknown fixtures: treated as a single match
   });
 });

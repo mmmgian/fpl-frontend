@@ -95,3 +95,15 @@ describe("snapshot nudge route", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("selectGameweek with gaps in FPL's event list", () => {
+  it("falls back to the latest gameweek instead of crashing", async () => {
+    const { selectGameweek } = await import("@/lib/domain");
+    const ev = (id: number, finished: boolean, is_current = false) => ({ id, name: `Gameweek ${id}`, deadline_time: "2026-08-01T10:00:00Z", is_current, is_next: false, finished, data_checked: finished });
+    const events = [ev(1, true), ev(3, true), ev(4, false, true)];
+    const s = selectGameweek(events, "2", 1, new Date("2026-10-13T12:00:00Z"));
+    expect(s?.gw).toBe(4);
+    expect(s?.event.id).toBe(4);
+    expect(selectGameweek(events, "3", 1, new Date("2026-10-13T12:00:00Z"))?.gw).toBe(3);
+  });
+});

@@ -11,7 +11,8 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await initLocale();
-  const found = await services.club.resolve((await params).id);
+  // The title can fall back to a generic one; the page itself shows the error if FPL is down.
+  const found = await services.club.resolve((await params).id).catch(() => null);
   const club = found ? await services.club.identify(found.id) : null;
   return { title: club?.name ?? getT().meta.club, alternates: found && club ? { canonical: `/club/${found.slug}` } : undefined };
 }

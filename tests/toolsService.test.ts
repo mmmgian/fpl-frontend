@@ -81,14 +81,15 @@ describe("tools service: effective ownership", () => {
     expect(m.eo!.rows.map((r) => r.id)).not.toContain(9);                              // benched by everyone
     expect(m.eo!.rows[0].eo).toBeGreaterThanOrEqual(m.eo!.rows[1].eo);
   });
-  it("can look at the top ten or everyone, and ask only for the managers it needs", async () => {
-    const asked = new Set<number>();
-    const picks = vi.fn(async (e: number) => (asked.add(e), picksFor(e)));
-    await load({}, { picks });
-    expect(asked.size).toBe(4);
-    asked.clear();
+  it("can look at the top ten or everyone, and asks for each manager's squad once", async () => {
+    // The league tools read every covered squad, so EO reuses those reads instead of asking again.
+    const picks = vi.fn(async (e: number) => picksFor(e));
+    expect((await load({}, { picks })).eo).toMatchObject({ tier: "top4", managers: 4 });
+    expect(picks).toHaveBeenCalledTimes(12);
+    expect(new Set(picks.mock.calls.map(([e]) => e)).size).toBe(12);
+    picks.mockClear();
     expect((await load({ eo: "top10" }, { picks })).eo).toMatchObject({ tier: "top10", managers: 10 });
-    expect(asked.size).toBe(10);
+    expect(picks).toHaveBeenCalledTimes(12);
     expect((await load({ eo: "all" })).eo).toMatchObject({ tier: "all", managers: 12 });
     expect((await load({ eo: "bogus" })).eo?.tier).toBe("top4");
   });

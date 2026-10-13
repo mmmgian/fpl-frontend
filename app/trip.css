@@ -121,7 +121,8 @@
 /* Less motion: the colours stay, the movement goes. */
 @media (prefers-reduced-motion: reduce) {
   :root[data-trip="on"] *,
-  :root[data-trip="on"] *::before { animation: none !important; }
+  :root[data-trip="on"] *::before,
+  :root[data-trip="on"] *::after { animation: none !important; }
   :root[data-trip="on"] [data-crest] img,
   :root[data-trip="on"] main figure img { filter: saturate(1.4); }
   :root[data-trip="on"] :is(h1, h2) { background-position: 40% 0; }

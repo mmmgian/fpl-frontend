@@ -109,7 +109,7 @@ function competitionRanks(values: Map<number, number>): Map<number, number> {
  */
 export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHistory>, settledThrough: number = Infinity): LeagueStats | null {
   // A gameweek in progress has half-scored teams, so every statistic runs through the last one that is over.
-  const settled = (h: EntryHistory): EntryHistory => ({ ...h, current: h.current.filter((g) => g.event <= settledThrough) });
+  const settled = (h: EntryHistory): EntryHistory => ({ ...h, chips: readableChips(h.chips), current: readableWeeks(h.current).filter((g) => g.event <= settledThrough) });
   const have = rows.filter((r) => histories.has(r.entry) && settled(histories.get(r.entry)!).current.length > 0);
   if (have.length === 0) return null;
 
@@ -164,6 +164,31 @@ export function leagueStats(rows: StandingRow[], histories: Map<number, EntryHis
   return { gw, comparable, byEntry, awards: comparable ? awards(rows, byEntry, usable) : [] };
 }
 
+const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+const orZero = (n: unknown) => (finite(n) ? n : 0);
+
+/**
+ * The gameweeks that can be counted: a week without a readable gameweek number or score is left out (counting it as 0
+ * would invent a blank), and any other missing figure counts as 0, so nothing downstream turns into NaN.
+ */
+function readableWeeks(current: unknown): HistoryGameweek[] {
+  if (!Array.isArray(current)) return [];
+  return current
+    .filter((g): g is HistoryGameweek => Boolean(g) && typeof g === "object" && finite(g.event) && finite(g.points))
+    .map((g) => ({
+      ...g,
+      event_transfers_cost: orZero(g.event_transfers_cost),
+      event_transfers: orZero(g.event_transfers),
+      points_on_bench: orZero(g.points_on_bench),
+      bank: orZero(g.bank),
+      value: orZero(g.value),
+      overall_rank: finite(g.overall_rank) ? g.overall_rank : null,
+    }));
+}
+
+const readableChips = (chips: unknown): HistoryChip[] =>
+  Array.isArray(chips) ? chips.filter((c): c is HistoryChip => Boolean(c) && typeof c === "object" && typeof c.name === "string" && finite(c.event)) : [];
+
 type Candidate = { entry: number; value: number };
 
 /** The winner of one award: the highest (or lowest) figure, the earliest in the table on a tie. */
@@ -180,9 +205,14 @@ function awards(rows: StandingRow[], stats: Record<number, ManagerStats>, histor
   const add = (key: AwardKey, pick: ReturnType<typeof best>) => pick && out.push({ key, ...pick });
 
   // Only managers who actually played the latest gameweek can win or lose it (weekRank 0 means they didn't).
+  // A week everyone scored the same (a voided gameweek) has neither, so one manager never gets both; and a best score
+  // of zero or less (everyone blanked or took a hit) was not "won".
   const played = all.filter((s) => s.weekRank > 0).map((s) => ({ entry: s.entry, value: s.weekPoints }));
-  add("weekWinner", best(played));
-  add("woodenSpoon", played.length > 1 ? best(played, false) : null);
+  const top = best(played);
+  const bottom = played.length > 1 ? best(played, false) : null;
+  const split = top && bottom && top.value > bottom.value;
+  add("weekWinner", split && top.value > 0 ? top : null);
+  add("woodenSpoon", split ? bottom : null);
 
   const hot = best(all.filter((s) => s.streak?.kind === "hot" && s.streak.length >= 2).map((s) => ({ entry: s.entry, value: s.streak!.length }))); // "on a roll" needs a run, not one good week
   add("hotStreak", hot);

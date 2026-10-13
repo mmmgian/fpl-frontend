@@ -43,6 +43,8 @@ export function slimBootstrap(raw: Bootstrap): Bootstrap {
       ...(e.defensive_contribution_per_90 ? { defensive_contribution_per_90: Number(e.defensive_contribution_per_90) } : {}),
       ...(e.yellow_cards ? { yellow_cards: e.yellow_cards } : {}),
       ...(e.penalties_order ? { penalties_order: e.penalties_order } : {}),
+      ...(e.direct_freekicks_order ? { direct_freekicks_order: e.direct_freekicks_order } : {}),
+      ...(e.corners_and_indirect_freekicks_order ? { corners_and_indirect_freekicks_order: e.corners_and_indirect_freekicks_order } : {}),
     })),
     chips: (raw.chips ?? []).map(({ name, start_event, stop_event }) => ({ name, start_event, stop_event })),
     ...(raw.total_players ? { total_players: raw.total_players } : {}),
@@ -57,7 +59,7 @@ const loadSlimBootstrap = async () =>
  * instead of downloading 1.8 MB from FPL. Failures throw and are never cached.
  */
 const BOOTSTRAP_SHARED_TTL_S = 240;
-const cachedSlimBootstrap = unstable_cache(loadSlimBootstrap, ["fpl-bootstrap-slim-v4"], {
+const cachedSlimBootstrap = unstable_cache(loadSlimBootstrap, ["fpl-bootstrap-slim-v5"], {
   revalidate: BOOTSTRAP_SHARED_TTL_S,
   tags: ["fpl-bootstrap"],
 });

@@ -8,7 +8,7 @@
  * week to week and neighbours don't echo each other. Without a key (frozen tables, tests) the first phrasing is used.
  */
 import { getFormat, getT, isTrip } from "@/components/ui";
-import { pickVariant } from "@/lib/domain";
+import { isolateName, pickVariant } from "@/lib/domain";
 import type { Angle, Award, AwardCopy, AwardKey, Dare, GwStatus, LeagueHeadline, ManagerStats, StatsPhase, StoryCopy } from "@/lib/domain";
 
 /** The phrasing for `slot` under `key`; the first one when there is no key. */
@@ -45,7 +45,7 @@ export function awardLine(a: Award, name: string, gw?: number, { place = 0, vari
   const when = gw ? t.awards.inGw(gw) : t.awards.thisWeek;
   // The altered view says the same figures through other words; the lines share one shape, so only the catalog swaps.
   const L: Pick<typeof t.awards, AwardKey> = isTrip() ? t.blotter.lines : t.awards;
-  const copy: AwardCopy = { name, figure: awardFigureText(a), when, place };
+  const copy: AwardCopy = { name: isolateName(name), figure: awardFigureText(a), when, place };
   // Phrasings that name the table position need one.
   const lines = place > 0 ? L[a.key] : L[a.key].slice(0, 1);
   return vary(lines, variety, a.entry * 16 + AWARD_SLOT[a.key])(copy);
@@ -156,7 +156,8 @@ export const MAX_STORIES = 2;
  * The storylines worth featuring: a new leader always, then others rotated by the variety key (all are true; the key
  * only decides which get the spotlight today). `nameOf` maps an entry to its team name.
  */
-export function storyLines(headlines: LeagueHeadline[], nameOf: (entry: number) => string, variety?: number): string[] {
+export function storyLines(headlines: LeagueHeadline[], nameOfEntry: (entry: number) => string, variety?: number): string[] {
+  const nameOf = (entry: number) => isolateName(nameOfEntry(entry));
   const t = getT();
   const c = t.common;
   const S = t.league.story;

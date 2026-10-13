@@ -1,0 +1,77 @@
+/* Planning tools on the Tools page: captain shortlist, fixture swings, rotation pairs, set pieces. */
+
+.method {
+  margin: var(--space-3) 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.facts {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+}
+
+.run {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.week {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.gw {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.club {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+}
+
+.takers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.taker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;
+  /* Long names wrap rather than push the table wider. */
+  overflow-wrap: anywhere;
+}
+
+.order {
+  min-width: 1.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.views {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.viewTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+}

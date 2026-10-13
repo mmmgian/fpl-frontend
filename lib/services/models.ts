@@ -5,6 +5,8 @@
  */
 import type { GwPhase, Issue, IssueKind, IssueSummary, ShelfStatus, SnapshotFacts, TransferPulse } from "../domain";
 import type { MascotImage } from "./ports";
+import type { LeagueTools } from "../domain/leagueTools";
+import type { Planning } from "../domain/planning";
 import type {
   BestXI, Deadline, Lab, Upside, EoTier, PriceRow, PositionId,
   AutoSub, ClubMatch, ClubNewsItem, ClubOutlook, EuropeMatch, Headline, PredictedXI, Result, BenchInsight, BonusSource, CaptainInsight, ChipSlot, DefconProgress, FdrBand, FdrWindow, FeedGameweek, FixtureOutlook, FixtureState,
@@ -31,8 +33,10 @@ export type LeagueModel =
       kind: "ok";
       leagueId: number;
       name: string;
-      /** null before the season starts. */
+      /** null before the season starts, or when FPL's game-info file couldn't be read (see gameweekUnavailable). */
       gameweek: GameweekInfo | null;
+      /** FPL's game-info file failed: the gameweek is unknown (not pre-season), and there are no extras. */
+      gameweekUnavailable: boolean;
       rows: StandingRow[];
       /** More pages exist than were fetched. */
       truncated: boolean;
@@ -208,7 +212,8 @@ export type Outside<T> =
   | { status: "off" };          // not set up (e.g. no API key)
 
 export interface ClubMatchView extends Omit<ClubMatch, "opponentId"> {
-  opponent: { id: number; name: string; short: string; code: number };
+  /** `unknown`: FPL doesn't list this club (no crest, no club page); the view names it in the page's language. */
+  opponent: { id: number; name: string; short: string; code: number; unknown?: true };
 }
 
 export type ClubModel =
@@ -394,7 +399,9 @@ export interface SnapshotListItem {
 
 export interface SnapshotModel {
   gw: number;
-  leagueName: string;
+  /** null when the stored table has no league name (the view titles it in the page's language). */
+  leagueName: string | null;
+  /** "" when the backend stored no time. */
   takenAt: string;
   rows: StandingRow[];
   /** Non-null when the table was rebuilt afterwards instead of saved at the time. */
@@ -500,11 +507,15 @@ export type ToolsModel = {
   prices: ToolsPrices;
   /** null when the league's picks could not be had. */
   eo: { gw: number; managers: number; tier: EoTier["key"]; tiers: EoTier[]; by: "eo" | "captain"; rows: ToolsEoRow[] } | null;
+  /** League-aware tools (chip tracker, injury watch, template and differentials, head to head); null without a league. */
+  leagueTools: LeagueTools | null;
   teams: ToolsTeam[];
   /** Little-owned players worth chasing, for the altered view. */
   upside: Upside | null;
   /** The lab: captaincy simulation, rotation pairs and trackers, for the altered view. */
   lab: Lab | null;
+  /** Planning tools (captain shortlist, fixture swings, rotation pairs, set-piece orders); null when none can be worked out. */
+  planning: Planning | null;
   /** Where the season stands (gameweek, phase, next deadline), carrying the salt for this visit's wording. */
   phase: GwPhase;
   /** The crowd's week: most bought and sold, and the price pressure (all of FPL, not just the filtered rows). */

@@ -37,14 +37,14 @@ export function interviewInputOf(
   const sub = g.autoSubs[0];
   const form = insights.season?.form;
   const charts = insights.season?.charts;
-  const defcon = new Map(g.defcon.map((d) => [d.name, d]));
+  const defcon = new Map(g.defcon.map((d) => [d.id ?? d.name, d]));
 
   const players: InterviewPlayer[] = model.showPoints
     ? allPlayers(sheet).map((p) => {
         const flagged = (p.status != null && p.status !== "a") || (p.chanceOfPlaying != null && p.chanceOfPlaying < 100);
         const label = p.status === "i" ? "Injured" : p.status === "s" ? "Suspended" : p.status === "u" || p.status === "n" ? "Unavailable" : "Doubtful";
         const threshold = DEFCON_THRESHOLD[p.positionId];
-        const d = defcon.get(p.name);
+        const d = defcon.get(p.id) ?? defcon.get(p.name);
         return {
           name: p.name,
           pos: p.positionId,

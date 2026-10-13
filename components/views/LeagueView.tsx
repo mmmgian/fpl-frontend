@@ -1,5 +1,5 @@
 import { LiveRefresh, PageHeader, StateMessage, StatList, gameweekName, gameweekShort, getFormat, getT } from "@/components/ui";
-import { refreshIntervalMs } from "@/lib/domain";
+import { isolateName, refreshIntervalMs } from "@/lib/domain";
 import type { LeagueModel } from "@/lib/services/models";
 import { GwStatusBadge } from "./GwStatusBadge";
 import { LeagueAwards } from "./LeagueAwards";
@@ -26,6 +26,9 @@ export function LeagueView({ model }: { model: LeagueModel }) {
   const names = new Map(rows.map((r) => [r.entry, r.entry_name]));
   const stories = summary ? storyLines(model.headlines, (entry) => names.get(entry) ?? "", variety) : [];
   const gap = model.headlines.find((h) => h.kind === "titleRace");
+  // LeagueAwards renders (with its h2) only when an award goes to a manager in the table; otherwise the panels' headings
+  // sit straight under the page title.
+  const awardsShown = Boolean(model.stats?.awards.some((a) => names.has(a.entry)));
   return (
     <>
       <PageHeader
@@ -37,11 +40,12 @@ export function LeagueView({ model }: { model: LeagueModel }) {
               <span>{gameweekName(gameweek.name)}</span>
               <GwStatusBadge status={gameweek.status} />
             </>
-          ) : (
+          ) : model.gameweekUnavailable ? undefined : (
             <span>{t.preSeason}</span>
           )
         }
-        actions={refreshFor(gameweek?.status)}
+        // An unreadable gameweek (FPL's game file failing while the game updates) is retried slowly, like provisional.
+        actions={refreshFor(model.gameweekUnavailable ? "provisional" : gameweek?.status)}
       />
 
 
@@ -60,10 +64,10 @@ export function LeagueView({ model }: { model: LeagueModel }) {
               {
                 label: t.leader,
                 value: f.number(summary.leader.total),
-                hint: gap?.kind === "titleRace" ? vary(t.leaderHint, variety, 1)(summary.leader.entryName, getT().common.points(gap.gap)) : summary.leader.entryName,
+                hint: gap?.kind === "titleRace" ? vary(t.leaderHint, variety, 1)(isolateName(summary.leader.entryName), getT().common.points(gap.gap)) : summary.leader.entryName,
               },
               ...(summary.best && gameweek
-                ? [{ label: t.best(gameweekShort(gameweek.name)), value: summary.best.total, hint: gameweek.status === "live" ? t.bestLive(summary.best.entryName) : summary.best.entryName }]
+                ? [{ label: t.best(gameweekShort(gameweek.name)), value: summary.best.total, hint: gameweek.status === "live" ? t.bestLive(isolateName(summary.best.entryName)) : summary.best.entryName }]
                 : []),
               { label: t.managers, value: summary.managers, hint: model.truncated ? t.truncated : undefined },
             ]}
@@ -79,7 +83,7 @@ export function LeagueView({ model }: { model: LeagueModel }) {
           {model.stats ? (
             <LeagueAwards awards={model.stats.awards} rows={rows} gw={model.stats.gw} phase={model.statsPhase} liveGw={model.currentGw} variety={variety} />
           ) : null}
-          <StandingsTable rows={rows} caption={t.caption(model.name)} hideCaption zones stats={model.stats ?? undefined} variety={variety} />
+          <StandingsTable rows={rows} caption={t.caption(model.name)} hideCaption zones stats={model.stats ?? undefined} variety={variety} panelHeadingLevel={awardsShown ? 3 : 2} />
         </>
       )}
     </>

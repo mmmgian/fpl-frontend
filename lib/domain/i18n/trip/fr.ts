@@ -1018,6 +1018,9 @@ export const tripFr: TripOverlay = {
 
   loading: {
     tools: ["Le Labo fait ses mélanges", "Les chiffres se rêvent", "Syntonisation des prix"],
+    eo: ["À l'écoute de l'esprit de ruche", "Décompte des élus de chaque vaisseau", "L'attraction de la ruche se fait sentir"],
+    league: ["Coup d'œil dans chaque vaisseau", "Décompte des sorts de chaque bourse", "Lecture du cosmos, vaisseau par vaisseau"],
+    leagueExtras: ["Invocation des visions", "Lecture du voyage de chaque vaisseau", "Les visions remontent à la surface"],
     team: "Syntonisation du vaisseau",
     club: "Recherche de la tribu",
     fixtures: "Cartographie des orbites",

@@ -3039,6 +3039,9 @@ export const fr: Messages = {
 
   loading: {
     tools: ["Chargement des outils", "Calcul des chiffres de la FPL", "Vérification des prix et des compositions"],
+    eo: ["Décompte des choix de la ligue", "Calcul de la possession effective", "Lecture des effectifs de la journée"],
+    league: ["Lecture des effectifs et des chips de la ligue", "Vérification de chaque effectif de la ligue", "Collecte des chips, blessures et équipes types"],
+    leagueExtras: ["Chargement de la forme, des trophées et des stats", "Lecture de la saison de chaque manager", "Remise des trophées de la journée"],
     team: "Chargement de l'équipe",
     club: "Chargement du club",
     fixtures: "Chargement du calendrier",

@@ -107,3 +107,10 @@ describe("selectGameweek with gaps in FPL's event list", () => {
     expect(selectGameweek(events, "3", 1, new Date("2026-10-13T12:00:00Z"))?.gw).toBe(3);
   });
 });
+
+describe("navigation cache", () => {
+  it("keeps a visited page for a short while so back/forward and tab hops are instant", async () => {
+    const cfg = (await import("@/next.config")).default;
+    expect(cfg.experimental?.staleTimes?.dynamic).toBe(30);
+  });
+});

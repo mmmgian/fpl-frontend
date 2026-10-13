@@ -1018,6 +1018,9 @@ export const tripEs: TripOverlay = {
 
   loading: {
     tools: ["Mezclando el laboratorio", "Soñando los números", "Sintonizando los precios"],
+    eo: ["Escuchando a la mente colmena", "Contando a los elegidos de cada nave", "Sintiendo el tirón de la colmena"],
+    league: ["Asomándose a cada nave", "Contando los hechizos de cada bolsa", "Leyendo el cosmos, nave por nave"],
+    leagueExtras: ["Invocando las visiones", "Leyendo el viaje de cada nave", "Dejando que afloren las visiones"],
     team: "Sintonizando la nave",
     club: "Buscando la tribu",
     fixtures: "Trazando las órbitas",

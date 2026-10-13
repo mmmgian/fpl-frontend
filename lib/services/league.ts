@@ -1,7 +1,7 @@
 import { cleanStandings, currentEvent, gwStatus, leagueHeadlines, leagueStats, matchCounts, MAX_STATS_MANAGERS, squadWeek, statsPhase, summarizeStandings, varietyKey } from "../domain";
 import type { SquadWeek } from "../domain";
 import type { Bootstrap, EntryHistory, StandingRow } from "../domain/types";
-import type { LeagueModel } from "./models";
+import type { LeagueExtras, LeagueModel, LeagueStream, LeagueTable } from "./models";
 import { withAvatars } from "./avatars";
 import type { FplPort, ServiceOptions } from "./ports";
 import { withinDeadline } from "./shared";
@@ -46,59 +46,83 @@ async function loadSquads(fpl: Pick<FplPort, "picks" | "live" | "allFixtures">, 
 
 /** Use case: the league table with this gameweek's headline numbers, and the fun extras when the data is there. */
 export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap" | "history" | "picks" | "live" | "allFixtures">, { now = () => new Date(), avatars, replaceBadges }: ServiceOptions = {}) {
+  /**
+   * The table as soon as the standings and the game file are in (the game file is small and cached), and the extras
+   * that need one request per manager (histories, squads) as a promise behind it. Only the standings failing rejects.
+   */
+  async function loadStreaming(leagueId: number): Promise<LeagueStream> {
+    // Both requests start together; bootstrap is only needed once the league is known to exist.
+    const bootstrapRequest = fpl.bootstrap();
+    bootstrapRequest.catch(() => {}); // awaited below; avoid an unhandled rejection on the "not found" path
+
+    const standings = await fpl.standings(leagueId);
+    if (!standings) return { model: { kind: "not-found", leagueId }, extras: Promise.resolve({ stats: null, statsPhase: null, headlines: [] }), pending: false };
+
+    const rows = withAvatars(cleanStandings(standings.standings?.results), avatars, { replaceBadges });
+    // Only for leagues of a size where one request per manager is reasonable; bigger ones get the plain table.
+    const withExtras = rows.length > 0 && rows.length <= MAX_STATS_MANAGERS;
+    // Everything runs through the last finished gameweek: the one in progress is half-played.
+    const lastFinished = (events: Bootstrap["events"]) => events.filter((e) => e.finished).reduce<Bootstrap["events"][number] | null>((a, e) => (!a || e.id > a.id ? e : a), null);
+    const settledThrough = (events: Bootstrap["events"]) => lastFinished(events)?.id ?? 0;
+    // The per-manager requests start now, before the game file is back, and are not waited for here. Neither rejects.
+    const historiesRequest = withExtras ? loadHistories(fpl, rows).catch(() => new Map<number, EntryHistory>()) : Promise.resolve(new Map<number, EntryHistory>());
+    // The squads need only the gameweek number, so they load alongside the histories, not after them.
+    const squadsRequest: Promise<Map<number, SquadWeek>> = bootstrapRequest
+      .then(({ events, elements }) => {
+        const done = lastFinished(events);
+        return withExtras && done ? loadSquads(fpl, rows, done.id, Boolean(done.data_checked), elements) : new Map<number, SquadWeek>();
+      })
+      .catch(() => new Map<number, SquadWeek>());
+
+    // FPL's game-info file failing (it does while the game updates) costs the gameweek and the extras, not the table.
+    const bootstrap = await bootstrapRequest.catch(() => null);
+    const events = bootstrap?.events ?? [];
+    const event = currentEvent(events);
+    const at = now();
+    const status = event ? gwStatus(event, at) : null;
+    const summary = summarizeStandings(rows);
+    const tableOnly: LeagueExtras = { stats: null, statsPhase: null, headlines: leagueHeadlines(rows, null) };
+
+    const model: LeagueTable = {
+      kind: "ok",
+      leagueId,
+      name: typeof standings.league?.name === "string" ? standings.league.name : "",
+      gameweek: event && status ? { name: event.name, status } : null,
+      gameweekUnavailable: !bootstrap,
+      rows,
+      truncated: Boolean(standings.standings?.has_next),
+      newEntries: Array.isArray(standings.new_entries?.results) ? standings.new_entries.results.length : 0,
+      summary: summary && { leader: summary.leader, best: event ? summary.best : null, managers: summary.managers },
+      currentGw: event?.id ?? null,
+      // Wording only: redrawn daily, and the moment FPL moves the gameweek on (live -> provisional -> final).
+      variety: varietyKey(event?.id ?? 0, status ?? "upcoming", at),
+      ...tableOnly,
+    };
+
+    // Without the gameweek list there is no telling which week is half-played, so no extras rather than wrong ones;
+    // and a league too big (or empty) has none to wait for. Either way the table is the whole page.
+    if (!bootstrap || !withExtras) return { model, extras: Promise.resolve(tableOnly), pending: false };
+
+    const extras = Promise.all([historiesRequest, squadsRequest])
+      .then(([histories, squads]): LeagueExtras => {
+        const stats = leagueStats(rows, histories, settledThrough(events));
+        return {
+          stats: stats && (squads.size ? { ...stats, squad: Object.fromEntries(squads) } : stats),
+          statsPhase: stats ? statsPhase(stats.gw, event && status ? { id: event.id, status } : null) : null,
+          headlines: leagueHeadlines(rows, stats),
+        };
+      })
+      // Odd data that trips the arithmetic costs the extras, never the page.
+      .catch(() => tableOnly);
+    return { model, extras, pending: true };
+  }
+
   return {
+    loadStreaming,
+    /** The whole page in one go: the table and its extras, waiting for both. */
     async load(leagueId: number): Promise<LeagueModel> {
-      // Both requests start together; bootstrap is only needed once the league is known to exist.
-      const bootstrapRequest = fpl.bootstrap();
-      bootstrapRequest.catch(() => {}); // awaited below; avoid an unhandled rejection on the "not found" path
-
-      const standings = await fpl.standings(leagueId);
-      if (!standings) return { kind: "not-found", leagueId };
-
-      const rows = withAvatars(cleanStandings(standings.standings?.results), avatars, { replaceBadges });
-      // Only for leagues of a size where one request per manager is reasonable; bigger ones get the plain table.
-      const withExtras = rows.length > 0 && rows.length <= MAX_STATS_MANAGERS;
-      // Everything runs through the last finished gameweek: the one in progress is half-played.
-      const lastFinished = (events: Bootstrap["events"]) => events.filter((e) => e.finished).reduce<Bootstrap["events"][number] | null>((a, e) => (!a || e.id > a.id ? e : a), null);
-      const settledThrough = (events: Bootstrap["events"]) => lastFinished(events)?.id ?? 0;
-      // The squads need only the gameweek number, so they load alongside the histories, not after them.
-      const squadsRequest: Promise<Map<number, SquadWeek>> = bootstrapRequest
-        .then(({ events, elements }) => {
-          const done = lastFinished(events);
-          return withExtras && done ? loadSquads(fpl, rows, done.id, Boolean(done.data_checked), elements) : new Map<number, SquadWeek>();
-        })
-        .catch(() => new Map<number, SquadWeek>());
-      const [bootstrap, histories, squads] = await Promise.all([
-        // FPL's game-info file failing (it does while the game updates) costs the gameweek and the extras, not the table.
-        bootstrapRequest.catch(() => null),
-        withExtras ? loadHistories(fpl, rows) : Promise.resolve(new Map<number, EntryHistory>()),
-        squadsRequest,
-      ]);
-      const events = bootstrap?.events ?? [];
-      const event = currentEvent(events);
-      const at = now();
-      const status = event ? gwStatus(event, at) : null;
-      const summary = summarizeStandings(rows);
-      // Without the gameweek list there is no telling which week is half-played, so no extras rather than wrong ones.
-      const stats = bootstrap ? leagueStats(rows, histories, settledThrough(events)) : null;
-
-      return {
-        kind: "ok",
-        leagueId,
-        name: typeof standings.league?.name === "string" ? standings.league.name : "",
-        gameweek: event && status ? { name: event.name, status } : null,
-        gameweekUnavailable: !bootstrap,
-        rows,
-        truncated: Boolean(standings.standings?.has_next),
-        newEntries: Array.isArray(standings.new_entries?.results) ? standings.new_entries.results.length : 0,
-        summary: summary && { leader: summary.leader, best: event ? summary.best : null, managers: summary.managers },
-        stats: stats && (squads.size ? { ...stats, squad: Object.fromEntries(squads) } : stats),
-        currentGw: event?.id ?? null,
-        statsPhase: stats ? statsPhase(stats.gw, event && status ? { id: event.id, status } : null) : null,
-        headlines: leagueHeadlines(rows, stats),
-        // Wording only: redrawn daily, and the moment FPL moves the gameweek on (live -> provisional -> final).
-        variety: varietyKey(event?.id ?? 0, status ?? "upcoming", at),
-      };
+      const { model, extras } = await loadStreaming(leagueId);
+      return model.kind === "ok" ? { ...model, ...(await extras) } : model;
     },
   };
 }

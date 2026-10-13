@@ -24,6 +24,9 @@ season insights, live/provisional bonus points, a fixture-difficulty table, and 
   (FPL bonus stat present, not yet finished) and **Projected** (computed from live BPS with FPL's
   tie rules).
 - Live pages refresh every minute while a gameweek is in progress, pausing while the tab is hidden.
+- The league table streams: it is sent as soon as the standings (and the cached game file) are back, and the
+  storyline, awards and stats columns, which need one request per manager, follow behind a Suspense boundary
+  (`services.league.loadStreaming`, `app/_league/Extras.tsx`) with placeholders holding their place.
 - Every route has loading skeletons, an error boundary with retry, and explicit empty / not-found states.
   A "waking up the server" hint appears on history pages because Render's free tier cold-starts slowly.
 

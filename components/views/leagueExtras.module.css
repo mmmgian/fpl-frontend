@@ -7,6 +7,12 @@
 /* ---------- The week's storyline, under the page header ---------- */
 .story { margin: 0 auto; max-width: 62ch; font-size: 0.9375rem; line-height: 1.5; text-align: center; color: var(--text-muted); text-wrap: balance; }
 .storyPhase { font-weight: 600; color: var(--text); }
+/* Holds the storyline's place (two lines of .story) while the extras load. */
+.storyPending { display: grid; gap: 0.1em; justify-items: center; margin: 0 auto; width: 100%; max-width: 62ch; font-size: 0.9375rem; }
+
+/* Hold the place of a row's form bars and stats button while the extras load (sizes of MiniBars and .togglePill). */
+.pendingToggle { display: block; margin-top: var(--space-1); }
+.pendingNum { display: flex; justify-content: flex-end; }
 
 /* A row you swipe through on a phone; a tidy grid once there is room. */
 .awardList {

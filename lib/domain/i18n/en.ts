@@ -3103,6 +3103,11 @@ export const en = {
 
   loading: {
     tools: ["Loading tools", "Crunching FPL's numbers", "Checking prices and picks"],
+    /** The Tools page's parts that read every squad in the league, which arrive after the rest. */
+    eo: ["Counting the league's picks", "Working out effective ownership", "Reading this week's squads"],
+    league: ["Reading the league's squads and chips", "Checking every squad in the league", "Gathering chips, injuries and templates"],
+    /** The League page's form, awards and storylines, which arrive just after its table. */
+    leagueExtras: ["Loading form, awards and stats", "Reading every manager's season", "Handing out this week's awards"],
     team: "Loading team",
     club: "Loading club",
     fixtures: "Loading fixtures",

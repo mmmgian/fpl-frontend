@@ -3038,6 +3038,9 @@ export const es: Messages = {
 
   loading: {
     tools: ["Cargando las herramientas", "Procesando los números de la FPL", "Revisando precios y alineaciones"],
+    eo: ["Contando las elecciones de la liga", "Calculando la propiedad efectiva", "Leyendo las plantillas de esta jornada"],
+    league: ["Leyendo las plantillas y los chips de la liga", "Revisando cada plantilla de la liga", "Reuniendo chips, lesiones y plantillas tipo"],
+    leagueExtras: ["Cargando forma, premios y estadísticas", "Leyendo la temporada de cada mánager", "Repartiendo los premios de la jornada"],
     team: "Cargando el equipo",
     club: "Cargando el club",
     fixtures: "Cargando el calendario",

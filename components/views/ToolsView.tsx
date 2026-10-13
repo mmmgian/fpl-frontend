@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
+import type { ReactNode } from "react";
+import { Badge, ButtonLink, Button, Card, CaptainBadge, Crest, DataTable, DeadlineTimer, FdrChip, LoadingState, Skeleton, TableSkeleton, gameweekName, getFormat, getT, isTrip, type Column } from "@/components/ui";
 import { entrySlugs, LAB_TRIALS, fdrBand, minus, pickVariant, type CaptainCandidate, type DefconBanker, type PlayerLine, type PriceRow, type PriceStatus, type RotationPair, type SuspensionRow, type UpsidePick } from "@/lib/domain";
 import type { PositionId } from "@/lib/domain/types";
-import type { ToolsModel } from "@/lib/services/models";
+import type { ToolsKept, ToolsModel } from "@/lib/services/models";
 import sheet from "./sheet.module.css";
 import styles from "./tools.module.css";
 import { CaptainShortlist } from "./tools/CaptainShortlist";
@@ -16,7 +17,7 @@ type Tools = Extract<ToolsModel, { kind: "ok" }>;
  * Each card draws its wording from a few variants with the model's salt (new every day and whenever the gameweek moves
  * on), each with its own slot so neighbouring cards don't move in step. Only the words change; every figure is a fact.
  */
-const SLOT = { brief: 1, average: 2, bought: 3, sold: 4, prices: 5, xi: 7, eo: 8, teams: 9, upside: 10, tip: 11, captain: 12, rotation: 13, penalties: 14, suspensions: 15, defcon: 16, none: 17 } as const;
+const SLOT = { brief: 1, average: 2, bought: 3, sold: 4, prices: 5, xi: 7, eo: 8, teams: 9, upside: 10, tip: 11, captain: 12, rotation: 13, penalties: 14, suspensions: 15, defcon: 16, none: 17, league: 18 } as const;
 const say = <T,>(items: readonly T[], variety: number, slot: number): T => pickVariant(items, variety, slot);
 
 const shirt = (clubCode: number | null) => (clubCode ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${clubCode}-66.png` : null);
@@ -25,8 +26,17 @@ const TONE: Record<PriceStatus, "positive" | "accent" | "neutral" | "warning" | 
   rose: "positive", likelyRise: "positive", closeRise: "accent", steady: "neutral", closeFall: "warning", likelyFall: "live", fell: "live",
 };
 
+/** The league-dependent choices a full model carries; while those parts stream in, the page passes them in instead. */
+function keptOf(model: Tools): ToolsKept {
+  return {
+    eo: model.eo?.tier ?? null,
+    by: model.eo?.by === "captain" ? "captain" : null,
+    vs: model.leagueTools?.rivals?.selected?.join(",") ?? null,
+  };
+}
+
 /** A link back to this page with some of the query changed, so a tab keeps the other tools' filters. */
-function href(model: Tools, over: Record<string, string | null>, hash: string): string {
+function href(model: Tools, kept: ToolsKept, over: Record<string, string | null>, hash: string): string {
   const f = model.prices.filter;
   const q = new URLSearchParams();
   const set = (k: string, v: string | null | undefined) => v && q.set(k, v);
@@ -34,9 +44,9 @@ function href(model: Tools, over: Record<string, string | null>, hash: string): 
   set("pos", f.position ? String(f.position) : null);
   set("team", f.team ? String(f.team) : null);
   set("moving", f.movingOnly ? "1" : null);
-  set("eo", model.eo?.tier);
-  set("by", model.eo?.by === "captain" ? "captain" : null);
-  set("vs", model.leagueTools?.rivals?.selected?.join(","));
+  set("eo", kept.eo);
+  set("by", kept.by);
+  set("vs", kept.vs);
   for (const [k, v] of Object.entries(over)) {
     if (v === null) q.delete(k);
     else q.set(k, v);
@@ -46,8 +56,8 @@ function href(model: Tools, over: Record<string, string | null>, hash: string): 
 }
 
 /** The other tools' filters as plain fields, for a form that sets its own (the head to head's `vs`). */
-function keepFor(model: Tools): Record<string, string> {
-  return Object.fromEntries(new URL(href(model, { vs: null }, "x"), "https://x.invalid").searchParams);
+function keepFor(model: Tools, kept: ToolsKept): Record<string, string> {
+  return Object.fromEntries(new URL(href(model, kept, { vs: null }, "x"), "https://x.invalid").searchParams);
 }
 
 function TeamOfTheWeek({ xi, variety }: { xi: NonNullable<Tools["xi"]>; variety: number }) {
@@ -295,7 +305,7 @@ function UpsideLab({ upside, variety }: { upside: NonNullable<Tools["upside"]>; 
   );
 }
 
-function PriceChanges({ model }: { model: Tools }) {
+function PriceChanges({ model, kept }: { model: Tools; kept: ToolsKept }) {
   const t = getT();
   const p = t.tools.prices;
   const f = getFormat();
@@ -339,9 +349,9 @@ function PriceChanges({ model }: { model: Tools }) {
     <Card title={p.title} headingLevel={2} className={styles.full}>
       <p className={styles.note}>{say(p.note, model.phase.variety, SLOT.prices)(model.pulse.rising, model.pulse.falling)}</p>
       <form method="get" action="/tools" className={styles.filters}>
-        {model.eo ? <input type="hidden" name="eo" value={model.eo.tier} /> : null}
-        {model.eo?.by === "captain" ? <input type="hidden" name="by" value="captain" /> : null}
-        {model.leagueTools?.rivals?.selected ? <input type="hidden" name="vs" value={model.leagueTools.rivals.selected.join(",")} /> : null}
+        {kept.eo ? <input type="hidden" name="eo" value={kept.eo} /> : null}
+        {kept.by ? <input type="hidden" name="by" value={kept.by} /> : null}
+        {kept.vs ? <input type="hidden" name="vs" value={kept.vs} /> : null}
         <label className={styles.field}>
           {p.search}
           <input className={styles.input} type="search" name="q" defaultValue={filter.q} placeholder={p.searchPlaceholder} maxLength={40} />
@@ -401,6 +411,7 @@ function EffectiveOwnership({ model }: { model: Tools }) {
   const e = t.tools.eo;
   const f = getFormat();
   const eo = model.eo;
+  const kept = keptOf(model);
   const columns: Column<NonNullable<Tools["eo"]>["rows"][number]>[] = [
     {
       key: "player",
@@ -432,14 +443,14 @@ function EffectiveOwnership({ model }: { model: Tools }) {
             <span className={styles.tabGroup} role="group" aria-label={e.groups}>
               <span aria-hidden="true">{e.groups}</span>
               {eo.tiers.map((tier) => (
-                <Link key={tier.key} className={styles.tab} href={href(model, { eo: tier.key }, "eo")} aria-current={eo.tier === tier.key ? "true" : undefined} scroll={false}>
+                <Link key={tier.key} className={styles.tab} href={href(model, kept, { eo: tier.key }, "eo")} aria-current={eo.tier === tier.key ? "true" : undefined} scroll={false}>
                   {e.tiers[tier.key]}
                 </Link>
               ))}
             </span>
             <span className={styles.tabGroup}>
               {(["eo", "captain"] as const).map((by) => (
-                <Link key={by} className={styles.tab} href={href(model, { by: by === "eo" ? null : "captain" }, "eo")} aria-current={eo.by === by ? "true" : undefined} scroll={false}>
+                <Link key={by} className={styles.tab} href={href(model, kept, { by: by === "eo" ? null : "captain" }, "eo")} aria-current={eo.by === by ? "true" : undefined} scroll={false}>
                   {e.by[by]}
                 </Link>
               ))}
@@ -529,10 +540,76 @@ function WeekBrief({ model }: { model: Tools }) {
   );
 }
 
-export function ToolsView({ model }: { model: Tools }) {
+/**
+ * The league-dependent parts (effective ownership and the league tools: chips, injuries, template, differentials, head to
+ * head), supplied by the page when they stream in after the rest. Each slot goes where the full model would put its part.
+ */
+export interface ToolsDeferredSlots {
+  /** The query's league-dependent choices, for the links and forms painted before those parts arrive. */
+  kept: ToolsKept;
+  /** Inside the `#eo` section, which is always there so its jump link never dangles. */
+  eo: ReactNode;
+  /** Where the league tools' sections go. */
+  league: ReactNode;
+  /** The league tools' jump links (`<li>` items), shown once their sections are there. */
+  nav: ReactNode;
+}
+
+const slugsOf = (model: Tools) => entrySlugs(model.teams.map((x) => ({ id: x.entry, name: x.teamName })));
+
+/** The effective ownership card, for a model whose `eo` has arrived (or is known to be missing). */
+export function ToolsEoCard({ model }: { model: Tools }) {
+  return <EffectiveOwnership model={model} />;
+}
+
+/** The league tools' sections, for a model whose `leagueTools` has arrived; nothing when there are none. */
+export function ToolsLeagueSections({ model }: { model: Tools }) {
+  return <LeagueToolsSections league={model.leagueTools} variety={model.phase.variety} keep={keepFor(model, keptOf(model))} slugs={slugsOf(model)} />;
+}
+
+/** The league tools' jump links, as `<li>` items for the page's nav list. */
+export function ToolsLeagueNav({ model }: { model: Tools }) {
+  return <LeagueToolsNav league={model.leagueTools} />;
+}
+
+/** Holds the effective ownership card's place, under its own heading, while the league's picks are read. */
+export function ToolsEoPending({ variety }: { variety: number }) {
+  const t = getT();
+  return (
+    <Card title={t.tools.eo.title} headingLevel={2} className={styles.full}>
+      <LoadingState label={say(t.loading.eo, variety, SLOT.eo)}>
+        <Skeleton width="70%" height={16} />
+        <Skeleton width={220} height={28} radius={8} />
+        <TableSkeleton rows={10} columns={5} />
+      </LoadingState>
+    </Card>
+  );
+}
+
+/** Holds the league tools' place while every covered manager's squad and chips are read. */
+export function ToolsLeaguePending({ variety }: { variety: number }) {
+  const t = getT();
+  return (
+    <div className={styles.full}>
+      <LoadingState label={say(t.loading.league, variety, SLOT.league)}>
+        {[0, 1].map((i) => (
+          <Card key={i} as="div" className={styles.full}>
+            <Skeleton width={180} height={22} />
+            <Skeleton width="60%" height={14} />
+            <TableSkeleton rows={6} columns={4} />
+          </Card>
+        ))}
+      </LoadingState>
+    </div>
+  );
+}
+
+export function ToolsView({ model, deferred }: { model: Tools; deferred?: ToolsDeferredSlots }) {
   const t = getT();
   const tt = t.tools;
   const trip = isTrip();
+  // While the league-dependent parts stream in, the model has neither, so the page says what the query asked for.
+  const kept = deferred?.kept ?? keptOf(model);
   return (
     <div className={`${sheet.sheet} ${styles.pitch}`}>
       <h1 className={sheet.title}>{tt.heading}</h1>
@@ -581,7 +658,7 @@ export function ToolsView({ model }: { model: Tools }) {
               <a href="#setpieces">{tt.planning.nav.setPieces}</a>
             </li>
           ) : null}
-          <LeagueToolsNav league={model.leagueTools} />
+          {deferred ? deferred.nav : <LeagueToolsNav league={model.leagueTools} />}
           {model.teams.length ? (
             <li>
               <a href="#teams">{tt.teams.title}</a>
@@ -618,17 +695,17 @@ export function ToolsView({ model }: { model: Tools }) {
           </section>
         ) : null}
         <section id="prices" className={styles.full}>
-          <PriceChanges model={model} />
+          <PriceChanges model={model} kept={kept} />
         </section>
         <section id="eo" className={styles.full}>
-          <EffectiveOwnership model={model} />
+          {deferred ? deferred.eo : <EffectiveOwnership model={model} />}
         </section>
         {model.planning?.setPieces ? (
           <section id="setpieces" className={styles.full}>
             <SetPieces rows={model.planning.setPieces} variety={model.phase.variety} />
           </section>
         ) : null}
-        <LeagueToolsSections league={model.leagueTools} variety={model.phase.variety} keep={keepFor(model)} slugs={entrySlugs(model.teams.map((x) => ({ id: x.entry, name: x.teamName })))} />
+        {deferred ? deferred.league : <ToolsLeagueSections model={model} />}
         {model.teams.length ? (
           <section id="teams" className={styles.full}>
             <Teams teams={model.teams} variety={model.phase.variety} />

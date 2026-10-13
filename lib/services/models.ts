@@ -56,6 +56,24 @@ export type LeagueModel =
       variety: number;
     };
 
+/** The league page for a league FPL knows (LeagueModel's "ok" state). */
+export type LeagueTable = Extract<LeagueModel, { kind: "ok" }>;
+
+/** What the per-manager histories and squads add to the table: they arrive after it (see LeagueStream). */
+export type LeagueExtras = Pick<LeagueTable, "stats" | "statsPhase" | "headlines">;
+
+/**
+ * The league page in two parts, so the table can be shown as soon as FPL returns the standings. `model` has
+ * everything read off the standings and the game file. While `pending`, its extras are placeholders: no stats and the
+ * storylines the table alone can tell. `extras` then has the real ones. It never rejects; a failure or a manager
+ * past the deadline means fewer extras, or none. When not `pending`, `model` is already the whole page.
+ */
+export interface LeagueStream {
+  model: LeagueModel;
+  extras: Promise<LeagueExtras>;
+  pending: boolean;
+}
+
 // ---------- Team sheet ----------
 
 export interface TeamIdentity {
@@ -521,3 +539,14 @@ export type ToolsModel = {
   /** The crowd's week: most bought and sold, and the price pressure (all of FPL, not just the filtered rows). */
   pulse: TransferPulse;
 };
+
+/** The Tools page's league-dependent parts (they need every covered manager's squad), which may arrive after the rest. */
+export type ToolsDeferred = Pick<ToolsModel, "eo" | "leagueTools">;
+
+/** The query's league-dependent choices, validated, that the page's links and forms keep while those parts are on their way. */
+export interface ToolsKept {
+  eo: EoTier["key"] | null;
+  by: "captain" | null;
+  /** Head to head, `A,B`. */
+  vs: string | null;
+}

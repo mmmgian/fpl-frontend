@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, Crest, DataTable, MiniBars, Movement, getFormat, getT, type Column } from "@/components/ui";
+import { Badge, Crest, DataTable, MiniBars, Movement, Skeleton, getFormat, getT, type Column } from "@/components/ui";
 import { entrySlugs, rankMovement, zoneOf, type LeagueStats, type ManagerStats } from "@/lib/domain";
 import type { StandingRow } from "@/lib/domain/types";
 import { ManagerStatsDetail, StatsToggle } from "./ManagerStatsPanel";
@@ -29,17 +29,23 @@ interface StandingsTableProps {
   zones?: boolean;
   /** Per-manager extras from the league service. Left out for frozen history tables. */
   stats?: Pick<LeagueStats, "byEntry" | "comparable" | "gw" | "squad">;
+  /**
+   * The extras are on their way (see LeagueStream): the stats columns and each row's form and stats button keep their
+   * place with placeholders, so the table does not reflow when they arrive. Ignored once `stats` is given.
+   */
+  statsPending?: boolean;
   /** Picks the phrasings in the stats panels (see varietyKey); the first phrasing without it. */
   variety?: number;
   /** Heading level inside the stats panels: 3 under a section heading (the awards), 2 straight under the page title. */
   panelHeadingLevel?: 2 | 3;
 }
 
-export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, variety, panelHeadingLevel = 3 }: StandingsTableProps) {
+export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, statsPending = false, variety, panelHeadingLevel = 3 }: StandingsTableProps) {
   const t = getT();
   const tt = t.table;
   const f = getFormat();
   const stats = leagueExtras?.byEntry;
+  const pending = statsPending && !leagueExtras;
   const slugs = entrySlugs(rows.map((r) => ({ id: r.entry, name: r.entry_name })));
   const formLabel = (s: ManagerStats) => tt.formLabel(s.form.length, s.form.join(", "));
   const chipName = (name: string) => (t.chips as Record<string, string>)[name] ?? name;
@@ -95,12 +101,39 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
                 </span>
                 <StatsToggle teamName={r.entry_name} />
               </>
+            ) : pending ? (
+              <>
+                <span className={extras.mobileForm}>
+                  <Skeleton width={84} height={32} radius={4} />
+                </span>
+                <span className={extras.pendingToggle}>
+                  <Skeleton width={72} height="1.75rem" radius={999} />
+                </span>
+              </>
             ) : null}
           </span>
         </span>
       ),
     },
-    ...(stats
+    ...(pending
+      ? (["form", "value", "bench", "hits", "chips"] as const).map(
+          (key): Column<StandingRow> => ({
+            key,
+            header: tt[key],
+            align: key === "form" || key === "chips" ? undefined : "end",
+            hideBelow: "md",
+            width: { form: "6rem", value: "5.5rem", bench: "4.5rem", hits: "4.5rem", chips: "7rem" }[key],
+            cell: () =>
+              key === "form" || key === "chips" ? (
+                <Skeleton width={key === "form" ? "100%" : "60%"} />
+              ) : (
+                <span className={extras.pendingNum}>
+                  <Skeleton width="2.5em" />
+                </span>
+              ),
+          }),
+        )
+      : stats
       ? ([
           {
             key: "form",

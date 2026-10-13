@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Pages are rendered per request, which Next would otherwise re-fetch on every visit. Keeping a visited page for 30s
+    // makes back/forward and hopping between tabs instant; live pages still poll (router.refresh ignores this cache), and
+    // the language, theme and blotter switches reload the page, so a cached page is never in the wrong mode.
+    staleTimes: { dynamic: 30, static: 180 },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "resources.premierleague.com", pathname: "/premierleague/badges/**" },

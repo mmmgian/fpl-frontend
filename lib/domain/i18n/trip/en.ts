@@ -1022,6 +1022,9 @@ export const tripEn: TripOverlay = {
 
   loading: {
     tools: ["Mixing the lab", "Dreaming up the numbers", "Tuning into the prices"],
+    eo: ["Listening to the hive mind", "Counting the vessels' chosen", "Feeling the hive's pull"],
+    league: ["Peering into every vessel", "Counting the spells in each pouch", "Reading the cosmos, vessel by vessel"],
+    leagueExtras: ["Summoning the visions", "Reading each vessel's voyage", "Letting the visions surface"],
     team: "Tuning into the vessel",
     club: "Finding the tribe",
     fixtures: "Charting the orbits",

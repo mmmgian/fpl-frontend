@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, ButtonLink, CaptainBadge, Crest, DataTable, getT, type Column } from "@/components/ui";
+import { Button, ButtonLink, CaptainBadge, ClubLink, Crest, DataTable, getT, type Column } from "@/components/ui";
 import type { Rivals, RivalSide, UniquePlayer } from "@/lib/domain/leagueTools";
 import tools from "../tools.module.css";
 import styles from "./leagueTools.module.css";
@@ -12,9 +12,13 @@ function Players({ players, empty }: { players: (UniquePlayer | (UniquePlayer & 
     <ul className={styles.stack}>
       {players.map((p) => (
         <li key={p.id}>
-          <Crest code={p.clubCode} name={p.club} size={20} />
+          <ClubLink name={p.club}>
+            <Crest code={p.clubCode} name={p.club} size={20} />
+          </ClubLink>
           <span className={tools.playerName}>{p.name}</span>
-          <span className={tools.playerMeta}>{p.club}</span>
+          <span className={tools.playerMeta}>
+            <ClubLink name={p.club}>{p.club}</ClubLink>
+          </span>
           {p.captain ? <CaptainBadge /> : null}
           {p.starter ? null : <span className={styles.bench}>({bench})</span>}
         </li>

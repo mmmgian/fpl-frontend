@@ -1,4 +1,4 @@
-import { Badge, Card, Crest, DataTable, FdrChip, gameweekName, getFormat, getT, type Column } from "@/components/ui";
+import { Badge, Card, ClubLink, Crest, DataTable, FdrChip, gameweekName, getFormat, getT, type Column } from "@/components/ui";
 import { fdrBand, pickVariant, type CaptainCandidate } from "@/lib/domain";
 import type { CaptainShortlist as Shortlist } from "@/lib/domain/planning";
 import styles from "../tools.module.css";
@@ -33,11 +33,13 @@ export function CaptainShortlist({ captain, variety }: { captain: Shortlist; var
       rowHeader: true,
       cell: (r) => (
         <span className={styles.player}>
-          <Crest code={r.clubCode} name={r.club} size={22} />
+          <ClubLink name={r.club}>
+            <Crest code={r.clubCode} name={r.club} size={22} />
+          </ClubLink>
           <span className={styles.playerText}>
             <span className={styles.playerName}>{r.name}</span>
             <span className={styles.playerMeta}>
-              {r.club} · {t.tools.positionShort[r.positionId]}
+              <ClubLink name={r.club}>{r.club}</ClubLink> · {t.tools.positionShort[r.positionId]}
             </span>
             {/* On a phone the fixture column hides; the opponent is the point of a captain pick, so it moves here. */}
             {r.opponents.length ? <span className={layout.sm}>{opponents(r)}</span> : null}

@@ -1,4 +1,4 @@
-import { CaptainBadge, Crest, DataTable, getFormat, getT, type Column } from "@/components/ui";
+import { CaptainBadge, ClubLink, Crest, DataTable, getFormat, getT, type Column } from "@/components/ui";
 import type { LeagueTemplate as TemplateModel, ManagerUniques } from "@/lib/domain/leagueTools";
 import tools from "../tools.module.css";
 import styles from "./leagueTools.module.css";
@@ -26,10 +26,12 @@ export function LeagueTemplate({ template, variety, slugs }: { template: Templat
             <div className={tools.tiles}>
               {line.players.map((p) => (
                 <div key={p.id} className={tools.tile}>
-                  <Crest code={p.clubCode} name={p.club} size={30} />
+                  <ClubLink name={p.club}>
+                    <Crest code={p.clubCode} name={p.club} size={30} />
+                  </ClubLink>
                   <span className={tools.tileName}>{p.name}</span>
                   <span className={tools.xp}>
-                    {p.club} · {t.common.percent(f.oneDecimal(p.share))}
+                    <ClubLink name={p.club}>{p.club}</ClubLink> · {t.common.percent(f.oneDecimal(p.share))}
                   </span>
                 </div>
               ))}
@@ -71,7 +73,9 @@ export function Differentials({ rows, variety, slugs }: { rows: ManagerUniques[]
           <ul className={styles.names}>
             {r.players.map((p) => (
               <li key={p.id}>
-                <Crest code={p.clubCode} name={p.club} size={18} />
+                <ClubLink name={p.club}>
+                  <Crest code={p.clubCode} name={p.club} size={18} />
+                </ClubLink>
                 <span>{p.name}</span>
                 {p.captain ? <CaptainBadge /> : null}
                 {p.starter ? null : <span className={styles.bench}>({bench})</span>}

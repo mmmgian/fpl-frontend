@@ -1,4 +1,4 @@
-import { Badge, Card, Crest, DataTable, FdrChip, getFormat, getT, type Column } from "@/components/ui";
+import { Badge, Card, ClubLink, Crest, DataTable, FdrChip, getFormat, getT, type Column } from "@/components/ui";
 import { fdrBand, minus, pickVariant } from "@/lib/domain";
 import type { FixtureSwings as Swings, PlanCell, RotationPlan, RotationPlanPair, SwingRow } from "@/lib/domain/planning";
 import styles from "../tools.module.css";
@@ -50,7 +50,9 @@ export function FixtureSwings({ swings, variety }: { swings: Swings; variety: nu
       rowHeader: true,
       cell: (r) => (
         <span className={plan.club}>
-          <Crest code={r.clubCode} name={r.club} size={22} />
+          <ClubLink name={r.club}>
+            <Crest code={r.clubCode} name={r.club} size={22} />
+          </ClubLink>
           <span className={layout.stack}>
             {r.club}
             {/* The run column hides on a phone, and it is the only place a blank or a double shows: keep it under the club. */}

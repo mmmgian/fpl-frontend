@@ -1,4 +1,4 @@
-import { Badge, Card, Crest, DataTable, getT, type Column } from "@/components/ui";
+import { Badge, Card, ClubLink, Crest, DataTable, getT, type Column } from "@/components/ui";
 import { pickVariant } from "@/lib/domain";
 import type { SetPieceRow, SetPieceTaker } from "@/lib/domain/planning";
 import styles from "../tools.module.css";
@@ -59,8 +59,12 @@ export function SetPieces({ rows, variety }: { rows: SetPieceRow[]; variety: num
       rowHeader: true,
       cell: (r) => (
         <span className={plan.club}>
-          <Crest code={r.clubCode} name={r.clubName} size={24} />
-          <span className={plan.clubCode}>{r.club}</span>
+          <ClubLink name={r.clubName}>
+            <Crest code={r.clubCode} name={r.clubName} size={24} />
+          </ClubLink>
+          <ClubLink name={r.clubName} className={plan.clubCode}>
+            {r.club}
+          </ClubLink>
         </span>
       ),
     },

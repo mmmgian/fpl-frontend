@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CaptainBadge,
+  ClubLink,
   Crest,
   DataTable,
   DeadlineTimer,
@@ -190,7 +191,9 @@ function ProjectedXI({
             <div className={styles.tiles}>
               {line.players.map((p) => (
                 <div key={p.id} className={styles.tile}>
-                  <Crest src={shirt(p.clubCode)} name={p.club} size={34} />
+                  <ClubLink name={p.club}>
+                    <Crest src={shirt(p.clubCode)} name={p.club} size={34} />
+                  </ClubLink>
                   <span className={styles.tileName}>
                     {p.name}
                     {p.captain ? (
@@ -256,11 +259,13 @@ function LabCards({
     phone?: ReactNode,
   ) => (
     <span className={styles.player}>
-      <Crest code={r.clubCode} name={r.club} size={22} />
+      <ClubLink name={r.club}>
+        <Crest code={r.clubCode} name={r.club} size={22} />
+      </ClubLink>
       <span className={styles.playerText}>
         <span className={styles.playerName}>{r.name}</span>
         <span className={styles.playerMeta}>
-          {r.club} · {t.tools.positionShort[r.positionId]}
+          <ClubLink name={r.club}>{r.club}</ClubLink> · {t.tools.positionShort[r.positionId]}
         </span>
         {phone ? <span className={layout.sm}>{phone}</span> : null}
       </span>
@@ -610,11 +615,13 @@ function UpsideLab({
       rowHeader: true,
       cell: (r) => (
         <span className={styles.player}>
-          <Crest code={r.clubCode} name={r.club} size={22} />
+          <ClubLink name={r.club}>
+            <Crest code={r.clubCode} name={r.club} size={22} />
+          </ClubLink>
           <span className={styles.playerText}>
             <span className={styles.playerName}>{r.name}</span>
             <span className={styles.playerMeta}>
-              {r.club} · {tt.tools.positionShort[r.positionId]}
+              <ClubLink name={r.club}>{r.club}</ClubLink> · {tt.tools.positionShort[r.positionId]}
             </span>
           </span>
         </span>
@@ -722,11 +729,13 @@ function PriceChanges({ model, kept }: { model: Tools; kept: ToolsKept }) {
       rowHeader: true,
       cell: (r) => (
         <span className={styles.player}>
-          <Crest code={r.clubCode} name={r.club} size={22} />
+          <ClubLink name={r.club}>
+            <Crest code={r.clubCode} name={r.club} size={22} />
+          </ClubLink>
           <span className={styles.playerText}>
             <span className={styles.playerName}>{r.name}</span>
             <span className={styles.playerMeta}>
-              {r.club} · {t.tools.positionShort[r.positionId]}
+              <ClubLink name={r.club}>{r.club}</ClubLink> · {t.tools.positionShort[r.positionId]}
             </span>
           </span>
         </span>
@@ -885,10 +894,14 @@ function EffectiveOwnership({ model }: { model: Tools }) {
       rowHeader: true,
       cell: (r) => (
         <span className={styles.player}>
-          <Crest code={r.clubCode} name={r.club} size={22} />
+          <ClubLink name={r.club}>
+            <Crest code={r.clubCode} name={r.club} size={22} />
+          </ClubLink>
           <span className={styles.playerText}>
             <span className={styles.playerName}>{r.name}</span>
-            <span className={styles.playerMeta}>{r.club}</span>
+            <span className={styles.playerMeta}>
+              <ClubLink name={r.club}>{r.club}</ClubLink>
+            </span>
           </span>
         </span>
       ),

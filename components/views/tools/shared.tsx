@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, Crest, getT } from "@/components/ui";
+import { Badge, ClubLink, Crest, getT } from "@/components/ui";
 import { pickVariant } from "@/lib/domain";
 import type { LeaguePlayer } from "@/lib/domain/leagueTools";
 import tools from "../tools.module.css";
@@ -18,11 +18,13 @@ export function PlayerCell({ p, children }: { p: LeaguePlayer; children?: ReactN
   const t = getT();
   return (
     <span className={tools.player}>
-      <Crest code={p.clubCode} name={p.club} size={22} />
+      <ClubLink name={p.club}>
+        <Crest code={p.clubCode} name={p.club} size={22} />
+      </ClubLink>
       <span className={tools.playerText}>
         <span className={tools.playerName}>{p.name}</span>
         <span className={tools.playerMeta}>
-          {p.club} · {t.tools.positionShort[p.positionId]}
+          <ClubLink name={p.club}>{p.club}</ClubLink> · {t.tools.positionShort[p.positionId]}
         </span>
         {children}
       </span>

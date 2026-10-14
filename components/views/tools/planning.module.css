@@ -14,21 +14,28 @@
 
 .run {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
+  min-width: 0;
 }
 
 .week {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: 4px;
   align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .gw {
-  font-size: 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
+  padding: 1px 5px;
+  background: var(--wash);
+  border-radius: var(--radius-pill);
 }
 
 .club {
@@ -38,40 +45,147 @@
   font-weight: 600;
 }
 
+.clubCode {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ---------- Set Pieces Takers ---------- */
 .takers {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .taker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  align-items: baseline;
-  /* Long names wrap rather than push the table wider. */
-  overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  width: fit-content;
+  max-width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: transform 120ms ease, border-color 150ms ease, background 150ms ease;
 }
 
-.order {
-  min-width: 1.1em;
-  font-variant-numeric: tabular-nums;
+@media (hover: hover) and (pointer: fine) {
+  .taker:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.taker[data-order="1"] {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-solid));
+}
+
+.taker[data-fitness="out"] {
+  opacity: 0.65;
+  background: var(--hover-wash);
+}
+
+.orderBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--wash);
   color: var(--text-muted);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.taker[data-order="1"] .orderBadge {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.jerseyWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jersey {
+  display: block;
+  width: 17px;
+  height: 19px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+}
+
+.takerName {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.taker[data-order="1"] .takerName {
+  font-weight: 700;
+}
+
+.noneListed {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.colHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.headerIcon {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .muted {
   color: var(--text-muted);
 }
 
+/* ---------- Views layouts ---------- */
 .views {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
+/* Swings tables: stacked by default so RUN column fits all 5 gameweek chips without wrapping into 5 lines */
+.swingsViews {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1360px) {
+  .swingsViews {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .viewTitle {
   margin: 0 0 0.5rem;
   font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
 }

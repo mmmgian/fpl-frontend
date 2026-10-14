@@ -76,7 +76,7 @@ export function FixtureSwings({ swings, variety }: { swings: Swings; variety: nu
     <Card title={s.title}>
       <p className={styles.note}>{pickVariant(s.note, variety, PLAN_SLOT.swings)(soon, later)}</p>
       {swings.easing.length || swings.hardening.length ? (
-        <div className={plan.views}>
+        <div className={plan.swingsViews}>
           {lists.map(([title, rows]) => (
             <div key={title}>
               <h3 className={plan.viewTitle}>{title}</h3>

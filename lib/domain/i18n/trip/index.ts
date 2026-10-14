@@ -5,6 +5,7 @@
  */
 import type { Locale } from "../locales";
 import type { Messages } from "../en";
+import { clientTrip } from "../client/trip";
 import { tripEn } from "./en";
 import { tripEs } from "./es";
 import { tripFr } from "./fr";
@@ -35,7 +36,9 @@ const built = new Map<Locale, Messages>();
 export function tripMessages(base: Messages, locale: Locale): Messages {
   const cached = built.get(locale);
   if (cached) return cached;
-  const m = overlay<Messages>(base, TRIP_OVERLAYS[locale] as unknown as DeepPartial<Messages>);
+  // The client strings travel to the browser separately (the I18nProvider lays CLIENT_TRIP over them), but server views
+  // read them too (difficulty chips, the skip link): give them the same altered words, or one page speaks two ways.
+  const m = { ...overlay<Messages>(base, TRIP_OVERLAYS[locale] as unknown as DeepPartial<Messages>), client: clientTrip(base.client, locale) };
   built.set(locale, m);
   return m;
 }

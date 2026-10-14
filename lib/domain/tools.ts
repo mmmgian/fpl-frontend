@@ -21,6 +21,18 @@ export function nextDeadline(events: FplEvent[], now: Date): Deadline | null {
   return ahead ? { gw: ahead.id, name: ahead.name, at: ahead.deadline_time } : null;
 }
 
+/**
+ * The gameweek whose picks are locked in at `now`: FPL's current one once its deadline has passed, otherwise the latest
+ * whose deadline has. (FPL can flag the next gameweek current a little before its deadline; until then its picks are
+ * still being changed, and the season hasn't gone back to the start.) Null before the first deadline.
+ */
+export function lockedEvent(events: FplEvent[], now: Date): FplEvent | null {
+  const passed = (e: FplEvent) => new Date(e.deadline_time).getTime() <= now.getTime();
+  const current = events.find((e) => e.is_current) ?? [...events].reverse().find((e) => e.finished) ?? null;
+  if (current && passed(current)) return current;
+  return events.filter(passed).sort((a, b) => b.id - a.id)[0] ?? null;
+}
+
 export interface Countdown {
   days: number;
   hours: number;

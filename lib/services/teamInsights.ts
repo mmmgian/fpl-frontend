@@ -97,7 +97,7 @@ export function buildInsights(input: InsightInput): { insights: TeamInsights; ne
         chip: safe(() => chipContribution(sheet, picks.active_chip), null),
         autoSubs: safe(() => autoSubs(sheet, list(picks.automatic_subs)), []),
         // Availability and ownership are "as of now": not shown against a past gameweek.
-        rotation: isLatest && states ? safe(() => rotationRisks(sheet, states), []) : [],
+        rotation: isLatest && states ? safe(() => rotationRisks(sheet, states, list(picks.automatic_subs).map((s) => s.element_out)), []) : [],
         remaining: states && gameweek.status === "live" ? safe(() => playersRemaining(sheet, states), null) : null,
         defcon: safe(() => defconProgress(sheet, gwFixtures ? matchCounts(gwFixtures, gameweek.gw) : null), []),
         flags: isLatest ? safe(() => squadFlags(sheet), []) : [],

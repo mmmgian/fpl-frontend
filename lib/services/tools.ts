@@ -1,5 +1,5 @@
 import type { Pick as FplPick, PositionId, StandingRow } from "../domain";
-import { bestXI, buildLab, upsidePicks, currentEvent, effectiveOwnership, eoTiers, filterPrices, gwPhase, matchPulse, nextDeadline, opponentsIn, priceRows, transferPulse } from "../domain";
+import { bestXI, buildLab, upsidePicks, effectiveOwnership, eoTiers, filterPrices, gwPhase, lockedEvent, matchPulse, nextDeadline, opponentsIn, priceRows, transferPulse } from "../domain";
 import type { Bootstrap, FplEvent } from "../domain/types";
 import { MAX_STATS_MANAGERS } from "../domain";
 import { attempt, buildPlanning, clip, saneBootstrap, sanePicks, saneSchedule, saneStandings } from "../domain/planning";
@@ -40,10 +40,13 @@ export interface ToolsStream {
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** The first upcoming event: FPL's "next", or failing that the earliest deadline ahead. */
+/**
+ * The gameweek the "before the deadline" tools are for: the one whose deadline is next (the countdown's), failing that
+ * FPL's "next". FPL can flag a gameweek current a little before its deadline, and then its "next" is a week too far.
+ */
 function upcoming(events: FplEvent[], now: Date): FplEvent | null {
   const d = nextDeadline(events, now);
-  return events.find((e) => e.is_next) ?? (d ? (events.find((e) => e.id === d.gw) ?? null) : null);
+  return (d ? events.find((e) => e.id === d.gw) : undefined) ?? events.find((e) => e.is_next) ?? null;
 }
 
 /** Use case: the Tools page. Every tool is optional: one that can't be worked out is simply absent. */
@@ -63,8 +66,7 @@ export function createToolsService(
   };
 
   /** Effective ownership across the league: the current gameweek's picks, for the top of the table or everyone. */
-  const ownership = async (bootstrap: Bootstrap, rows: StandingRow[], query: ToolsQuery, picksOf: LeagueToolsRun["picksOf"]): Promise<ToolsModel["eo"]> => {
-    const event = currentEvent(bootstrap.events);
+  const ownership = async (bootstrap: Bootstrap, event: FplEvent | null, rows: StandingRow[], query: ToolsQuery, picksOf: LeagueToolsRun["picksOf"]): Promise<ToolsModel["eo"]> => {
     if (!event || rows.length === 0 || rows.length > MAX_STATS_MANAGERS) return null;
     const tiers = eoTiers(rows.length);
     const asked = one(query.eo);
@@ -92,8 +94,8 @@ export function createToolsService(
    * The query's league-dependent choices (EO group, captain order, head to head), validated against what is known before
    * the league's squads arrive, so the page's links and forms keep them while those parts are still on their way.
    */
-  const keptFrom = (bootstrap: Bootstrap, rows: StandingRow[], query: ToolsQuery): ToolsKept => {
-    const eligible = Boolean(currentEvent(bootstrap.events)) && rows.length > 0 && rows.length <= MAX_STATS_MANAGERS;
+  const keptFrom = (event: FplEvent | null, rows: StandingRow[], query: ToolsQuery): ToolsKept => {
+    const eligible = Boolean(event) && rows.length > 0 && rows.length <= MAX_STATS_MANAGERS;
     const tiers = eligible ? eoTiers(rows.length) : [];
     const tier = eligible ? (tiers.find((t) => t.key === one(query.eo)) ?? tiers[0]) : null;
     const covered = new Set(rows.slice(0, LEAGUE_TOOLS_CAP).map((r) => r.entry));
@@ -125,10 +127,12 @@ export function createToolsService(
 
     // Team of the week: the next gameweek's best eleven by FPL's own expected points.
     const next = upcoming(bootstrap.events, at);
+    // The squads read are the latest locked in: a gameweek's picks only count (and only show) once its deadline passes.
+    const locked = lockedEvent(bootstrap.events, at);
     // The league fan-out (EO, chips, injuries, template, head to head): started now so its wait overlaps everything else.
     // Each manager's picks are asked for once (league.picksOf), however many tools read them.
-    const league = startLeagueTools(fpl, { bootstrap, rows, nextGw: next?.id ?? null, vs: query.vs });
-    const eoPart = ownership(bootstrap, rows, query, league.picksOf).catch(() => null);
+    const league = startLeagueTools(fpl, { bootstrap, rows, event: locked, nextGw: next?.id ?? null, vs: query.vs });
+    const eoPart = ownership(bootstrap, locked, rows, query, league.picksOf).catch(() => null);
     const deferred: Promise<ToolsDeferred> = Promise.all([eoPart, league.ready.catch(() => null)])
       .then(([eo, leagueTools]) => ({ eo, leagueTools }))
       .catch(() => ({ eo: null, leagueTools: null }));
@@ -152,7 +156,8 @@ export function createToolsService(
     // The captain shortlist reuses the lab's simulation rather than running a second one.
     const planning = attempt(() => buildPlanning(bootstrap, schedule, next?.id ?? null, lab ? { lab: lab.captain, trials: LAB_TRIALS } : null));
 
-    const phase = gwPhase(bootstrap.events, at);
+    // Where the season stands is the locked-in gameweek's state: a week flagged current before its deadline is still to come.
+    const phase = gwPhase(locked ? bootstrap.events.map((e) => ({ ...e, is_current: e.id === locked.id })) : bootstrap.events, at);
     // FPL calls the week live from its deadline to sign-off, quiet days included; the schedule says whether a ball is
     // actually being kicked, so the brief can say "paused until Saturday" rather than "on now".
     const pulse = phase.phase === "live" && phase.gw !== null && schedule ? matchPulse(schedule.map((f) => ({ ...f, finished: f.finished || f.finished_provisional })), phase.gw, at) : null;
@@ -177,7 +182,7 @@ export function createToolsService(
       matches: pulse && pulse.state !== "none" ? { state: pulse.state, nextKickoff: pulse.nextKickoff } : null,
       pulse: transferPulse(bootstrap, allPrices),
     };
-    return { model, deferred, kept: keptFrom(bootstrap, rows, query) };
+    return { model, deferred, kept: keptFrom(locked, rows, query) };
   }
 
   return {

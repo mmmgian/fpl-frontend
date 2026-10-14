@@ -178,7 +178,7 @@ function ProjectedXI({
       </p>
       {differs ? <p className={layout.aside}>{differs}</p> : null}
       <p className={styles.formation}>
-        <span>{x.formation}</span> {xi.best.formation}
+        <span>{x.formation}</span> {xi.best.formation}{" "}
         <span>{x.total}</span> {f.oneDecimal(xi.best.total)}
       </p>
       <div className={styles.lines}>

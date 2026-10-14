@@ -23,6 +23,8 @@ interface StandingsTableProps {
   hideCaption?: boolean;
   /** Link team names to /team/[entry]. Off for frozen history snapshots of past seasons. */
   linkTeams?: boolean;
+  /** Open the linked team sheets at this gameweek (a past table links to the week it shows, not the live one). */
+  teamGw?: number;
   showMovement?: boolean;
   highlightEntry?: number;
   /** Tint the top four green, fifth and sixth amber and the bottom four red, with a key above the table. */
@@ -40,7 +42,7 @@ interface StandingsTableProps {
   panelHeadingLevel?: 2 | 3;
 }
 
-export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, statsPending = false, variety, panelHeadingLevel = 3 }: StandingsTableProps) {
+export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, teamGw, showMovement = true, highlightEntry, zones = false, stats: leagueExtras, statsPending = false, variety, panelHeadingLevel = 3 }: StandingsTableProps) {
   const t = getT();
   const tt = t.table;
   const f = getFormat();
@@ -86,7 +88,7 @@ export function StandingsTable({ rows, caption, hideCaption, linkTeams = true, s
           <Crest src={r.club_badge_src} name={r.entry_name} size={28} />
           <span className={styles.teamText}>
             {linkTeams ? (
-              <Link href={`/team/${slugs.get(r.entry) ?? r.entry}`} className={styles.teamLink}>
+              <Link href={`/team/${slugs.get(r.entry) ?? r.entry}${teamGw ? `?gw=${teamGw}` : ""}`} className={styles.teamLink}>
                 {r.entry_name}
               </Link>
             ) : (

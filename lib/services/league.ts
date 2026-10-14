@@ -98,7 +98,7 @@ export function createLeagueService(fpl: Pick<FplPort, "standings" | "bootstrap"
       rows,
       truncated: Boolean(standings.standings?.has_next),
       newEntries: Array.isArray(standings.new_entries?.results) ? standings.new_entries.results.length : 0,
-      summary: summary && { leader: summary.leader, best: event ? summary.best : null, managers: summary.managers },
+      summary: summary && { leader: summary.leader, best: event && status !== "upcoming" ? summary.best : null, managers: summary.managers },
       currentGw: event?.id ?? null,
       // Wording only: redrawn daily, and the moment FPL moves the gameweek on (live -> provisional -> final).
       variety: varietyKey(event?.id ?? 0, status ?? "upcoming", at),

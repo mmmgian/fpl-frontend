@@ -1,6 +1,6 @@
 import { currentEvent, MAX_STATS_MANAGERS } from "../domain";
 import { buildLeagueTools, type LeagueManager, type LeagueTools } from "../domain/leagueTools";
-import type { Bootstrap, EntryPicks, HistoryChip, StandingRow } from "../domain/types";
+import type { Bootstrap, EntryPicks, FplEvent, HistoryChip, StandingRow } from "../domain/types";
 import type { FplPort } from "./ports";
 import { withinDeadline } from "./shared";
 
@@ -21,9 +21,21 @@ export interface LeagueToolsRun {
  */
 export function startLeagueTools(
   fpl: Pick<FplPort, "picks" | "history">,
-  { bootstrap, rows, nextGw, vs }: { bootstrap: Bootstrap; rows: StandingRow[]; nextGw: number | null; vs?: string | string[] },
+  {
+    bootstrap,
+    rows,
+    event = currentEvent(bootstrap.events),
+    nextGw,
+    vs,
+  }: {
+    bootstrap: Bootstrap;
+    rows: StandingRow[];
+    /** The gameweek whose picks are read (the latest locked in); FPL's current one when not given. */
+    event?: FplEvent | null;
+    nextGw: number | null;
+    vs?: string | string[];
+  },
 ): LeagueToolsRun {
-  const event = currentEvent(bootstrap.events);
   const memo = new Map<number, Promise<EntryPicks | null>>();
   const picksOf = (entry: number): Promise<EntryPicks | null> => {
     if (!event) return Promise.resolve(null);

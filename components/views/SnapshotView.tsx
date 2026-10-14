@@ -83,7 +83,7 @@ export function SnapshotView({ gw, snapshot, now, saved }: { gw: number; snapsho
         </StateMessage>
       ) : null}
       {snapshot.facts ? <Summary facts={snapshot.facts} variety={snapshot.variety} /> : null}
-      <StandingsTable rows={snapshot.rows} caption={snapshot.leagueName ? h.standingsAfter(snapshot.leagueName, gw) : h.standings(gw)} hideCaption />
+      <StandingsTable rows={snapshot.rows} caption={snapshot.leagueName ? h.standingsAfter(snapshot.leagueName, gw) : h.standings(gw)} teamGw={gw} hideCaption />
     </>
   );
 }

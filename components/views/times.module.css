@@ -104,3 +104,5 @@
 .neighbour:last-child:not(:first-child) { text-align: right; }
 .neighbourTitle { font-weight: 800; overflow-wrap: anywhere; }
 .noscript { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4); padding: var(--space-3); }
+/* On paper the issue-to-issue links are dead boxes: print just the pages, like the flipbook's own controls. */
+@media print { .neighbours { display: none; } }

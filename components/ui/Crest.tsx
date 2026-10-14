@@ -19,7 +19,8 @@ function initials(name: string) {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
+    // By code point, not UTF-16 unit: a name starting with an emoji (🦞) would otherwise show half a surrogate pair.
+    .map((w) => Array.from(w)[0]?.toUpperCase())
     .join("");
 }
 

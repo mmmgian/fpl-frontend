@@ -92,8 +92,10 @@ function playerColumns({ showPoints, next, benchOrder = false }: ColumnOptions):
             <span className="sr-only">{sh.noPoints}</span>
           </span>
         ) : (
+          // A player who doesn't count (the bench, an auto-subbed starter) shows what he scored, muted, so the bench
+          // rows add up to the bench subtotal below them instead of a column of zeros.
           <span className={p.multiplier === 0 ? styles.muted : undefined}>
-            <strong>{p.points}</strong>
+            <strong>{p.multiplier === 0 ? p.basePoints : p.points}</strong>
             {p.multiplier > 1 ? <span className="sr-only"> ({p.basePoints} × {p.multiplier})</span> : null}
           </span>
         ),

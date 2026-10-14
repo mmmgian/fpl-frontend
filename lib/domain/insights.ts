@@ -187,7 +187,8 @@ export function tenure(past: HistorySeason[]): Tenure {
 
 export interface CaptainInsight {
   captain: { name: string; base: number; multiplier: number; points: number };
-  vice: { name: string; base: number | null } | null;
+  /** `multiplier` above 1: the captain didn't play and FPL gave the vice-captain the armband. */
+  vice: { name: string; base: number | null; multiplier?: number } | null;
   /** Highest-scoring starter so far (the captain wins ties). */
   best: { name: string; base: number };
   /**
@@ -217,7 +218,7 @@ export function captainInsight(sheet: TeamSheet, states: Map<number, TeamState> 
   const state = (captain.minutes ?? 0) > 0 ? "played" : captain.teamId != null && states?.get(captain.teamId) === "finished" ? "unused" : "waiting";
   return {
     captain: { name: captain.name, base: captain.basePoints, multiplier: captain.multiplier, points: captain.points ?? 0 },
-    vice: vice ? { name: vice.name, base: vice.basePoints } : null,
+    vice: vice ? { name: vice.name, base: vice.basePoints, multiplier: vice.multiplier } : null,
     best: { name: top.name, base: top.basePoints },
     state,
     regret: state === "played" ? (top.basePoints - captain.basePoints) * captain.multiplier : null,
@@ -302,12 +303,16 @@ export interface RotationRisk {
   wasStarter: boolean;
 }
 
-/** Fit players whose club's matches are all over yet who recorded 0 minutes: unused subs, with the evidence. */
-export function rotationRisks(sheet: TeamSheet, states: Map<number, TeamState>): RotationRisk[] {
+/**
+ * Fit players whose club's matches are all over yet who recorded 0 minutes: unused subs, with the evidence. `subbedOut`
+ * is who FPL auto-subbed out of the XI: they now sit on the bench but were picked to start, and still say so.
+ */
+export function rotationRisks(sheet: TeamSheet, states: Map<number, TeamState>, subbedOut: readonly number[] = []): RotationRisk[] {
+  const out = new Set(subbedOut);
   return allPlayers(sheet)
-    .filter((p) => !(p.slot > 11 && p.positionId === 1)) // the bench goalkeeper almost never plays
+    .filter((p) => !(p.slot > 11 && p.positionId === 1 && !out.has(p.id))) // the bench goalkeeper almost never plays
     .filter((p) => p.minutes === 0 && p.status === "a" && p.teamId != null && states.get(p.teamId) === "finished")
-    .map((p) => ({ name: p.name, club: p.club, wasStarter: p.slot <= 11 }))
+    .map((p) => ({ name: p.name, club: p.club, wasStarter: p.slot <= 11 || out.has(p.id) }))
     .sort((a, b) => Number(b.wasStarter) - Number(a.wasStarter));
 }
 

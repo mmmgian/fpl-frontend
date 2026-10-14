@@ -117,6 +117,9 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
 
   // The final note looks ahead to the next deadline only when there is one, and only beside the latest gameweek.
   const latest = gameweek.gw === gameweek.max;
+  // The lede says the press meets "after" a gameweek. Before a deadline that is the week before ("after Gameweek 6,
+  // with the Gameweek 7 deadline ahead"), never the one not yet played.
+  const ledeGw = status === "upcoming" && gameweek.gw > 1 ? getT().common.gameweek(gameweek.gw - 1) : gw;
   const note =
     status === "live"
       ? t.liveNote
@@ -136,7 +139,7 @@ export function InterviewPanel({ model, now = new Date() }: { model: Ok; now?: D
         <h2 id="interview-heading" className={styles.title}>
           {trip ? t.trip.heading : t.heading}
         </h2>
-        <p className={styles.lede}>{trip ? t.trip.lede(ctx.manager, team.teamName, gw, mood, ctx.nextGw) : t.lede(ctx.manager, team.teamName, gw, mood, ctx.nextGw)}</p>
+        <p className={styles.lede}>{trip ? t.trip.lede(ctx.manager, team.teamName, ledeGw, mood, ctx.nextGw) : t.lede(ctx.manager, team.teamName, ledeGw, mood, ctx.nextGw)}</p>
       </header>
 
       <div className={styles.body}>

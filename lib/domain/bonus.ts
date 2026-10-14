@@ -159,8 +159,9 @@ export function bonusRace(f: Fixture, bonus: BonusRow[] = matchBonus(f).rows): B
     leader,
     runnerUp,
     lead: runnerUp ? leader.bps - runnerUp.bps : null,
-    // FPL's confirmed bonus can disagree with the BPS feed (late corrections); a "gap" below zero would be nonsense.
-    bubble: inside && outside && inside.bps >= outside.bps ? { inside, outside, gap: inside.bps - outside.bps } : null,
+    // FPL's confirmed bonus can disagree with the BPS feed (late corrections, or a tie its data split). Only a strict gap is
+    // a bubble: "0 BPS short" contradicts FPL's tie rule (equal BPS share the bonus), and a gap below zero is nonsense.
+    bubble: inside && outside && inside.bps > outside.bps ? { inside, outside, gap: inside.bps - outside.bps } : null,
   };
 }
 

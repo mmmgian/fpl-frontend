@@ -176,7 +176,9 @@ export function LeagueToolsSections({
       {league.rivals ? (
         <section id={LEAGUE_ANCHORS.rivals} className={tools.full}>
           <Card title={lt.rivals.title} headingLevel={2} className={tools.full}>
-            {pending ? <p className={tools.note}>{pending}</p> : null}
+            {/* Which gameweek's squads are compared: the next week's are hidden until its deadline, and once the season
+                is over there is no next week to point at, only the last one picked. */}
+            {(pending ?? squadNote) ? <p className={tools.note}>{pending ?? squadNote}</p> : null}
             <RivalCompare
               rivals={league.rivals}
               variety={variety}

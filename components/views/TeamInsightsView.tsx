@@ -9,6 +9,13 @@ function Fact({ children }: { children: ReactNode }) {
   return <p className={styles.fact}>{children}</p>;
 }
 
+/**
+ * The vice-captain's score. When the captain didn't play FPL hands the vice the armband, and the line says what he
+ * counted for ("34 pts (17 × 2)"), not only his own score, so it matches his row on the team sheet.
+ */
+const vicePoints = (vice: { base: number | null; multiplier?: number }, pts: (n: number) => string): string | undefined =>
+  vice.base == null ? undefined : (vice.multiplier ?? 1) > 1 ? `${pts(vice.base * vice.multiplier!)} (${vice.base} × ${vice.multiplier})` : pts(vice.base);
+
 /** Chooses one wording from a list: the first (plain) one without a variety key, else a seeded pick per manager and line. */
 export type Choose = <T>(items: readonly T[], line: number) => T;
 
@@ -69,7 +76,7 @@ export function MatchdayInsights({ data, gameweek, status = "final", variety, sl
               );
             })()
           )}
-          {captain.vice ? <Fact>{m.vice(captain.vice.name, captain.vice.base == null ? undefined : c.pts(captain.vice.base))}</Fact> : null}
+          {captain.vice ? <Fact>{m.vice(captain.vice.name, vicePoints(captain.vice, c.pts))}</Fact> : null}
         </Card>
       ) : null,
 

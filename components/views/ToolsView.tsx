@@ -1401,7 +1401,7 @@ export function ToolsView({
           gameweek={gameweekName(model.deadline.name)}
         />
       ) : null}
-      <nav aria-label={tt.heading}>
+      <nav aria-label={tt.heading} className={layout.jumpNav}>
         <div className={layout.jumpGroups}>
           {groups.map((g) => (
             <div key={g.key} className={layout.jumpGroup}>
@@ -1419,7 +1419,9 @@ export function ToolsView({
         <WeekBrief model={model} />
         {groups.map((g) => (
           <Fragment key={g.key}>
-            <p className={layout.group}>{tt.groups[g.key]}</p>
+            <p className={layout.group}>
+              <span className={layout.groupTag}>{tt.groups[g.key]}</span>
+            </p>
             {g.body}
           </Fragment>
         ))}

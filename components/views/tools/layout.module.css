@@ -40,22 +40,92 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: var(--space-4) 0 calc(-1 * var(--space-1));
-  font-size: 12px;
+  margin: var(--space-5) 0 var(--space-2);
+  padding: 0;
+}
+.group:first-child { margin-top: var(--space-2); }
+
+.groupTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+  white-space: nowrap;
 }
-.group::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-.group:first-child { margin-top: 0; }
 
-/* The jump bar, a row of pills per group with a quiet label in front. */
-.jumpGroups { display: grid; gap: var(--space-2); }
-.jumpGroup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.jumpLabel { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); min-width: 0; }
-@media (min-width: 640px) {
-  .jumpLabel { min-width: 9.5rem; }
+.group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border) 0%, transparent 85%);
+}
+
+/* The jump bar, a cohesive frosted card with grouped navigation rows */
+.jumpNav {
+  display: block;
+}
+
+.jumpGroups {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  backdrop-filter: var(--frost);
+  -webkit-backdrop-filter: var(--frost);
+}
+
+.jumpGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.jumpGroup:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+@media (min-width: 768px) {
+  .jumpGroup {
+    display: grid;
+    grid-template-columns: 11.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+  }
+}
+
+.jumpLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: var(--wash);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  width: fit-content;
+  white-space: nowrap;
 }
 
 /* A short line under a card's note: whose gameweek the picks are from, what a code means. */

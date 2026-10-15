@@ -1,5 +1,20 @@
 [
  {
+  "id": "lobster-times-gw6",
+  "title": "The Lobster Times",
+  "kicker": "Vol. VI · Issue 6",
+  "kind": "times",
+  "gameweek": 6,
+  "published": "2026-10-15",
+  "summary": "The Gameweek 6 gazette: front page, master ledger, global standing, armband audit, 21 manager dossiers with 5-question inquests, and the send-off.",
+  "pageCount": 29,
+  "bytes": 6173295,
+  "cover": {
+   "width": 1080,
+   "height": 1528
+  }
+ },
+ {
   "id": "lobster-times-gw5",
   "title": "The Lobster Times",
   "kicker": "Vol. V · Issue 5",

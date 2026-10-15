@@ -192,7 +192,7 @@
 :root[data-trip="on"] .mind .fact:nth-child(4n) { animation-duration: 9s; }
 
 .dares { display: grid; gap: var(--space-2); }
-.daresTitle { margin: 0; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #ffe14a; }
+:root[data-trip="on"] .daresTitle { margin: 0; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #ffe14a; }
 .dareList { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; counter-reset: dare; }
 @media (min-width: 900px) { .dareList { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
 .dare {

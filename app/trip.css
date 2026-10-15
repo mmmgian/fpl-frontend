@@ -19,6 +19,7 @@
   --border-strong: rgba(255, 220, 90, 0.7);
   --wash: rgba(255, 255, 255, 0.1);
   --accent: #ff5de0;
+  --on-accent: #12001f;
   --accent-2: #35e8ff;
   --positive: #8cff72;
   --negative: #ff7a99;
@@ -148,6 +149,7 @@
     --border: rgba(0, 0, 0, 0.18);
     --border-strong: rgba(0, 0, 0, 0.35);
     --accent: #b0006b;
+    --on-accent: #ffffff;
     --positive: #00805a;
     --negative: #800020;
     --warning: #8a5a00;

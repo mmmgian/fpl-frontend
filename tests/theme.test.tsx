@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { applyTheme } from "@/components/ui/applyTheme";
 import { isTheme, resolveTheme, THEME_COLOR, THEME_SCRIPT, THEME_STORAGE_KEY, THEMES } from "@/lib/domain";
 import { expectNoAxeViolations } from "./axe";
+import { over, parse, ratio, type RGBA } from "./colour";
 
 /** A matchMedia stand-in that can flip, and tell listeners. */
 function fakeMedia(initialDark: boolean) {
@@ -195,27 +196,6 @@ function block(selector: string): Record<string, string> {
   }
   return Object.fromEntries([...css.slice(open + 1, end).matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 }
-
-type RGBA = [number, number, number, number];
-function parse(color: string): RGBA {
-  const hex = color.match(/^#([0-9a-f]{6})$/i);
-  if (hex) return [...[0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16)), 1] as RGBA;
-  const rgba = color.match(/^rgba?\(([^)]+)\)$/);
-  if (rgba) {
-    const [r, g, b, a = "1"] = rgba[1].split(",").map((s) => s.trim());
-    return [+r, +g, +b, +a];
-  }
-  throw new Error(`cannot parse ${color}`);
-}
-const over = (top: RGBA, bottom: RGBA): RGBA => [...[0, 1, 2].map((i) => top[i] * top[3] + bottom[i] * (1 - top[3])), 1] as RGBA;
-const luminance = ([r, g, b]: RGBA) => {
-  const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-};
-const ratio = (fg: RGBA, bg: RGBA) => {
-  const [a, b] = [luminance(fg), luminance(bg)].sort((x, y) => y - x);
-  return (a + 0.05) / (b + 0.05);
-};
 
 const palettes = {
   light: block(":root"),

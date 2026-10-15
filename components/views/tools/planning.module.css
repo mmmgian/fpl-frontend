@@ -8,16 +8,21 @@
 
 .facts {
   margin: 0 0 var(--space-3);
-  padding-left: 1.1rem;
+  padding-left: 1.125rem;
   font-size: 0.875rem;
 }
 
+/* Five gameweek chips sit in a table cell. On a phone they wrap onto a second line instead of forcing the table wider than the
+   screen; from 640px the cell is wide enough for one line. */
 .run {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   min-width: 0;
+}
+@media (min-width: 640px) {
+  .run { flex-wrap: nowrap; }
 }
 
 .week {
@@ -33,7 +38,7 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
-  padding: 1px 5px;
+  padding: 2px 6px;
   background: var(--wash);
   border-radius: var(--radius-pill);
 }
@@ -65,10 +70,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px 3px 4px;
+  padding: 4px 8px 4px 4px;
   border-radius: var(--radius-pill);
   background: var(--surface-solid);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.25;
@@ -114,7 +119,7 @@
 
 .taker[data-order="1"] .orderBadge {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 
@@ -151,7 +156,7 @@
 .colHeader {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .headerIcon {
@@ -174,7 +179,7 @@
 .swingsViews {
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 1360px) {

@@ -19,6 +19,7 @@
   --border-strong: rgba(0, 0, 0, 0.28);
   --wash: rgba(0, 0, 0, 0.05);
   --accent: #b0006b;          /* magenta, 7.1:1 on white */
+  --on-accent: #ffffff;       /* text and glyphs on an --accent fill: 7.1:1 */
   --accent-2: #00a3b8;        /* cyan, decorative only */
   --positive: #00805a;        /* Kelly green, 4.9:1 on white */
   --negative: #800020;        /* burgundy */
@@ -92,6 +93,7 @@
     --border-strong: rgba(255, 255, 255, 0.34);
     --wash: rgba(255, 255, 255, 0.07);
     --accent: #ff7ad1;
+    --on-accent: #0b0b0b;
     --accent-2: #4fd8e8;
     --positive: #4ade80;
     --negative: #ff8a9b;
@@ -128,6 +130,7 @@
   --border-strong: rgba(255, 255, 255, 0.34);
   --wash: rgba(255, 255, 255, 0.07);
   --accent: #ff7ad1;
+  --on-accent: #0b0b0b;
   --accent-2: #4fd8e8;
   --positive: #4ade80;
   --negative: #ff8a9b;
@@ -166,6 +169,7 @@
   --border-strong: rgba(255, 210, 150, 0.36);
   --wash: rgba(255, 210, 150, 0.08);
   --accent: #f2a65a;
+  --on-accent: #16110c;
   --accent-2: #7fc8bd;
   --positive: #a6d67e;
   --negative: #f0a08c;
@@ -315,6 +319,7 @@ main:focus { outline: none; }
     --border: rgba(0, 0, 0, 0.18);
     --border-strong: rgba(0, 0, 0, 0.35);
     --accent: #b0006b;
+    --on-accent: #ffffff;
     --shadow: none;
     --glass-blur: none;
     --frost: none;

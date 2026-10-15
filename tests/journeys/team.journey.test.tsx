@@ -535,8 +535,16 @@ it("avant-garde press conference, kit craft, and accessibility across normal and
     await expectNoAxeViolations(doc.body);
 
     // 2. Press conference: exactly 7 exchanges with distinct roles and voices
-    const interviews = doc.querySelectorAll("#interview-heading ~ div ul > li, .interview_exchanges__ li, [class*='exchange']");
-    expect(interviews.length, `${mode}: press conference has 7 exchanges`).toBeGreaterThanOrEqual(7);
+    const section = doc.querySelector('section[aria-labelledby="interview-heading"]');
+    expect(section, `${mode}: the press conference is its own labelled section`).not.toBeNull();
+    const exchanges = [...section!.querySelectorAll("ol > li")];
+    expect(exchanges.length, `${mode}: exactly seven exchanges`).toBe(7);
+    const questions = exchanges.map((li) => li.querySelectorAll(".bubble")[0]?.textContent?.trim() ?? "");
+    const replies = exchanges.map((li) => li.querySelector(".reply .bubble")?.textContent?.trim() ?? "");
+    expect(questions.every((q) => q.length > 10), `${mode}: every question has words`).toBe(true);
+    expect(replies.every((r) => r.length > 5), `${mode}: every reply has words`).toBe(true);
+    expect(new Set(questions).size, `${mode}: no question is asked twice`).toBe(7);
+    expect(exchanges.every((li) => !!li.querySelector(".reply[data-answer]")?.getAttribute("data-answer")), `${mode}: every reply names its voice`).toBe(true);
 
     // 3. Kit and club link integrity: all player shirts link to their club page
     const clubLinks = [...doc.querySelectorAll("a[href^='/club/']")];

@@ -475,8 +475,9 @@ it("standings table craft, zone bands, stats expansion, and accessibility across
     }
 
     // 4. Movement indicators: valid arrows and change indicators
-    const movements = doc.querySelectorAll("[class*='movement'], [class*='Movement']");
-    expect(movements.length, `${mode}: movement indicators present`).toBeGreaterThan(0);
+    const movements = doc.querySelectorAll("tbody .movement");
+    expect(movements.length, `${mode}: one movement marker per row`).toBe(world.standings.length);
+    expect(table!.querySelectorAll('tbody th[scope="row"]').length, `${mode}: one row header per manager (each also has a hidden stats row)`).toBe(world.standings.length);
 
     // 5. Clean rendering: no raw code artifacts or NaN
     expect(text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);

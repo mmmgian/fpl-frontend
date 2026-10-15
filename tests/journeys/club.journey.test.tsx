@@ -714,12 +714,15 @@ describe("the club page", () => {
       await expectNoAxeViolations(v.doc.body);
 
       // 2. Club header: crest, club name, and form guide present
-      const crest = v.doc.querySelector("header img, [class*='crest']");
-      expect(crest, `${mode}: club crest present`).not.toBeNull();
+      const title = v.doc.querySelector("h1");
+      expect(norm(title?.textContent), `${mode}: the page is headed by the club`).toContain("Arsenal");
+      const badge = [...v.doc.querySelectorAll("img")].find((i) => /\/t3\.png/.test(i.getAttribute("src") ?? ""));
+      expect(badge, `${mode}: Arsenal's own badge (club code 3) is shown`).toBeTruthy();
 
       // 3. Section cards: fixtures, news, form
-      const cards = v.doc.querySelectorAll("article, [class*='card']");
-      expect(cards.length, `${mode}: club info cards present`).toBeGreaterThanOrEqual(3);
+      const headings = [...v.doc.querySelectorAll("h2")].map((h) => norm(h.textContent));
+      expect(headings.length, `${mode}: the club page has its sections`).toBeGreaterThanOrEqual(3);
+      expect(new Set(headings).size, `${mode}: no section is listed twice`).toBe(headings.length);
 
       // 4. Clean text: no unescaped entities or NaN
       expect(v.text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);

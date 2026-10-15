@@ -592,8 +592,10 @@ describe("the bonus page", () => {
       await expectNoAxeViolations(v.doc.body);
 
       // 2. Bonus match cards: present and properly structured
-      const cards = v.doc.querySelectorAll("article, [class*='card']");
-      expect(cards.length, `${mode}: match bonus cards exist`).toBeGreaterThan(0);
+      const sides = [...v.doc.querySelectorAll(".sideTitle")].map((h) => norm(h.textContent));
+      expect(sides.length, `${mode}: two sides for each of the ${world.fixtures.length} matches`).toBe(world.fixtures.length * 2);
+      const shorts = new Map(world.bootstrap.teams.map((t) => [t.id, t.short_name]));
+      expect([...sides].sort(), `${mode}: the sides are exactly this gameweek's clubs`).toEqual(world.fixtures.flatMap((f) => [shorts.get(f.team_h)!, shorts.get(f.team_a)!]).sort());
 
       // 3. Status badge: says Final for a completed gameweek
       const statusBadge = v.doc.querySelector("[class*='status'], [class*='badge']");

@@ -627,6 +627,36 @@ describe("the fixtures page", () => {
       }
     }
   });
+
+  it("FDR palette harmony, ticker horizontal flow, and accessibility across normal and blotter modes", async () => {
+    // Test 3: FDR palette semantics, ticker table structure, club links, and zero axe violations
+    const { expectNoAxeViolations } = await import("../axe");
+    const world = season("final");
+
+    for (const trip of [false, true]) {
+      const mode = trip ? "blotter" : "normal";
+
+      // A. Grid View
+      const grid = await visit(world, { params: { n: "5" }, lang: { locale: "en", trip } });
+      await expectNoAxeViolations(grid.doc.body);
+
+      const gridTable = grid.doc.querySelector("table");
+      expect(gridTable, `${mode} grid: table exists`).not.toBeNull();
+      const clubLinks = [...grid.doc.querySelectorAll("a[href^='/club/']")];
+      expect(clubLinks.length, `${mode} grid: club links present`).toBeGreaterThan(0);
+
+      // B. Feed View
+      const feed = await visit(world, { lang: { locale: "en", trip } });
+      await expectNoAxeViolations(feed.doc.body);
+
+      const feedLinks = [...feed.doc.querySelectorAll("a[href^='/club/']")];
+      expect(feedLinks.length, `${mode} feed: match club links present`).toBeGreaterThan(0);
+
+      // Clean text
+      expect(grid.text, `${mode} grid: text pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+      expect(feed.text, `${mode} feed: text pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+    }
+  });
 });
 
 // Each journey walks a whole page through many moments; give it room when the machine is busy.

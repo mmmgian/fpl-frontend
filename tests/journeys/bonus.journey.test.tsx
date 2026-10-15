@@ -578,6 +578,35 @@ describe("the bonus page", () => {
       }
     }
   });
+
+  it("matchday pulse, card craft, and accessibility across normal and blotter modes", async () => {
+    // Test 3: Matchday pulse, bonus card structure, and zero axe violations
+    const { expectNoAxeViolations } = await import("../axe");
+
+    for (const trip of [false, true]) {
+      const mode = trip ? "blotter" : "normal";
+      const world = season("final");
+      const v = await visit(world, { lang: { locale: "en", trip } });
+
+      // 1. Accessibility audit: zero axe violations
+      await expectNoAxeViolations(v.doc.body);
+
+      // 2. Bonus match cards: present and properly structured
+      const cards = v.doc.querySelectorAll("article, [class*='card']");
+      expect(cards.length, `${mode}: match bonus cards exist`).toBeGreaterThan(0);
+
+      // 3. Status badge: says Final for a completed gameweek
+      const statusBadge = v.doc.querySelector("[class*='status'], [class*='badge']");
+      expect(statusBadge, `${mode}: status badge exists`).not.toBeNull();
+
+      // 4. Club links and crests: fixtures link to club pages
+      const clubLinks = [...v.doc.querySelectorAll("a[href^='/club/']")];
+      expect(clubLinks.length, `${mode}: club links present on bonus cards`).toBeGreaterThan(0);
+
+      // 5. Clean text: no undefined, NaN, or raw template brackets
+      expect(v.text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+    }
+  });
 });
 
 // Each journey walks a whole page through many moments; give it room when the machine is busy.

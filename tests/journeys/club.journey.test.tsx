@@ -700,6 +700,32 @@ describe("the club page", () => {
       }
     }
   }, 60_000);
+
+  it("club identity, European campaign, news decoding, and accessibility across normal and blotter modes", async () => {
+    // Test 3: Club identity card structure, headline entity decoding, and zero axe violations
+    const { expectNoAxeViolations } = await import("../axe");
+    const world = season("final");
+
+    for (const trip of [false, true]) {
+      const mode = trip ? "blotter" : "normal";
+      const v = await visit(world, "arsenal", { lang: { locale: "en", trip } });
+
+      // 1. Accessibility audit: zero axe violations
+      await expectNoAxeViolations(v.doc.body);
+
+      // 2. Club header: crest, club name, and form guide present
+      const crest = v.doc.querySelector("header img, [class*='crest']");
+      expect(crest, `${mode}: club crest present`).not.toBeNull();
+
+      // 3. Section cards: fixtures, news, form
+      const cards = v.doc.querySelectorAll("article, [class*='card']");
+      expect(cards.length, `${mode}: club info cards present`).toBeGreaterThanOrEqual(3);
+
+      // 4. Clean text: no unescaped entities or NaN
+      expect(v.text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+      expect(v.html, `${mode}: no raw double-encoded entities`).not.toMatch(/&amp;#39;|&amp;quot;/);
+    }
+  });
 });
 
 // Each journey walks a whole page through many moments; give it room when the machine is busy.

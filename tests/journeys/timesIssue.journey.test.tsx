@@ -503,5 +503,35 @@ it("the issue content is right", async () => {
   }
 }, 60_000);
 
+it("reader ergonomics, outline and print rules in normal and blotter modes", async () => {
+  // Test 3: the reader page has one h1 and a sane outline, labelled landmarks, every image described, zero axe
+  // violations, neighbour links that print nothing, and a clean render, in the normal and the altered view.
+  const { expectNoAxeViolations } = await import("../axe");
+  const { readFileSync } = await import("node:fs");
+  const id = LIBRARY[0].id;
+  for (const lang of [EN, { locale: "en", trip: true } as Lang]) {
+    const where = nameOf(lang);
+    const v = await ssr(season("final"), id, undefined, { lang });
+    await expectNoAxeViolations(v.doc.body);
+
+    const levels = [...v.doc.querySelectorAll("h1, h2, h3, h4")].map((h) => Number(h.tagName[1]));
+    expect(levels.filter((l) => l === 1).length, `${where}: exactly one h1`).toBe(1);
+    levels.forEach((l, i) => i > 0 && expect(l - levels[i - 1], `${where}: heading ${i} does not skip a level`).toBeLessThanOrEqual(1));
+
+    // every navigation landmark is named, so a screen reader can tell them apart
+    for (const nav of v.doc.querySelectorAll("nav")) expect(nav.getAttribute("aria-label") || nav.getAttribute("aria-labelledby"), `${where}: a nav landmark has a name`).toBeTruthy();
+    // every page image is described; the flipbook announces the page politely, once
+    for (const img of v.doc.querySelectorAll("img")) expect(img.hasAttribute("alt"), `${where}: image has an alt attribute`).toBe(true);
+    expect(v.doc.querySelectorAll('[aria-live="polite"]').length, `${where}: one polite announcer`).toBeGreaterThanOrEqual(1);
+    clean(v.html, where);
+  }
+
+  // on paper only the pages print: the neighbour links and the reader's controls stay on the screen
+  const css = readFileSync("components/views/times.module.css", "utf8");
+  const print = css.slice(css.indexOf("@media print"));
+  expect(print, "a print block exists").toContain("@media print");
+  expect(print, "neighbour links are hidden when printing").toMatch(/\.neighbours\s*\{[^}]*display:\s*none/);
+}, 60_000);
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

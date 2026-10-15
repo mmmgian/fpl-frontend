@@ -264,5 +264,40 @@ it("cleans up what the history server sends and degrades gracefully when it is d
   }
 });
 
+it("history archive typography, temporal order, and accessibility across normal and blotter modes", async () => {
+  // Test 3: History shelf list structure, newest-first temporal ordering, and zero axe violations
+  const { expectNoAxeViolations } = await import("../axe");
+  const world = season("final");
+
+  for (const trip of [false, true]) {
+    const mode = trip ? "blotter" : "normal";
+    testLanguage.trip = trip ? "1" : undefined;
+    install(world);
+
+    const { markup, text } = await renderShelf();
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+
+    // 1. Full axe accessibility audit
+    await expectNoAxeViolations(doc.body);
+
+    // 2. Archive links: newest-first links to saved gameweek snapshots
+    const links = [...doc.querySelectorAll("a[href^='/history/']")];
+    expect(links.length, `${mode}: snapshot links present`).toBeGreaterThan(0);
+    for (const a of links) {
+      expect(a.getAttribute("href"), `${mode}: valid snapshot link`).toMatch(/^\/history\/\d+$/);
+    }
+
+    // 3. Section heading and intro
+    const heading = doc.querySelector("h2");
+    expect(heading, `${mode}: section heading exists`).not.toBeNull();
+
+    // 4. Clean text: no undefined, NaN, or raw code artifacts
+    expect(text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+
+    uninstall();
+    vi.resetModules();
+  }
+});
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

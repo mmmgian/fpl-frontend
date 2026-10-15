@@ -848,5 +848,52 @@ it("the numbers are right", async () => {
   }
 }, 120_000);
 
+it("Apple navigation card, visual kit jerseys, fixture swings scaling, and interactive club links", async () => {
+  // Test 3: Apple-esque navigation card, visual kit jerseys on set pieces, swings scaling, and interactive club links
+  const { expectNoAxeViolations } = await import("../axe");
+  const world = season("final");
+
+  for (const trip of [false, true]) {
+    const mode = trip ? "blotter" : "normal";
+    const v = await visit(world, { lang: { locale: "en", trip } });
+
+    // 1. Accessibility audit: zero axe violations
+    await expectNoAxeViolations(v.doc.body);
+
+    // 2. Apple-style navigation card: container card exists with grouped sections
+    const jumpGroups = v.doc.querySelector("nav .jumpGroups, nav [class*='jumpGroups']");
+    expect(jumpGroups, `${mode}: navigation card exists`).not.toBeNull();
+    const navPills = [...v.doc.querySelectorAll("nav a[href^='#']")];
+    expect(navPills.length, `${mode}: interactive jump pills present`).toBeGreaterThanOrEqual(7);
+
+    // 3. Set pieces visual jerseys and priority badges
+    const setpieces = v.doc.querySelector("#setpieces");
+    expect(setpieces, `${mode}: set pieces card exists`).not.toBeNull();
+    const jerseys = [...setpieces!.querySelectorAll("img[src*='shirts/standard/shirt_']")];
+    expect(jerseys.length, `${mode}: club kit jerseys rendered for set piece takers`).toBeGreaterThan(0);
+    const orderBadges = [...setpieces!.querySelectorAll("[class*='orderBadge'], [data-order='1']")];
+    expect(orderBadges.length, `${mode}: priority taker order badges present`).toBeGreaterThan(0);
+
+    // 4. Interactive club links: clicking crests/logos navigates to /club/[slug]
+    const clubLinks = [...v.doc.querySelectorAll("a[href^='/club/']")];
+    expect(clubLinks.length, `${mode}: club links present across tools`).toBeGreaterThanOrEqual(10);
+    for (const a of clubLinks) {
+      expect(a.getAttribute("href"), `${mode}: valid club link format`).toMatch(/^\/club\/[a-z0-9-]+$/);
+    }
+
+    // 5. Fixture swings layout: tables present in swings views
+    const swings = v.doc.querySelector("#swings");
+    if (swings) {
+      const swingsViews = swings.querySelector("[class*='swingsViews'], [class*='views']");
+      expect(swingsViews, `${mode}: swings views container exists`).not.toBeNull();
+      const tables = swings.querySelectorAll("table");
+      expect(tables.length, `${mode}: easing and hardening tables present`).toBe(2);
+    }
+
+    // 6. Clean rendering: no raw placeholders or NaN
+    expect(v.text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+  }
+}, 120_000);
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

@@ -338,5 +338,39 @@ it("handles rebuilt and messy snapshots, gaps, junk URLs and a history server th
   }
 });
 
+it("historical provenance, snapshot table craft, and accessibility across normal and blotter modes", async () => {
+  // Test 3: Snapshot table semantic craft, team historical links (?gw=), and zero axe violations
+  const { expectNoAxeViolations } = await import("../axe");
+  const world = season("final");
+
+  for (const trip of [false, true]) {
+    const mode = trip ? "blotter" : "normal";
+    testLanguage.trip = trip ? "1" : undefined;
+    install(world);
+
+    const { markup, text } = await openSnapshot("5");
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+
+    // 1. Full axe accessibility audit
+    await expectNoAxeViolations(doc.body);
+
+    // 2. Table semantic integrity
+    const table = doc.querySelector("table");
+    expect(table, `${mode}: snapshot table exists`).not.toBeNull();
+    const headers = [...table!.querySelectorAll("thead th")].map((th) => th.textContent?.trim());
+    expect(headers.length, `${mode}: header columns present`).toBeGreaterThanOrEqual(4);
+
+    // 3. Team links carry ?gw=5
+    const teamLinks = [...doc.querySelectorAll("tbody a[href*='gw=5']")];
+    expect(teamLinks.length, `${mode}: team links preserve historical gameweek parameter`).toBeGreaterThan(0);
+
+    // 4. Clean text: no undefined, NaN, or raw code artifacts
+    expect(text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+
+    uninstall();
+    vi.resetModules();
+  }
+});
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

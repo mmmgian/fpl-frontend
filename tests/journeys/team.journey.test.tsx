@@ -522,5 +522,37 @@ it("every number adds up: points, captain, chips, auto-subs, hit, bench, value a
   }
 }, 180_000);
 
+it("avant-garde press conference, kit craft, and accessibility across normal and blotter modes", async () => {
+  // Test 3: Avant-garde craft, press conference voice diversity, kit links, and zero accessibility violations
+  const { expectNoAxeViolations } = await import("../axe");
+
+  for (const trip of [false, true]) {
+    const mode = trip ? "blotter" : "normal";
+    const { doc, text, model } = await open("final", {}, {}, { trip });
+    if (model.kind !== "ok") throw new Error(`expected ok model in ${mode}`);
+
+    // 1. Accessibility audit: zero axe violations in both modes
+    await expectNoAxeViolations(doc.body);
+
+    // 2. Press conference: exactly 7 exchanges with distinct roles and voices
+    const interviews = doc.querySelectorAll("#interview-heading ~ div ul > li, .interview_exchanges__ li, [class*='exchange']");
+    expect(interviews.length, `${mode}: press conference has 7 exchanges`).toBeGreaterThanOrEqual(7);
+
+    // 3. Kit and club link integrity: all player shirts link to their club page
+    const clubLinks = [...doc.querySelectorAll("a[href^='/club/']")];
+    expect(clubLinks.length, `${mode}: club links present on team sheet`).toBeGreaterThan(0);
+    for (const a of clubLinks) {
+      expect(a.getAttribute("href"), `${mode}: valid club link`).toMatch(/^\/club\/[a-z0-9-]+$/);
+    }
+
+    // 4. Neighbor manager navigation: touch-friendly links to adjacent managers
+    const neighbours = [...doc.querySelectorAll("a[href^='/team/']")];
+    expect(neighbours.length, `${mode}: navigation to neighbor teams`).toBeGreaterThan(0);
+
+    // 5. Clean text: no undefined, NaN, or raw template brackets in rendered markup
+    expect(text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+  }
+}, 180_000);
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

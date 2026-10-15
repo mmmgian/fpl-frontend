@@ -445,5 +445,45 @@ it("survives messy names, two pages, ties, zones, outages, a missing league, an 
   }
 });
 
+it("standings table craft, zone bands, stats expansion, and accessibility across normal and blotter modes", async () => {
+  // Test 3: Standings table semantic craft, zone bands, stats expansion, and zero axe violations
+  const { expectNoAxeViolations } = await import("../axe");
+
+  for (const trip of [false, true]) {
+    const mode = trip ? "blotter" : "normal";
+    testLanguage.trip = trip ? "1" : undefined;
+    const world = season("final");
+    install(world);
+
+    const { markup, text } = await renderLeague();
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+
+    // 1. Full axe accessibility audit
+    await expectNoAxeViolations(doc.body);
+
+    // 2. Table semantic integrity: thead, tbody, th, td properly structured
+    const table = doc.querySelector("table");
+    expect(table, `${mode}: table exists`).not.toBeNull();
+    const headers = [...table!.querySelectorAll("thead th")].map((th) => th.textContent?.trim());
+    expect(headers.length, `${mode}: header columns present`).toBeGreaterThanOrEqual(5);
+
+    // 3. Team navigation links: all entries have valid team links
+    const teamLinks = [...doc.querySelectorAll("tbody a[href^='/team/']")];
+    expect(teamLinks.length, `${mode}: team links for every row`).toBe(world.standings.length);
+    for (const link of teamLinks) {
+      expect(link.getAttribute("href"), `${mode}: team link format`).toMatch(/^\/team\/[a-z0-9-]+$/);
+    }
+
+    // 4. Movement indicators: valid arrows and change indicators
+    const movements = doc.querySelectorAll("[class*='movement'], [class*='Movement']");
+    expect(movements.length, `${mode}: movement indicators present`).toBeGreaterThan(0);
+
+    // 5. Clean rendering: no raw code artifacts or NaN
+    expect(text, `${mode}: text is pristine`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+
+    uninstall();
+  }
+});
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });

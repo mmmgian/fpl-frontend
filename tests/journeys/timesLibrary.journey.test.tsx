@@ -414,5 +414,35 @@ it("the library is right", async () => {
       for (const lang of [EN, { locale: "fr", trip: true } as Lang]) expectClean(await visit(season(phase), { kind, lang }), `[${phase} ${kind ?? "all"} ${nameOf(lang)}]`);
 }, 60_000);
 
+it("masthead, layout balance and accessibility in normal and blotter modes", async () => {
+  // Test 3: one h1 and a sane outline, every issue reachable exactly once from a known address, the filters honest,
+  // zero axe violations, and nothing unrendered, in both the normal and the altered view.
+  const { expectNoAxeViolations } = await import("../axe");
+  const ids = new Set(LIBRARY.map((i) => i.id));
+  for (const lang of [EN, { locale: "en", trip: true } as Lang]) {
+    const where = nameOf(lang);
+    const v = await visit(season("final"), { lang });
+    await expectNoAxeViolations(v.doc.body);
+
+    // the outline: one h1 (the nameplate), and headings never skip a level
+    const levels = [...v.doc.querySelectorAll("h1, h2, h3, h4")].map((h) => Number(h.tagName[1]));
+    expect(levels.filter((l) => l === 1).length, `${where}: exactly one h1`).toBe(1);
+    levels.forEach((l, i) => i > 0 && expect(l - levels[i - 1], `${where}: heading ${i} does not skip a level`).toBeLessThanOrEqual(1));
+
+    // every address on the page is an issue we know, and every issue is reachable
+    const issueHrefs = [...v.doc.querySelectorAll("a[href^='/times/']")].map((a) => a.getAttribute("href")!.replace(/^\/times\//, "").split(/[?#]/)[0]);
+    for (const id of issueHrefs) expect(ids.has(id), `${where}: /times/${id} is a real issue`).toBe(true);
+    for (const id of ids) expect(issueHrefs.includes(id), `${where}: ${id} can be opened`).toBe(true);
+
+    // the type filters: one link per kind present plus "all", each pointing at ?kind= of that kind
+    const kinds = [...v.doc.querySelectorAll("a[href*='kind=']")].map((a) => new URL(a.getAttribute("href")!, "https://x.test").searchParams.get("kind"));
+    for (const k of kinds) expect(ISSUE_KINDS as readonly string[], `${where}: filter kind ${k} is a real kind`).toContain(k);
+
+    // images carry a text alternative (empty alt only on decoration), and no markup leaks into visible text
+    for (const img of v.doc.querySelectorAll("img")) expect(img.hasAttribute("alt"), `${where}: image has an alt attribute`).toBe(true);
+    expect(v.text, `${where}: nothing unrendered`).not.toMatch(/undefined|NaN|\[object|\{\{/);
+  }
+}, 60_000);
+
 // Each journey walks a whole page through many moments; give it room when the machine is busy.
 vi.setConfig({ testTimeout: 120_000 });
